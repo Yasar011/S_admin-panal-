@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Club Control | SPECTRUM '26</title>
+    <title>Spectrum '26 | Command Center</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- FIREBASE -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
@@ -25,292 +27,365 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
     </script>
+
+    <style>
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        
+        .view-section { display: none; height: 100vh; flex-direction: column; }
+        .view-section.active { display: flex; }
+        
+        aside { background: #0f172a; border-right: 1px solid #1e293b; }
+        .nav-item { display: flex; items: center; gap: 10px; padding: 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; color: #94a3b8; transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: #1e293b; color: white; }
+        
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+        th { text-align: left; padding: 12px; background: #0f172a; color: #64748b; font-size: 11px; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #334155; font-size: 13px; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge-green { background: #064e3b; color: #34d399; }
+        .badge-yellow { background: #451a03; color: #fbbf24; }
+        .badge-red { background: #450a0a; color: #f87171; }
+        .badge-blue { background: #1e3a8a; color: #60a5fa; }
+        .badge-none { background: #1f2937; color: #9ca3af; }
+        
+        .animate-in { animation: fadeUp 0.5s ease-out forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-black text-gray-200 font-sans">
+<body onload="initSystem()">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 z-50 bg-black flex items-center justify-center">
-        <div class="bg-zinc-900 p-8 rounded-lg border border-zinc-700 w-96 shadow-2xl relative">
-            <h2 class="text-2xl font-bold text-white mb-6 uppercase tracking-widest text-center">Club Access</h2>
-            <input id="club-user" type="text" placeholder="Club Username" class="w-full bg-black border border-zinc-700 p-3 rounded mb-4 text-white">
-            <input id="club-pass" type="password" placeholder="Password" class="w-full bg-black border border-zinc-700 p-3 rounded mb-6 text-white">
-            <button onclick="clubLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 mb-4">ENTER CONSOLE</button>
-            
-            <div class="border-t border-zinc-700 pt-4 text-center">
-                <a href="admin.html" class="text-xs text-gray-500 hover:text-white uppercase font-bold tracking-wider flex items-center justify-center gap-1">
-                    <i data-lucide="shield" class="w-3 h-3"></i> Admin Login
-                </a>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="view-login" class="view-section active items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
+        <div class="bg-slate-900 p-8 rounded-xl border border-slate-700 w-full max-w-sm shadow-2xl animate-in">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white tracking-widest">COMMAND</h1>
+                <p class="text-xs text-pink-500 font-mono mt-1">SPECTRUM '26 CENTRAL</p>
+            </div>
+            <div class="space-y-4">
+                <input id="login-user" type="text" placeholder="Username" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
+                <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
+                <button onclick="handleLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">AUTHENTICATE</button>
+            </div>
+            <p id="login-status" class="text-center text-xs text-red-500 mt-4 h-4"></p>
+        </div>
+    </div>
+
+    <!-- 2. SUPER ADMIN DASHBOARD -->
+    <div id="view-admin" class="view-section flex-row">
+        <!-- Admin Sidebar -->
+        <aside class="w-64 flex flex-col p-4">
+            <div class="mb-8 px-2">
+                <h1 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shield-alert" class="text-pink-600"></i> MASTER</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROOT ACCESS</p>
+            </div>
+            <div class="flex-1 space-y-1">
+                <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
+                <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
+                <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Staff & Clubs</div>
+                <div class="nav-item" onclick="showAdminTab('approvals')"><i data-lucide="check-circle" class="w-4 h-4"></i> Approvals <span id="badge-approve" class="ml-auto bg-red-600 text-[9px] px-2 rounded-full hidden">!</span></div>
+                <div class="nav-item" onclick="showAdminTab('promos')"><i data-lucide="ticket" class="w-4 h-4"></i> Promo Codes</div>
+                <div class="nav-item" onclick="showAdminTab('updates')"><i data-lucide="radio" class="w-4 h-4"></i> Updates</div>
+            </div>
+            <button onclick="logout()" class="mt-auto border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors">LOGOUT</button>
+        </aside>
+
+        <!-- Admin Content -->
+        <main class="flex-1 overflow-y-auto p-8 bg-slate-950">
+            <!-- Dashboard Tab -->
+            <div id="tab-dashboard" class="animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Live Overview</h2>
+                <div class="grid grid-cols-4 gap-6 mb-8">
+                    <div class="card"><p class="text-slate-400 text-xs uppercase">Users</p><h3 id="stat-users" class="text-3xl font-bold text-white">0</h3></div>
+                    <div class="card"><p class="text-xs text-slate-400 uppercase">Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400">₹0</h3></div>
+                    <div class="card"><p class="text-xs text-slate-400 uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
+                    <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
+                </div>
+            </div>
+
+            <!-- Users Tab (UPDATED WITH EDIT BUTTON) -->
+            <div id="tab-users" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Registrations</h2>
+                    <input type="text" id="search-user" placeholder="Search Name/ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                </div>
+                <div class="card p-0 overflow-x-auto">
+                    <table class="w-full">
+                        <thead><tr><th>User Info</th><th>Pass</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead>
+                        <tbody id="user-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Staff Tab -->
+            <div id="tab-staff" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Staff Access</h2>
+                <div class="card mb-8">
+                    <h3 class="font-bold text-white mb-4">Create New Login</h3>
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Username</label><input id="new-staff-user" placeholder="e.g. gate_1" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Password</label><input id="new-staff-pass" placeholder="Password" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <div class="flex-1">
+                            <label class="text-xs text-slate-500 mb-1 block">Role</label>
+                            <select id="new-staff-role" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm">
+                                <option value="admin">Admin</option>
+                                <option value="gate">Gate Security</option>
+                                <option value="culture">Culture Club</option>
+                                <option value="sports">Sports Club</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="tech">Tech Club</option>
+                                <option value="lit">Lit Club</option>
+                                <option value="photo">Photo Club</option>
+                                <option value="essc">ESSC Club</option>
+                            </select>
+                        </div>
+                        <button onclick="createStaff()" class="bg-pink-600 text-white px-6 py-2 rounded text-sm font-bold hover:bg-pink-700 h-[38px]">ADD STAFF</button>
+                    </div>
+                </div>
+                <div class="card p-0"><table class="w-full"><thead><tr><th>User</th><th>Pass</th><th>Role</th><th>Action</th></tr></thead><tbody id="staff-table-body"></tbody></table></div>
+            </div>
+
+            <!-- Approvals Tab -->
+            <div id="tab-approvals" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Event Start Requests</h2>
+                <div id="approval-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Promo Codes Tab -->
+            <div id="tab-promos" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Promo Codes</h2>
+                <div class="card mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <div><label class="text-xs text-slate-400 block mb-1">Code</label><input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase"></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Discount</label><input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Type</label><select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Limit</label><input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold">Create</button>
+                    </div>
+                </div>
+                <div class="card p-0"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
+            </div>
+
+            <!-- Updates Tab -->
+            <div id="tab-updates" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Push Notifications</h2>
+                <div class="card">
+                    <textarea id="update-msg" class="w-full bg-slate-900 border border-slate-700 p-4 rounded text-white mb-4" placeholder="Type notification message..."></textarea>
+                    <button onclick="pushUpdate()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold w-full hover:bg-blue-700">BROADCAST TO WEBSITE</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- USER EDIT MODAL (POPUP) -->
+    <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg w-full max-w-lg shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Edit User</h2>
+                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            <div class="space-y-4">
+                <input type="hidden" id="edit-key">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs text-slate-500">Name</label><input id="edit-name" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                    <div><label class="text-xs text-slate-500">Phone</label><input id="edit-phone" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                </div>
+                <div><label class="text-xs text-slate-500">Email</label><input id="edit-email" class="w-full bg-black border border-slate-800 p-2 rounded text-gray-500 text-sm" readonly></div>
+                <div><label class="text-xs text-slate-500">College Name</label><input id="edit-college" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs text-slate-500">Pass</label><select id="edit-pass" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="General">General</option><option value="Standard">Standard</option><option value="Neon Pulse">Neon Pulse</option><option value="Vogue Gala">Vogue Gala</option></select></div>
+                    <div><label class="text-xs text-slate-500">Status</label><select id="edit-status" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="Pending">Pending</option><option value="Verified">Verified</option><option value="None">None</option></select></div>
+                </div>
+                <div><label class="text-xs text-slate-500">UTR</label><input id="edit-utr" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                <div class="p-3 bg-black border border-slate-800 rounded"><p class="text-xs text-slate-500">Spectrum ID</p><p id="edit-spectrum-id" class="text-pink-500 font-mono font-bold">---</p></div>
+                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">SAVE CHANGES</button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboard" class="hidden min-h-screen">
-        <nav class="bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-40">
-            <div class="font-bold text-xl text-white flex items-center gap-2">
-                <i data-lucide="zap" class="text-pink-500"></i>
-                <span id="club-name-display">CLUB</span> PANEL
-            </div>
-            <button onclick="location.reload()" class="text-xs text-red-500 font-bold border border-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white">LOGOUT</button>
-        </nav>
-
-        <div class="p-6 max-w-5xl mx-auto">
-            <h2 class="text-2xl font-bold text-white mb-6">Your Events</h2>
-            <div id="events-container" class="grid grid-cols-1 gap-6">
-                <!-- Events Load Here -->
-                <div class="text-center text-gray-500 animate-pulse">Loading Events...</div>
+    <!-- 3. CLUB MANAGER & 4. GATE (Simplified for length) -->
+    <div id="view-gate" class="view-section items-center justify-center bg-black">
+        <div class="w-full max-w-md p-4 animate-in">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-2xl">
+                <div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="scan"></i> GATE</h2><button onclick="logout()" class="text-xs text-red-500">EXIT</button></div>
+                <input id="gate-input" type="text" placeholder="ID" class="w-full bg-black border-slate-700 p-4 text-center text-white mb-4 uppercase text-2xl tracking-widest outline-none">
+                <button onclick="gateVerify()" class="w-full bg-blue-600 text-white font-bold py-4 rounded hover:bg-blue-700">VERIFY</button>
+                <div id="gate-result" class="hidden text-center p-6 rounded border-2 mt-4"></div>
             </div>
         </div>
     </div>
-
-    <!-- ATTENDANCE MODAL -->
-    <div id="attendance-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
-        <div class="bg-zinc-900 p-6 rounded-lg w-full max-w-md border border-zinc-700">
-            <div class="flex justify-between mb-4">
-                <h3 class="text-xl font-bold text-white">Verify Participant</h3>
-                <button onclick="closeModal('attendance-modal')"><i data-lucide="x"></i></button>
-            </div>
-            <p class="text-xs text-gray-400 mb-4">Scan QR or Enter Spectrum ID</p>
-            <input id="verify-id" type="text" placeholder="NIFTXXXXXX" class="w-full bg-black border border-zinc-700 p-4 text-center text-xl font-mono text-white mb-4 uppercase">
-            <button onclick="verifyParticipant()" class="w-full bg-blue-600 text-white font-bold py-3 rounded">CHECK ACCESS</button>
-            <div id="verify-result" class="mt-4 text-center font-bold"></div>
-        </div>
-    </div>
-
-    <!-- WINNER MODAL -->
-    <div id="winner-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
-        <div class="bg-zinc-900 p-6 rounded-lg w-full max-w-md border border-zinc-700">
-            <h3 class="text-xl font-bold text-white mb-2">Declare Results</h3>
-            <p class="text-xs text-red-500 mb-4">Warning: This ends the event permanently.</p>
-            <div class="space-y-3">
-                <input id="win-1" placeholder="1st Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
-                <input id="win-2" placeholder="2nd Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
-                <input id="win-3" placeholder="3rd Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
-            </div>
-            <button onclick="submitWinners()" class="w-full bg-green-600 text-white font-bold py-3 rounded mt-6">PUBLISH RESULTS</button>
-            <button onclick="closeModal('winner-modal')" class="w-full bg-transparent border border-zinc-600 text-gray-400 py-2 rounded mt-2">Cancel</button>
-        </div>
+    <div id="view-club" class="view-section">
+        <nav class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center"><div class="font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-pink-500"></i> <span id="club-display-name">CLUB</span></div><button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOGOUT</button></nav>
+        <div class="p-8 max-w-5xl mx-auto animate-in"><h2 class="text-2xl font-bold text-white mb-6">Manage Events</h2><div id="club-events-container" class="grid grid-cols-1 gap-4"></div></div>
     </div>
 
     <script>
-        let currentClub = null;
-        let selectedEventId = null;
+        let currentUserRole = null; let currentClubCode = null; let allUsers = [];
 
-        document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
-
-        // 1. LOGIN
-        function clubLogin() {
-            const u = document.getElementById('club-user').value;
-            const p = document.getElementById('club-pass').value;
-
-            if(!u || !p) return alert("Enter credentials");
-
-            // Fetch credentials from Firebase 'club_auth' node
-            db.ref('club_auth/' + u).once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (data && data.password === p) {
-                    currentClub = data.club_code; // e.g., 'culture', 'sports'
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('dashboard').classList.remove('hidden');
-                    document.getElementById('club-name-display').innerText = u.toUpperCase();
-                    loadEvents();
-                } else {
-                    alert("Invalid Username or Password");
-                }
-            }).catch(e => {
-                console.error(e);
-                alert("Connection Error. Check Internet.");
+        function initSystem() {
+            lucide.createIcons();
+            // Self Healing Admin
+            db.ref('club_auth/C H').once('value', s => {
+                if(!s.exists()) db.ref('club_auth/C H').set({ password: "Yasar", role: "admin", club_code: "all" });
             });
         }
 
-        // 2. LOAD EVENTS
-        function loadEvents() {
-            const container = document.getElementById('events-container');
-            // This list MUST match the Main Website's Event Data to sync correctly
-            const events = [
-                { id: 1, club: 'culture', title: 'Street Battle' },
-                { id: 2, club: 'culture', title: 'Solo Singing' },
-                { id: 3, club: 'culture', title: 'Runway Rivals' },
-                { id: 4, club: 'entertainment', title: 'Battle of Bands' },
-                { id: 5, club: 'entertainment', title: 'EDM Night' },
-                { id: 6, club: 'sports', title: 'Valorant' },
-                { id: 7, club: 'sports', title: 'FIFA 26' },
-                { id: 8, club: 'sports', title: 'Box Cricket' },
-                { id: 9, club: 'photo', title: 'Photo Walk' },
-                { id: 10, club: 'photo', title: 'Treasure Hunt' },
-                { id: 11, club: 'lit', title: 'Debate War' },
-                { id: 12, club: 'lit', title: 'Open Mic' },
-                { id: 13, club: 'essc', title: 'Eco Drive' },
-                // Add-ons
-                { id: 101, club: 'entertainment', title: 'EDM Add-on (Pass Holder)' },
-                { id: 102, club: 'entertainment', title: 'Fashion Add-on (Pass Holder)' }
-            ];
+        // --- AUTH ---
+        function handleLogin() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            const status = document.getElementById('login-status');
+            if(!u || !p) { status.innerText = "Enter Credentials"; return; }
 
-            const myEvents = events.filter(e => e.club === currentClub);
+            db.ref('club_auth/' + u).once('value').then(snap => {
+                const data = snap.val();
+                if(data && data.password === p) {
+                    currentUserRole = data.role; currentClubCode = data.club_code;
+                    document.getElementById('view-login').classList.remove('active');
+                    if (data.role === 'admin' || data.club_code === 'all') { document.getElementById('view-admin').classList.add('active'); initAdminPanel(); }
+                    else if (data.role === 'gate') { document.getElementById('view-gate').classList.add('active'); }
+                    else { document.getElementById('view-club').classList.add('active'); document.getElementById('club-display-name').innerText = u.toUpperCase(); initClubPanel(); }
+                } else status.innerText = "Invalid Credentials";
+            }).catch(e => status.innerText = "Error");
+        }
+        function logout() { location.reload(); }
+
+        // --- ADMIN PANEL ---
+        function initAdminPanel() {
+            db.ref('users').on('value', snap => {
+                const data = snap.val(); if(!data) return;
+                allUsers = Object.entries(data).map(([k,v]) => ({...v, key:k}));
+                // Stats
+                document.getElementById('stat-users').innerText = allUsers.length;
+                document.getElementById('stat-checkedin').innerText = allUsers.filter(u => u.checkedIn).length;
+                let rev = 0; allUsers.forEach(u => rev += parseInt(u.order?.total || 0));
+                document.getElementById('stat-revenue').innerText = "₹" + rev.toLocaleString();
+                document.getElementById('stat-pending').innerText = allUsers.filter(u => u.paymentStatus === 'Pending').length;
+                renderUsers();
+            });
+            // Other Listeners
+            db.ref('club_auth').on('value', snap => renderStaff(snap.val()));
+            db.ref('events_status').on('value', snap => renderApprovals(snap.val()));
+            db.ref('promos').on('value', snap => renderPromos(snap.val()));
+        }
+
+        // 1. RENDER USERS & ACTIONS
+        function renderUsers() {
+            const tbody = document.getElementById('user-table-body'); tbody.innerHTML = "";
+            const search = document.getElementById('search-user').value.toLowerCase();
+            const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search) || u.utr?.includes(search)));
+            
+            filtered.forEach(u => {
+                const status = u.paymentStatus;
+                const checkIn = u.checkedIn ? '<span class="badge badge-green">IN</span>' : '<span class="badge badge-none">OUT</span>';
+                let verifyBtn = status === 'Pending' ? `<button onclick="verifyUser('${u.key}','${u.name}')" class="bg-green-600 px-2 py-1 rounded text-xs text-white">Verify</button>` : ``;
+                
+                // ADDED EDIT BUTTON HERE
+                tbody.innerHTML += `<tr>
+                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400">${u.spectrumId || 'No ID'}</div></td>
+                    <td>${u.order?.pass || '-'}</td>
+                    <td>${checkIn}</td>
+                    <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${u.utr||''}</span></td>
+                    <td class="flex gap-2 items-center">
+                        ${verifyBtn}
+                        <button onclick="openEditModal('${u.key}')" class="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs">Edit</button>
+                        <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`;
+            });
+            lucide.createIcons();
+        }
+
+        function openEditModal(key) {
+            const u = allUsers.find(user => user.key === key);
+            document.getElementById('edit-key').value = key;
+            document.getElementById('edit-name').value = u.name;
+            document.getElementById('edit-phone').value = u.phone;
+            document.getElementById('edit-email').value = u.email;
+            document.getElementById('edit-college').value = u.collegeName || '';
+            document.getElementById('edit-spectrum-id').innerText = u.spectrumId || 'N/A';
+            document.getElementById('edit-utr').value = u.utr || '';
+            document.getElementById('edit-pass').value = u.order?.pass || 'General';
+            document.getElementById('edit-status').value = u.paymentStatus;
+            document.getElementById('edit-user-modal').classList.remove('hidden');
+        }
+
+        function saveUserChanges() {
+            const key = document.getElementById('edit-key').value;
+            const updates = {
+                name: document.getElementById('edit-name').value,
+                phone: document.getElementById('edit-phone').value,
+                collegeName: document.getElementById('edit-college').value,
+                utr: document.getElementById('edit-utr').value,
+                paymentStatus: document.getElementById('edit-status').value,
+                "order/pass": document.getElementById('edit-pass').value
+            };
+            db.ref('users/' + key).update(updates).then(() => { alert("Saved!"); closeEditModal(); });
+        }
+        function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
+
+        // --- OTHER HELPERS ---
+        function renderStaff(data) {
+            const b=document.getElementById('staff-table-body'); b.innerHTML=""; 
+            if(data) Object.entries(data).forEach(([k,v])=>{ b.innerHTML+=`<tr><td class="font-bold text-white">${k}</td><td class="font-mono text-slate-400">${v.password}</td><td>${v.role||v.club_code}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button></td></tr>`; });
+            lucide.createIcons();
+        }
+        function renderApprovals(data) {
+            const l=document.getElementById('approval-list'); l.innerHTML=""; let c=0;
+            if(data) Object.entries(data).forEach(([id,ev])=>{ if(ev.status==='pending_approval'){ c++; l.innerHTML+=`<div class="bg-slate-800 p-4 rounded flex justify-between"><div><h4 class="text-white">Event ${id}</h4><p class="text-xs text-yellow-500">${ev.budget_request}</p></div><button onclick="approveEv('${id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs">APPROVE</button></div>`; } });
+            if(c>0){document.getElementById('badge-approve').innerText=c; document.getElementById('badge-approve').classList.remove('hidden');} else document.getElementById('badge-approve').classList.add('hidden');
+        }
+        function renderPromos(data) {
+            const b = document.getElementById('promo-body'); b.innerHTML="";
+            if(data) Object.entries(data).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="delPromo('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; });
+            lucide.createIcons();
+        }
+        
+        // Actions
+        function showAdminTab(id) { ['dashboard','users','promos','staff','approvals','updates'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function verifyUser(k, n) { if(confirm("Verify "+n+"?")) db.ref('users/'+k).update({paymentStatus:"Verified"}); }
+        function delUser(k) { if(confirm("Delete?")) db.ref('users/'+k).remove(); }
+        function createStaff() { const u=document.getElementById('new-staff-user').value,p=document.getElementById('new-staff-pass').value,r=document.getElementById('new-staff-role').value; if(!u)return; let c=r; if(r==='admin')c='all'; if(r==='gate')c='gate_access'; db.ref('club_auth/'+u).set({password:p,role:r,club_code:c}).then(()=>{alert("Created");}); }
+        function delStaff(u) { if(u!=='C H' && confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
+        function createPromo() { const c=document.getElementById('p-code').value.toUpperCase(), v=document.getElementById('p-val').value, t=document.getElementById('p-type').value, l=document.getElementById('p-limit').value; if(c&&v) db.ref('promos/'+c).set({discount:parseInt(v), type:t, limit:parseInt(l), used:0}).then(()=>alert("Created")); }
+        function delPromo(k) { if(confirm("Delete?")) db.ref('promos/'+k).remove(); }
+        function pushUpdate() { const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
+        function approveEv(id) { db.ref('events_status/'+id).update({status:'live'}); }
+        
+        // GATE
+        function gateVerify() {
+            const id=document.getElementById('gate-input').value.toUpperCase().trim(); const res=document.getElementById('gate-result');
+            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s=>{
+                if(!s.exists()){ res.innerHTML="<span class='text-red-500 font-bold'>INVALID</span>"; res.className="p-4 border-2 border-red-600 bg-red-900/50 block text-center rounded mt-4"; return; }
+                const u=Object.values(s.val())[0]; const k=Object.keys(s.val())[0];
+                if(u.paymentStatus==='Verified') {
+                    if(!u.checkedIn){ db.ref('users/'+k).update({checkedIn:true}); res.innerHTML=`<h1 class='text-green-400 font-bold text-2xl'>WELCOME</h1><p class='text-white'>${u.name}</p>`; res.className="p-4 border-2 border-green-600 bg-green-900/50 block text-center rounded mt-4"; }
+                    else{ res.innerHTML=`<h1 class='text-blue-400 font-bold text-2xl'>ALREADY IN</h1><p class='text-white'>${u.name}</p>`; res.className="p-4 border-2 border-blue-600 bg-blue-900/50 block text-center rounded mt-4"; }
+                } else { res.innerHTML=`<h1 class='text-yellow-500 font-bold'>PENDING</h1>`; res.className="p-4 border-2 border-yellow-600 bg-yellow-900/50 block text-center rounded mt-4"; }
+                res.classList.remove('hidden');
+            });
+        }
+        
+        // CLUB LOGIC
+        function initClubPanel() {
+            const container = document.getElementById('club-events-container');
+            const events = [ {id:1,club:'culture',title:'Street Battle'},{id:2,club:'culture',title:'Solo Singing'},{id:3,club:'culture',title:'Runway Rivals'},{id:4,club:'entertainment',title:'Battle of Bands'},{id:5,club:'entertainment',title:'EDM Night'},{id:6,club:'sports',title:'Valorant'},{id:7,club:'sports',title:'FIFA 26'},{id:8,club:'sports',title:'Box Cricket'},{id:9,club:'photo',title:'Photo Walk'},{id:10,club:'photo',title:'Treasure Hunt'},{id:11,club:'lit',title:'Debate War'},{id:12,club:'lit',title:'Open Mic'},{id:13,club:'essc',title:'Eco Drive'},{id:101,club:'entertainment',title:'EDM Add-on'},{id:102,club:'entertainment',title:'Fashion Add-on'} ];
+            const myEvents = events.filter(e => e.club === currentClubCode);
             container.innerHTML = "";
-
-            if (myEvents.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-500">No events assigned to this club code: ${currentClub}</div>`;
-                return;
-            }
-
             myEvents.forEach(e => {
-                // Check Firebase for live status
-                db.ref('events_status/' + e.id).on('value', (snapshot) => {
-                    const statusData = snapshot.val() || { status: 'upcoming' };
-                    const status = statusData.status; 
-                    
-                    let actionBtn = "";
-                    let statusBadge = `<span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs font-bold">UPCOMING</span>`;
-
-                    if (status === 'upcoming') {
-                        actionBtn = `<button onclick="requestStart(${e.id})" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded font-bold text-xs">REQUEST START</button>`;
-                    } else if (status === 'pending_approval') {
-                        statusBadge = `<span class="bg-yellow-900 text-yellow-200 px-2 py-1 rounded text-xs font-bold">PENDING ADMIN</span>`;
-                        actionBtn = `<span class="text-xs text-gray-500 animate-pulse">Waiting for Admin...</span>`;
-                    } else if (status === 'live') {
-                        statusBadge = `<span class="bg-green-900 text-green-200 px-2 py-1 rounded text-xs font-bold animate-pulse">● LIVE</span>`;
-                        actionBtn = `
-                            <div class="flex gap-2">
-                                <button onclick="openAttendance(${e.id})" class="bg-zinc-700 hover:bg-white hover:text-black text-white px-4 py-2 rounded font-bold text-xs"><i data-lucide="scan-line" class="inline w-3 h-3"></i> VERIFY</button>
-                                <button onclick="openWinners(${e.id})" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold text-xs">END EVENT</button>
-                            </div>`;
-                    } else if (status === 'ended') {
-                        statusBadge = `<span class="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs font-bold">ENDED</span>`;
-                        actionBtn = `<span class="text-xs text-gray-500">Results Published</span>`;
-                    }
-
-                    // Render Card
-                    const cardHtml = `
-                        <div class="bg-zinc-800 border border-zinc-700 p-6 rounded flex justify-between items-center">
-                            <div>
-                                <h3 class="text-xl font-bold text-white">${e.title}</h3>
-                                <div class="mt-2 flex items-center gap-3">
-                                    ${statusBadge}
-                                    <span class="text-xs text-gray-400">ID: ${e.id}</span>
-                                </div>
-                            </div>
-                            <div>${actionBtn}</div>
-                        </div>
-                    `;
-                    
-                    let existing = document.getElementById(`event-card-${e.id}`);
-                    if (existing) existing.outerHTML = cardHtml; // Update existing
-                    else {
-                         const div = document.createElement('div');
-                         div.id = `event-card-${e.id}`;
-                         div.innerHTML = cardHtml;
-                         container.appendChild(div); // Add new
-                         lucide.createIcons();
-                    }
+                db.ref('events_status/'+e.id).on('value', s => {
+                    const st = s.val()?.status || 'upcoming';
+                    let btn = `<button onclick="reqStart(${e.id})" class="bg-pink-600 text-white px-3 py-1 rounded text-xs font-bold">START</button>`;
+                    if(st==='pending_approval') btn = `<span class="text-yellow-500 text-xs">Waiting...</span>`;
+                    if(st==='live') btn = `<span class="text-green-500 text-xs animate-pulse">LIVE</span>`;
+                    container.innerHTML += `<div class="bg-slate-800 p-4 rounded border border-slate-700 flex justify-between items-center text-white"><span>${e.title}</span> ${btn}</div>`;
                 });
             });
         }
+        function reqStart(id){ const b=prompt("Budget?"); if(b) db.ref('events_status/'+id).update({status:'pending_approval', budget_request:b}); }
 
-        // 3. ACTIONS
-        function requestStart(id) {
-            const budget = prompt("Enter required budget/resources for this event:");
-            if(budget === null) return;
-            
-            db.ref('events_status/' + id).update({
-                status: "pending_approval",
-                budget_request: budget,
-                timestamp: new Date().toISOString()
-            });
-            alert("Request sent to Admin!");
-        }
-
-        function openAttendance(id) {
-            selectedEventId = id;
-            document.getElementById('attendance-modal').classList.remove('hidden');
-            document.getElementById('verify-result').innerHTML = "";
-            document.getElementById('verify-id').value = "";
-            document.getElementById('verify-id').focus();
-        }
-
-        function verifyParticipant() {
-            const sid = document.getElementById('verify-id').value.toUpperCase().trim();
-            const resDiv = document.getElementById('verify-result');
-            
-            if(!sid) return;
-            resDiv.innerHTML = "<span class='text-yellow-500'>Searching...</span>";
-
-            // Find user by SpectrumID
-            db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(snapshot => {
-                if(!snapshot.exists()) {
-                    resDiv.innerHTML = "<span class='text-red-500 text-2xl font-bold'>INVALID ID</span>";
-                    return;
-                }
-                
-                // Get the first match
-                const userData = Object.values(snapshot.val())[0];
-                
-                // --- ACCESS LOGIC ---
-                let hasAccess = false;
-                let accessReason = "";
-
-                // 1. Check Pass Type
-                if (userData.order && userData.order.pass === "Standard") {
-                    hasAccess = true; // Simplified: Standard gets access (Assuming first 2 free logic handled at purchase)
-                    accessReason = "Standard Pass";
-                }
-                
-                // 2. Check Specific Event Purchase
-                if (userData.order && userData.order.events) {
-                    // Check if event ID exists in their purchased list
-                    const purchased = userData.order.events.some(ev => ev.id == selectedEventId);
-                    if (purchased) {
-                        hasAccess = true;
-                        accessReason = "Direct Purchase";
-                    }
-                }
-                
-                // 3. Special Passes
-                if (userData.order.pass === "Neon Pulse" && selectedEventId == 5) { hasAccess = true; accessReason = "Neon Pulse Pass"; } // EDM
-                if (userData.order.pass === "Vogue Gala" && selectedEventId == 3) { hasAccess = true; accessReason = "Vogue Gala Pass"; } // Fashion
-
-                if(hasAccess) {
-                    resDiv.innerHTML = `
-                        <div class="bg-green-900/50 border border-green-500 p-4 rounded mt-2 animate-pulse">
-                            <h2 class="text-3xl font-bold text-green-400">ACCESS GRANTED</h2>
-                            <p class="text-white text-lg">${userData.name}</p>
-                            <p class="text-xs text-gray-300 font-mono">${userData.collegeName}</p>
-                            <span class="bg-green-800 text-xs px-2 py-1 rounded mt-2 inline-block">${accessReason}</span>
-                        </div>`;
-                } else {
-                    resDiv.innerHTML = `
-                        <div class="bg-red-900/50 border border-red-500 p-4 rounded mt-2">
-                            <h2 class="text-3xl font-bold text-red-500">ACCESS DENIED</h2>
-                            <p class="text-white">Ticket not found for this event.</p>
-                            <p class="text-xs text-gray-400">Pass: ${userData.order.pass}</p>
-                        </div>`;
-                }
-            });
-        }
-
-        function openWinners(id) {
-            selectedEventId = id;
-            document.getElementById('winner-modal').classList.remove('hidden');
-        }
-
-        function submitWinners() {
-            const w1 = document.getElementById('win-1').value;
-            const w2 = document.getElementById('win-2').value;
-            const w3 = document.getElementById('win-3').value;
-
-            if(!w1) return alert("Enter at least 1st place");
-
-            if(confirm("Confirm Results? This will close the event.")) {
-                db.ref('events_status/' + selectedEventId).update({
-                    status: 'ended',
-                    winners: { 1: w1, 2: w2, 3: w3 }
-                });
-                closeModal('winner-modal');
-            }
-        }
-
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
+        document.getElementById('search-user').addEventListener('input', renderUsers);
     </script>
 </body>
 </html>
