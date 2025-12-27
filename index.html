@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Control | SPECTRUM '26</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+</head>
+<body class="bg-black text-gray-200 font-sans">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-black flex items-center justify-center">
+        <div class="bg-zinc-900 p-8 rounded-lg border border-zinc-700 w-96 shadow-2xl relative">
+            <h2 class="text-2xl font-bold text-white mb-6 uppercase tracking-widest text-center">Club Access</h2>
+            <input id="club-user" type="text" placeholder="Club Username" class="w-full bg-black border border-zinc-700 p-3 rounded mb-4 text-white">
+            <input id="club-pass" type="password" placeholder="Password" class="w-full bg-black border border-zinc-700 p-3 rounded mb-6 text-white">
+            <button onclick="clubLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 mb-4">ENTER CONSOLE</button>
+            
+            <div class="border-t border-zinc-700 pt-4 text-center">
+                <a href="admin.html" class="text-xs text-gray-500 hover:text-white uppercase font-bold tracking-wider flex items-center justify-center gap-1">
+                    <i data-lucide="shield" class="w-3 h-3"></i> Admin Login
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboard" class="hidden min-h-screen">
+        <nav class="bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-40">
+            <div class="font-bold text-xl text-white flex items-center gap-2">
+                <i data-lucide="zap" class="text-pink-500"></i>
+                <span id="club-name-display">CLUB</span> PANEL
+            </div>
+            <button onclick="location.reload()" class="text-xs text-red-500 font-bold border border-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white">LOGOUT</button>
+        </nav>
+
+        <div class="p-6 max-w-5xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-6">Your Events</h2>
+            <div id="events-container" class="grid grid-cols-1 gap-6">
+                <!-- Events Load Here -->
+                <div class="text-center text-gray-500 animate-pulse">Loading Events...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATTENDANCE MODAL -->
+    <div id="attendance-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
+        <div class="bg-zinc-900 p-6 rounded-lg w-full max-w-md border border-zinc-700">
+            <div class="flex justify-between mb-4">
+                <h3 class="text-xl font-bold text-white">Verify Participant</h3>
+                <button onclick="closeModal('attendance-modal')"><i data-lucide="x"></i></button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4">Scan QR or Enter Spectrum ID</p>
+            <input id="verify-id" type="text" placeholder="NIFTXXXXXX" class="w-full bg-black border border-zinc-700 p-4 text-center text-xl font-mono text-white mb-4 uppercase">
+            <button onclick="verifyParticipant()" class="w-full bg-blue-600 text-white font-bold py-3 rounded">CHECK ACCESS</button>
+            <div id="verify-result" class="mt-4 text-center font-bold"></div>
+        </div>
+    </div>
+
+    <!-- WINNER MODAL -->
+    <div id="winner-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
+        <div class="bg-zinc-900 p-6 rounded-lg w-full max-w-md border border-zinc-700">
+            <h3 class="text-xl font-bold text-white mb-2">Declare Results</h3>
+            <p class="text-xs text-red-500 mb-4">Warning: This ends the event permanently.</p>
+            <div class="space-y-3">
+                <input id="win-1" placeholder="1st Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
+                <input id="win-2" placeholder="2nd Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
+                <input id="win-3" placeholder="3rd Place (Name/ID)" class="w-full bg-black border border-zinc-700 p-2 rounded text-white">
+            </div>
+            <button onclick="submitWinners()" class="w-full bg-green-600 text-white font-bold py-3 rounded mt-6">PUBLISH RESULTS</button>
+            <button onclick="closeModal('winner-modal')" class="w-full bg-transparent border border-zinc-600 text-gray-400 py-2 rounded mt-2">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentClub = null;
+        let selectedEventId = null;
+
+        document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+
+        // 1. LOGIN
+        function clubLogin() {
+            const u = document.getElementById('club-user').value;
+            const p = document.getElementById('club-pass').value;
+
+            if(!u || !p) return alert("Enter credentials");
+
+            // Fetch credentials from Firebase 'club_auth' node
+            db.ref('club_auth/' + u).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (data && data.password === p) {
+                    currentClub = data.club_code; // e.g., 'culture', 'sports'
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    document.getElementById('club-name-display').innerText = u.toUpperCase();
+                    loadEvents();
+                } else {
+                    alert("Invalid Username or Password");
+                }
+            }).catch(e => {
+                console.error(e);
+                alert("Connection Error. Check Internet.");
+            });
+        }
+
+        // 2. LOAD EVENTS
+        function loadEvents() {
+            const container = document.getElementById('events-container');
+            // This list MUST match the Main Website's Event Data to sync correctly
+            const events = [
+                { id: 1, club: 'culture', title: 'Street Battle' },
+                { id: 2, club: 'culture', title: 'Solo Singing' },
+                { id: 3, club: 'culture', title: 'Runway Rivals' },
+                { id: 4, club: 'entertainment', title: 'Battle of Bands' },
+                { id: 5, club: 'entertainment', title: 'EDM Night' },
+                { id: 6, club: 'sports', title: 'Valorant' },
+                { id: 7, club: 'sports', title: 'FIFA 26' },
+                { id: 8, club: 'sports', title: 'Box Cricket' },
+                { id: 9, club: 'photo', title: 'Photo Walk' },
+                { id: 10, club: 'photo', title: 'Treasure Hunt' },
+                { id: 11, club: 'lit', title: 'Debate War' },
+                { id: 12, club: 'lit', title: 'Open Mic' },
+                { id: 13, club: 'essc', title: 'Eco Drive' },
+                // Add-ons
+                { id: 101, club: 'entertainment', title: 'EDM Add-on (Pass Holder)' },
+                { id: 102, club: 'entertainment', title: 'Fashion Add-on (Pass Holder)' }
+            ];
+
+            const myEvents = events.filter(e => e.club === currentClub);
+            container.innerHTML = "";
+
+            if (myEvents.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500">No events assigned to this club code: ${currentClub}</div>`;
+                return;
+            }
+
+            myEvents.forEach(e => {
+                // Check Firebase for live status
+                db.ref('events_status/' + e.id).on('value', (snapshot) => {
+                    const statusData = snapshot.val() || { status: 'upcoming' };
+                    const status = statusData.status; 
+                    
+                    let actionBtn = "";
+                    let statusBadge = `<span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs font-bold">UPCOMING</span>`;
+
+                    if (status === 'upcoming') {
+                        actionBtn = `<button onclick="requestStart(${e.id})" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded font-bold text-xs">REQUEST START</button>`;
+                    } else if (status === 'pending_approval') {
+                        statusBadge = `<span class="bg-yellow-900 text-yellow-200 px-2 py-1 rounded text-xs font-bold">PENDING ADMIN</span>`;
+                        actionBtn = `<span class="text-xs text-gray-500 animate-pulse">Waiting for Admin...</span>`;
+                    } else if (status === 'live') {
+                        statusBadge = `<span class="bg-green-900 text-green-200 px-2 py-1 rounded text-xs font-bold animate-pulse">● LIVE</span>`;
+                        actionBtn = `
+                            <div class="flex gap-2">
+                                <button onclick="openAttendance(${e.id})" class="bg-zinc-700 hover:bg-white hover:text-black text-white px-4 py-2 rounded font-bold text-xs"><i data-lucide="scan-line" class="inline w-3 h-3"></i> VERIFY</button>
+                                <button onclick="openWinners(${e.id})" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold text-xs">END EVENT</button>
+                            </div>`;
+                    } else if (status === 'ended') {
+                        statusBadge = `<span class="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs font-bold">ENDED</span>`;
+                        actionBtn = `<span class="text-xs text-gray-500">Results Published</span>`;
+                    }
+
+                    // Render Card
+                    const cardHtml = `
+                        <div class="bg-zinc-800 border border-zinc-700 p-6 rounded flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">${e.title}</h3>
+                                <div class="mt-2 flex items-center gap-3">
+                                    ${statusBadge}
+                                    <span class="text-xs text-gray-400">ID: ${e.id}</span>
+                                </div>
+                            </div>
+                            <div>${actionBtn}</div>
+                        </div>
+                    `;
+                    
+                    let existing = document.getElementById(`event-card-${e.id}`);
+                    if (existing) existing.outerHTML = cardHtml; // Update existing
+                    else {
+                         const div = document.createElement('div');
+                         div.id = `event-card-${e.id}`;
+                         div.innerHTML = cardHtml;
+                         container.appendChild(div); // Add new
+                         lucide.createIcons();
+                    }
+                });
+            });
+        }
+
+        // 3. ACTIONS
+        function requestStart(id) {
+            const budget = prompt("Enter required budget/resources for this event:");
+            if(budget === null) return;
+            
+            db.ref('events_status/' + id).update({
+                status: "pending_approval",
+                budget_request: budget,
+                timestamp: new Date().toISOString()
+            });
+            alert("Request sent to Admin!");
+        }
+
+        function openAttendance(id) {
+            selectedEventId = id;
+            document.getElementById('attendance-modal').classList.remove('hidden');
+            document.getElementById('verify-result').innerHTML = "";
+            document.getElementById('verify-id').value = "";
+            document.getElementById('verify-id').focus();
+        }
+
+        function verifyParticipant() {
+            const sid = document.getElementById('verify-id').value.toUpperCase().trim();
+            const resDiv = document.getElementById('verify-result');
+            
+            if(!sid) return;
+            resDiv.innerHTML = "<span class='text-yellow-500'>Searching...</span>";
+
+            // Find user by SpectrumID
+            db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(snapshot => {
+                if(!snapshot.exists()) {
+                    resDiv.innerHTML = "<span class='text-red-500 text-2xl font-bold'>INVALID ID</span>";
+                    return;
+                }
+                
+                // Get the first match
+                const userData = Object.values(snapshot.val())[0];
+                
+                // --- ACCESS LOGIC ---
+                let hasAccess = false;
+                let accessReason = "";
+
+                // 1. Check Pass Type
+                if (userData.order && userData.order.pass === "Standard") {
+                    hasAccess = true; // Simplified: Standard gets access (Assuming first 2 free logic handled at purchase)
+                    accessReason = "Standard Pass";
+                }
+                
+                // 2. Check Specific Event Purchase
+                if (userData.order && userData.order.events) {
+                    // Check if event ID exists in their purchased list
+                    const purchased = userData.order.events.some(ev => ev.id == selectedEventId);
+                    if (purchased) {
+                        hasAccess = true;
+                        accessReason = "Direct Purchase";
+                    }
+                }
+                
+                // 3. Special Passes
+                if (userData.order.pass === "Neon Pulse" && selectedEventId == 5) { hasAccess = true; accessReason = "Neon Pulse Pass"; } // EDM
+                if (userData.order.pass === "Vogue Gala" && selectedEventId == 3) { hasAccess = true; accessReason = "Vogue Gala Pass"; } // Fashion
+
+                if(hasAccess) {
+                    resDiv.innerHTML = `
+                        <div class="bg-green-900/50 border border-green-500 p-4 rounded mt-2 animate-pulse">
+                            <h2 class="text-3xl font-bold text-green-400">ACCESS GRANTED</h2>
+                            <p class="text-white text-lg">${userData.name}</p>
+                            <p class="text-xs text-gray-300 font-mono">${userData.collegeName}</p>
+                            <span class="bg-green-800 text-xs px-2 py-1 rounded mt-2 inline-block">${accessReason}</span>
+                        </div>`;
+                } else {
+                    resDiv.innerHTML = `
+                        <div class="bg-red-900/50 border border-red-500 p-4 rounded mt-2">
+                            <h2 class="text-3xl font-bold text-red-500">ACCESS DENIED</h2>
+                            <p class="text-white">Ticket not found for this event.</p>
+                            <p class="text-xs text-gray-400">Pass: ${userData.order.pass}</p>
+                        </div>`;
+                }
+            });
+        }
+
+        function openWinners(id) {
+            selectedEventId = id;
+            document.getElementById('winner-modal').classList.remove('hidden');
+        }
+
+        function submitWinners() {
+            const w1 = document.getElementById('win-1').value;
+            const w2 = document.getElementById('win-2').value;
+            const w3 = document.getElementById('win-3').value;
+
+            if(!w1) return alert("Enter at least 1st place");
+
+            if(confirm("Confirm Results? This will close the event.")) {
+                db.ref('events_status/' + selectedEventId).update({
+                    status: 'ended',
+                    winners: { 1: w1, 2: w2, 3: w3 }
+                });
+                closeModal('winner-modal');
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    </script>
+</body>
+</html>
+
+
