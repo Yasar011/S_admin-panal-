@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spectrum '26 | Command Center</title>
+    <title>Spectrum Command | Admin</title>
     
+    <!-- LIBRARIES -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@300;400;600;800&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
 
-    <!-- FIREBASE SDK -->
+    <!-- FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
@@ -29,203 +31,316 @@
     </script>
 
     <style>
-        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
+        /* --- CYBERPUNK THEME --- */
+        :root { --neon-pink: #db2777; --neon-blue: #2563eb; --neon-green: #059669; --bg-dark: #050505; }
+        body { background-color: var(--bg-dark); color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
+        .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.05em; }
         .font-mono { font-family: 'Space Mono', monospace; }
-        
-        .view-section { display: none; height: 100vh; flex-direction: column; }
+
+        /* Layout */
+        .view-section { display: none; height: 100vh; flex-direction: row; }
         .view-section.active { display: flex; }
         
-        aside { background: #0f172a; border-right: 1px solid #1e293b; }
-        .nav-item { display: flex; items: center; gap: 10px; padding: 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; color: #94a3b8; transition: 0.2s; }
-        .nav-item:hover, .nav-item.active { background: #1e293b; color: white; }
+        /* Glass Components */
+        .cyber-card {
+            background: rgba(20, 20, 25, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+        .cyber-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
         
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
-        th { text-align: left; padding: 12px; background: #0f172a; color: #64748b; font-size: 11px; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #334155; font-size: 13px; }
+        /* Inputs */
+        .cyber-input {
+            background: #0f1115; border: 1px solid #333; color: white; padding: 10px 15px; border-radius: 6px; width: 100%; outline: none; transition: 0.2s;
+        }
+        .cyber-input:focus { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(219, 39, 119, 0.2); }
+
+        /* Sidebar */
+        aside { background: #0a0a0a; border-right: 1px solid #222; width: 280px; display: flex; flex-direction: column; padding: 20px; }
+        .nav-item { 
+            display: flex; items: center; gap: 12px; padding: 14px; margin-bottom: 6px; 
+            border-radius: 8px; cursor: pointer; color: #888; transition: 0.2s; font-weight: 600; font-size: 14px;
+        }
+        .nav-item:hover { background: #1a1a1a; color: white; }
+        .nav-item.active { background: linear-gradient(90deg, rgba(219, 39, 119, 0.1), transparent); color: var(--neon-pink); border-left: 3px solid var(--neon-pink); }
         
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        .badge-green { background: #064e3b; color: #34d399; }
-        .badge-yellow { background: #451a03; color: #fbbf24; }
-        .badge-red { background: #450a0a; color: #f87171; }
-        .badge-blue { background: #1e3a8a; color: #60a5fa; }
-        .badge-none { background: #1f2937; color: #9ca3af; }
+        /* Table */
+        .table-container { border: 1px solid #222; border-radius: 8px; overflow: hidden; }
+        th { background: #111; padding: 16px; text-align: left; font-size: 11px; text-transform: uppercase; color: #666; font-family: 'Space Mono'; }
+        td { padding: 16px; border-bottom: 1px solid #222; font-size: 14px; }
+        tr:hover { background: #0f1115; }
+
+        /* Status Badges */
+        .badge { padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge-green { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-yellow { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-red { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        /* Animations */
+        .animate-in { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        .animate-in { animation: fadeUp 0.5s ease-out forwards; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-pink); }
     </style>
 </head>
 <body onload="initSystem()">
 
     <!-- 1. LOGIN SCREEN -->
-    <div id="view-login" class="view-section active items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
-        <div class="bg-slate-900 p-8 rounded-xl border border-slate-700 w-full max-w-sm shadow-2xl animate-in">
+    <div id="view-login" class="view-section active w-full items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-cover">
+        <div class="cyber-card w-full max-w-sm border-t-4 border-t-pink-600 animate-in">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-white tracking-widest">COMMAND</h1>
-                <p class="text-xs text-pink-500 font-mono mt-1">SPECTRUM '26 CENTRAL</p>
+                <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700">
+                    <i data-lucide="shield" class="w-8 h-8 text-pink-500"></i>
+                </div>
+                <h1 class="text-3xl font-display font-bold text-white tracking-widest">COMMAND</h1>
+                <p class="text-xs text-gray-500 font-mono tracking-widest mt-1">SPECTRUM '26 CENTRAL</p>
             </div>
             <div class="space-y-4">
-                <input id="login-user" type="text" placeholder="Username" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
-                <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
-                <button onclick="handleLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">AUTHENTICATE</button>
+                <input id="login-user" type="text" placeholder="ACCESS ID" class="cyber-input text-center uppercase tracking-widest">
+                <input id="login-pass" type="password" placeholder="PASSKEY" class="cyber-input text-center tracking-widest">
+                <button onclick="handleLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 transition-all shadow-lg shadow-pink-900/40">AUTHENTICATE</button>
             </div>
-            <p id="login-status" class="text-center text-xs text-red-500 mt-4 h-4"></p>
+            <p id="login-status" class="text-center text-xs text-red-500 mt-4 h-4 font-mono"></p>
         </div>
     </div>
 
     <!-- 2. SUPER ADMIN DASHBOARD -->
-    <div id="view-admin" class="view-section flex-row">
-        <!-- Admin Sidebar -->
-        <aside class="w-64 flex flex-col p-4">
-            <div class="mb-8 px-2">
-                <h1 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shield-alert" class="text-pink-600"></i> MASTER</h1>
-                <p class="text-[10px] text-slate-500 font-mono">ROOT ACCESS</p>
+    <div id="view-admin" class="view-section">
+        <aside>
+            <div class="mb-10 flex items-center gap-3">
+                <div class="w-10 h-10 bg-pink-600 rounded flex items-center justify-center font-bold text-white">S</div>
+                <div>
+                    <h1 class="font-display font-bold text-lg text-white">ADMIN</h1>
+                    <p class="text-[10px] text-gray-500">ROOT ACCESS</p>
+                </div>
             </div>
-            <div class="flex-1 space-y-1">
-                <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
+            
+            <div class="flex-1 space-y-1 overflow-y-auto">
+                <div class="text-xs text-gray-600 font-bold uppercase tracking-widest mb-2 px-3 mt-4">Overview</div>
+                <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Dashboard</div>
+                <div class="nav-item" onclick="showAdminTab('updates')"><i data-lucide="radio" class="w-4 h-4"></i> Live Updates</div>
+                
+                <div class="text-xs text-gray-600 font-bold uppercase tracking-widest mb-2 px-3 mt-6">Management</div>
                 <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
-                <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Staff & Clubs</div>
-                <div class="nav-item" onclick="showAdminTab('approvals')"><i data-lucide="check-circle" class="w-4 h-4"></i> Approvals <span id="badge-approve" class="ml-auto bg-red-600 text-[9px] px-2 rounded-full hidden">!</span></div>
                 <div class="nav-item" onclick="showAdminTab('promos')"><i data-lucide="ticket" class="w-4 h-4"></i> Promo Codes</div>
-                <div class="nav-item" onclick="showAdminTab('updates')"><i data-lucide="radio" class="w-4 h-4"></i> Updates</div>
+                <div class="nav-item" onclick="showAdminTab('approvals')">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Approvals 
+                    <span id="badge-approve" class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full hidden">!</span>
+                </div>
+                <div class="nav-item" onclick="showAdminTab('results')"><i data-lucide="trophy" class="w-4 h-4"></i> Results</div>
+                
+                <div class="text-xs text-gray-600 font-bold uppercase tracking-widest mb-2 px-3 mt-6">System</div>
+                <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Access Control</div>
+                <div class="nav-item" onclick="showAdminTab('logs')"><i data-lucide="scroll-text" class="w-4 h-4"></i> Logs</div>
             </div>
-            <button onclick="logout()" class="mt-auto border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors">LOGOUT</button>
+            
+            <button onclick="logout()" class="flex items-center gap-3 text-xs text-gray-500 hover:text-white p-3 mt-4 border-t border-zinc-800">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Disconnect
+            </button>
         </aside>
 
-        <!-- Admin Content -->
-        <main class="flex-1 overflow-y-auto p-8 bg-slate-950">
+        <main class="flex-1 overflow-y-auto p-8 bg-[#0b0c10]">
             <!-- Dashboard Tab -->
             <div id="tab-dashboard" class="animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Live Overview</h2>
-                <div class="grid grid-cols-4 gap-6 mb-8">
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Users</p><h3 id="stat-users" class="text-3xl font-bold text-white">0</h3></div>
-                    <div class="card"><p class="text-xs text-slate-400 uppercase">Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400">₹0</h3></div>
-                    <div class="card"><p class="text-xs text-slate-400 uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
-                    <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
+                <h2 class="text-2xl font-display text-white mb-6">Live Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="cyber-card">
+                        <div class="flex justify-between items-start mb-4"><p class="text-gray-400 text-xs uppercase">Users Registered</p><i data-lucide="users" class="w-5 h-5 text-pink-500"></i></div>
+                        <h3 id="stat-users" class="text-3xl font-bold text-white">0</h3>
+                    </div>
+                    <div class="cyber-card">
+                        <div class="flex justify-between items-start mb-4"><p class="text-gray-400 text-xs uppercase">Revenue</p><i data-lucide="indian-rupee" class="w-5 h-5 text-green-500"></i></div>
+                        <h3 id="stat-revenue" class="text-3xl font-bold text-green-400">0</h3>
+                    </div>
+                    <div class="cyber-card">
+                        <div class="flex justify-between items-start mb-4"><p class="text-gray-400 text-xs uppercase">Inside Campus</p><i data-lucide="map-pin" class="w-5 h-5 text-blue-500"></i></div>
+                        <h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3>
+                    </div>
+                    <div class="cyber-card">
+                        <div class="flex justify-between items-start mb-4"><p class="text-gray-400 text-xs uppercase">Pending Approval</p><i data-lucide="alert-circle" class="w-5 h-5 text-yellow-500"></i></div>
+                        <h3 id="stat-pending" class="text-3xl font-bold text-yellow-500">0</h3>
+                    </div>
                 </div>
             </div>
 
-            <!-- Users Tab (UPDATED WITH EDIT BUTTON) -->
+            <!-- Users Tab -->
             <div id="tab-users" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Registrations</h2>
-                    <input type="text" id="search-user" placeholder="Search Name/ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                    <h2 class="text-2xl font-display text-white">Registrations</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="search-user" placeholder="Search User..." class="cyber-input w-64">
+                        <button onclick="exportData()" class="bg-zinc-800 hover:bg-zinc-700 text-white px-4 rounded text-sm font-bold flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Export</button>
+                    </div>
                 </div>
-                <div class="card p-0 overflow-x-auto">
+                <div class="table-container">
                     <table class="w-full">
-                        <thead><tr><th>User Info</th><th>Pass</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Profile</th><th>Pass Type</th><th>Entry</th><th>Payment Info</th><th>Action</th></tr></thead>
                         <tbody id="user-table-body"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Staff Tab -->
-            <div id="tab-staff" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Staff Access</h2>
-                <div class="card mb-8">
-                    <h3 class="font-bold text-white mb-4">Create New Login</h3>
-                    <div class="flex gap-2 items-end">
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Username</label><input id="new-staff-user" placeholder="e.g. gate_1" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Password</label><input id="new-staff-pass" placeholder="Password" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div class="flex-1">
-                            <label class="text-xs text-slate-500 mb-1 block">Role</label>
-                            <select id="new-staff-role" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm">
-                                <option value="admin">Admin</option>
-                                <option value="gate">Gate Security</option>
-                                <option value="culture">Culture Club</option>
-                                <option value="sports">Sports Club</option>
-                                <option value="entertainment">Entertainment</option>
-                                <option value="tech">Tech Club</option>
-                                <option value="lit">Lit Club</option>
-                                <option value="photo">Photo Club</option>
-                                <option value="essc">ESSC Club</option>
-                            </select>
-                        </div>
-                        <button onclick="createStaff()" class="bg-pink-600 text-white px-6 py-2 rounded text-sm font-bold hover:bg-pink-700 h-[38px]">ADD STAFF</button>
-                    </div>
-                </div>
-                <div class="card p-0"><table class="w-full"><thead><tr><th>User</th><th>Pass</th><th>Role</th><th>Action</th></tr></thead><tbody id="staff-table-body"></tbody></table></div>
-            </div>
-
-            <!-- Approvals Tab -->
-            <div id="tab-approvals" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Event Start Requests</h2>
-                <div id="approval-list" class="space-y-4"></div>
-            </div>
-
-            <!-- Promo Codes Tab -->
+            <!-- Promos Tab -->
             <div id="tab-promos" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Promo Codes</h2>
-                <div class="card mb-8">
+                <h2 class="text-2xl font-display text-white mb-6">Promo Codes</h2>
+                <div class="cyber-card mb-8">
+                    <h3 class="font-bold text-white mb-4 text-sm">CREATE NEW CODE</h3>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div><label class="text-xs text-slate-400 block mb-1">Code</label><input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Discount</label><input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Type</label><select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Limit</label><input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold">Create</button>
+                        <div class="col-span-1"><label class="text-xs text-gray-500 mb-1 block">Code Name</label><input id="p-code" class="cyber-input uppercase"></div>
+                        <div class="col-span-1"><label class="text-xs text-gray-500 mb-1 block">Value</label><input id="p-val" type="number" class="cyber-input"></div>
+                        <div class="col-span-1"><label class="text-xs text-gray-500 mb-1 block">Type</label><select id="p-type" class="cyber-input"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
+                        <div class="col-span-1"><label class="text-xs text-gray-500 mb-1 block">Limit</label><input id="p-limit" type="number" class="cyber-input"></div>
+                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded font-bold h-[42px] hover:bg-pink-700">Generate</button>
                     </div>
                 </div>
-                <div class="card p-0"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
+                <div class="table-container"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
             </div>
 
-            <!-- Updates Tab -->
+            <!-- Approvals -->
+            <div id="tab-approvals" class="hidden animate-in"><h2 class="text-2xl font-display text-white mb-6">Start Requests</h2><div id="approval-list" class="space-y-4"></div></div>
+            
+            <!-- Results -->
+            <div id="tab-results" class="hidden animate-in"><h2 class="text-2xl font-display text-white mb-6">Event Results</h2><div id="results-list" class="grid grid-cols-2 gap-4"></div></div>
+            
+            <!-- Staff -->
+            <div id="tab-staff" class="hidden animate-in">
+                <h2 class="text-2xl font-display text-white mb-6">Access Control</h2>
+                <div class="cyber-card mb-6">
+                    <div class="flex gap-2">
+                        <input id="new-staff-user" placeholder="Username" class="cyber-input">
+                        <input id="new-staff-pass" placeholder="Password" class="cyber-input">
+                        <select id="new-staff-role" class="cyber-input">
+                            <option value="admin">Admin</option>
+                            <option value="gate">Gate</option>
+                            <option value="culture">Culture</option>
+                            <option value="sports">Sports</option>
+                            <option value="entertainment">Ent.</option>
+                            <option value="tech">Tech</option>
+                            <option value="lit">Lit</option>
+                            <option value="photo">Photo</option>
+                            <option value="essc">ESSC</option>
+                        </select>
+                        <button onclick="createStaff()" class="bg-pink-600 text-white px-6 rounded font-bold">Add</button>
+                    </div>
+                </div>
+                <div class="table-container"><table class="w-full"><tbody id="staff-table-body"></tbody></table></div>
+            </div>
+            
+            <!-- Updates -->
             <div id="tab-updates" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Push Notifications</h2>
-                <div class="card">
-                    <textarea id="update-msg" class="w-full bg-slate-900 border border-slate-700 p-4 rounded text-white mb-4" placeholder="Type notification message..."></textarea>
+                <h2 class="text-2xl font-display text-white mb-6">Live Announcements</h2>
+                <div class="cyber-card">
+                    <textarea id="update-msg" class="w-full bg-black border border-zinc-800 p-4 rounded text-white mb-4 outline-none focus:border-pink-500" placeholder="Type notification message..."></textarea>
                     <button onclick="pushUpdate()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold w-full hover:bg-blue-700">BROADCAST TO WEBSITE</button>
                 </div>
             </div>
+            
+            <!-- Logs -->
+            <div id="tab-logs" class="hidden animate-in"><h2 class="text-2xl font-display text-white mb-6">System Activity</h2><div class="cyber-card h-[80vh] overflow-y-auto" id="log-container"></div></div>
         </main>
     </div>
 
-    <!-- USER EDIT MODAL (POPUP) -->
-    <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg w-full max-w-lg shadow-2xl">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-white">Edit User</h2>
-                <button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button>
+    <!-- 3. CLUB MANAGER PANEL -->
+    <div id="view-club" class="view-section flex-col w-full bg-black">
+        <nav class="bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center">
+            <div class="font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-pink-500"></i> <span id="club-display-name">CLUB</span></div>
+            <button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white">LOGOUT</button>
+        </nav>
+        <div class="p-8 max-w-6xl mx-auto w-full animate-in overflow-y-auto">
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-2xl font-display text-white">Event Console</h2>
+                <div class="text-xs text-gray-500 font-mono">ID: <span id="club-id-display">--</span></div>
             </div>
+            <div id="club-events-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+    </div>
+
+    <!-- 4. GATE VERIFIER (ENHANCED VISUALS) -->
+    <div id="view-gate" class="view-section items-center justify-center bg-black">
+        <div class="w-full max-w-md p-4 animate-in">
+            <div class="cyber-card text-center">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="scan"></i> GATE</h2>
+                    <button onclick="logout()" class="text-xs text-red-500">EXIT</button>
+                </div>
+                
+                <div id="reader" class="w-full h-64 bg-black border-2 border-dashed border-zinc-700 rounded mb-4 flex items-center justify-center text-gray-600">
+                    <div id="qr-reader-placeholder">CAMERA LOADING...</div>
+                </div>
+                
+                <input id="gate-input" type="text" placeholder="MANUAL ID ENTRY" class="cyber-input text-center text-2xl tracking-widest mb-4 uppercase">
+                <button onclick="gateVerify(document.getElementById('gate-input').value)" class="w-full bg-blue-600 text-white font-bold py-4 rounded text-lg hover:bg-blue-700 shadow-lg shadow-blue-900/50">VERIFY ENTRY</button>
+                
+                <div id="gate-result" class="hidden mt-6 p-6 rounded border-2 text-center transition-all duration-200"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <!-- EDIT USER -->
+    <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-lg shadow-2xl">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-white">Edit User</h2><button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button></div>
             <div class="space-y-4">
                 <input type="hidden" id="edit-key">
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500">Name</label><input id="edit-name" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                    <div><label class="text-xs text-slate-500">Phone</label><input id="edit-phone" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                    <div><label class="text-xs text-gray-500">Name</label><input id="edit-name" class="cyber-input"></div>
+                    <div><label class="text-xs text-gray-500">Phone</label><input id="edit-phone" class="cyber-input"></div>
                 </div>
-                <div><label class="text-xs text-slate-500">Email</label><input id="edit-email" class="w-full bg-black border border-slate-800 p-2 rounded text-gray-500 text-sm" readonly></div>
-                <div><label class="text-xs text-slate-500">College Name</label><input id="edit-college" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
+                <div><label class="text-xs text-gray-500">College</label><input id="edit-college" class="cyber-input"></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500">Pass</label><select id="edit-pass" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="General">General</option><option value="Standard">Standard</option><option value="Neon Pulse">Neon Pulse</option><option value="Vogue Gala">Vogue Gala</option></select></div>
-                    <div><label class="text-xs text-slate-500">Status</label><select id="edit-status" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="Pending">Pending</option><option value="Verified">Verified</option><option value="None">None</option></select></div>
+                    <div><label class="text-xs text-gray-500">Pass</label><select id="edit-pass" class="cyber-input"><option value="General">General</option><option value="Standard">Standard</option><option value="Neon Pulse">Neon Pulse</option><option value="Vogue Gala">Vogue Gala</option></select></div>
+                    <div><label class="text-xs text-gray-500">Status</label><select id="edit-status" class="cyber-input"><option value="Pending">Pending</option><option value="Verified">Verified</option><option value="None">None</option></select></div>
                 </div>
-                <div><label class="text-xs text-slate-500">UTR</label><input id="edit-utr" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                <div class="p-3 bg-black border border-slate-800 rounded"><p class="text-xs text-slate-500">Spectrum ID</p><p id="edit-spectrum-id" class="text-pink-500 font-mono font-bold">---</p></div>
-                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">SAVE CHANGES</button>
+                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded">SAVE CHANGES</button>
             </div>
         </div>
     </div>
 
-    <!-- 3. CLUB MANAGER & 4. GATE (Simplified for length) -->
-    <div id="view-gate" class="view-section items-center justify-center bg-black">
-        <div class="w-full max-w-md p-4 animate-in">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-2xl">
-                <div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="scan"></i> GATE</h2><button onclick="logout()" class="text-xs text-red-500">EXIT</button></div>
-                <input id="gate-input" type="text" placeholder="ID" class="w-full bg-black border-slate-700 p-4 text-center text-white mb-4 uppercase text-2xl tracking-widest outline-none">
-                <button onclick="gateVerify()" class="w-full bg-blue-600 text-white font-bold py-4 rounded hover:bg-blue-700">VERIFY</button>
-                <div id="gate-result" class="hidden text-center p-6 rounded border-2 mt-4"></div>
-            </div>
+    <!-- CLUB SCANNER MODAL -->
+    <div id="club-scan-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-md shadow-2xl">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-white font-bold">Event Check-In</h3><button onclick="document.getElementById('club-scan-modal').classList.add('hidden')"><i data-lucide="x" class="text-white"></i></button></div>
+            <div id="club-reader" class="w-full mb-4 bg-black h-48 rounded border border-zinc-700"></div>
+            <input id="club-manual-id" placeholder="Enter ID" class="cyber-input text-center uppercase mb-2">
+            <button onclick="verifyEventAccess(document.getElementById('club-manual-id').value)" class="w-full bg-pink-600 text-white font-bold py-2 rounded">CHECK</button>
+            <div id="club-scan-res" class="mt-4 text-center"></div>
         </div>
     </div>
-    <div id="view-club" class="view-section">
-        <nav class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center"><div class="font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-pink-500"></i> <span id="club-display-name">CLUB</span></div><button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOGOUT</button></nav>
-        <div class="p-8 max-w-5xl mx-auto animate-in"><h2 class="text-2xl font-bold text-white mb-6">Manage Events</h2><div id="club-events-container" class="grid grid-cols-1 gap-4"></div></div>
+
+    <!-- VIEW PARTICIPANTS MODAL -->
+    <div id="parts-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-2xl shadow-2xl h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-white font-bold">Participants</h3><button onclick="document.getElementById('parts-modal').classList.add('hidden')"><i data-lucide="x" class="text-white"></i></button></div>
+            <div class="flex-1 overflow-y-auto bg-black p-4 rounded border border-zinc-800" id="parts-list"></div>
+        </div>
+    </div>
+
+    <!-- WINNER MODAL -->
+    <div id="winner-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-md shadow-2xl">
+            <h3 class="text-white font-bold mb-4">Declare Results</h3>
+            <input id="w-1" placeholder="1st Place (ID/Name)" class="cyber-input mb-2">
+            <input id="w-2" placeholder="2nd Place" class="cyber-input mb-2">
+            <input id="w-3" placeholder="3rd Place" class="cyber-input mb-4">
+            <button onclick="submitWinners()" class="w-full bg-green-600 text-white font-bold py-3 rounded">PUBLISH</button>
+        </div>
     </div>
 
     <script>
-        let currentUserRole = null; let currentClubCode = null; let allUsers = [];
+        let currentUserRole = null; let currentClubCode = null; let allUsers = []; let selectedEventId = null;
+        let html5QrcodeScanner = null;
 
         function initSystem() {
             lucide.createIcons();
-            // Self Healing Admin
+            // Default Admin Recovery
             db.ref('club_auth/C H').once('value', s => {
                 if(!s.exists()) db.ref('club_auth/C H').set({ password: "Yasar", role: "admin", club_code: "all" });
             });
@@ -235,156 +350,243 @@
         function handleLogin() {
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
-            const status = document.getElementById('login-status');
-            if(!u || !p) { status.innerText = "Enter Credentials"; return; }
+            if(!u || !p) return;
 
             db.ref('club_auth/' + u).once('value').then(snap => {
                 const data = snap.val();
                 if(data && data.password === p) {
                     currentUserRole = data.role; currentClubCode = data.club_code;
                     document.getElementById('view-login').classList.remove('active');
-                    if (data.role === 'admin' || data.club_code === 'all') { document.getElementById('view-admin').classList.add('active'); initAdminPanel(); }
-                    else if (data.role === 'gate') { document.getElementById('view-gate').classList.add('active'); }
-                    else { document.getElementById('view-club').classList.add('active'); document.getElementById('club-display-name').innerText = u.toUpperCase(); initClubPanel(); }
-                } else status.innerText = "Invalid Credentials";
-            }).catch(e => status.innerText = "Error");
+                    logAction("LOGIN", `${u} logged in`);
+
+                    if (data.role === 'admin') { 
+                        document.getElementById('view-admin').classList.add('active'); 
+                        initAdminPanel(); 
+                    } else if (data.role === 'gate') { 
+                        document.getElementById('view-gate').classList.add('active'); 
+                        initGateScanner(); 
+                    } else { 
+                        document.getElementById('view-club').classList.add('active'); 
+                        document.getElementById('club-display-name').innerText = u.toUpperCase(); 
+                        document.getElementById('club-id-display').innerText = data.club_code;
+                        initClubPanel(); 
+                    }
+                } else alert("Invalid Credentials");
+            });
         }
         function logout() { location.reload(); }
 
-        // --- ADMIN PANEL ---
+        // --- ADMIN ---
         function initAdminPanel() {
             db.ref('users').on('value', snap => {
                 const data = snap.val(); if(!data) return;
                 allUsers = Object.entries(data).map(([k,v]) => ({...v, key:k}));
-                // Stats
+                
                 document.getElementById('stat-users').innerText = allUsers.length;
-                document.getElementById('stat-checkedin').innerText = allUsers.filter(u => u.checkedIn).length;
+                document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length;
+                document.getElementById('stat-pending').innerText = allUsers.filter(u=>u.paymentStatus==='Pending').length;
                 let rev = 0; allUsers.forEach(u => rev += parseInt(u.order?.total || 0));
                 document.getElementById('stat-revenue').innerText = "₹" + rev.toLocaleString();
-                document.getElementById('stat-pending').innerText = allUsers.filter(u => u.paymentStatus === 'Pending').length;
                 renderUsers();
             });
-            // Other Listeners
-            db.ref('club_auth').on('value', snap => renderStaff(snap.val()));
+
+            db.ref('club_auth').on('value', snap => {
+                const tbody = document.getElementById('staff-table-body'); tbody.innerHTML = "";
+                if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => {
+                    tbody.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-gray-400 font-mono">${v.password}</td><td>${v.role}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`;
+                });
+                lucide.createIcons();
+            });
+
+            db.ref('promos').on('value', snap => {
+                const b = document.getElementById('promo-body'); b.innerHTML="";
+                if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="db.ref('promos/${k}').remove()" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; });
+                lucide.createIcons();
+            });
+
             db.ref('events_status').on('value', snap => renderApprovals(snap.val()));
-            db.ref('promos').on('value', snap => renderPromos(snap.val()));
+            db.ref('logs').limitToLast(50).on('value', snap => {
+                const c = document.getElementById('log-container'); c.innerHTML="";
+                if(snap.val()) Object.values(snap.val()).reverse().forEach(l => {
+                    c.innerHTML += `<div class="log-entry"><span class="log-time text-pink-500 font-mono text-xs">[${new Date(l.timestamp).toLocaleTimeString()}]</span> <span class="log-type text-blue-400 font-bold text-xs">${l.type}</span> <span class="text-gray-300 text-sm">${l.message}</span></div>`;
+                });
+            });
         }
 
-        // 1. RENDER USERS & ACTIONS
+        // --- RENDER USERS ---
         function renderUsers() {
             const tbody = document.getElementById('user-table-body'); tbody.innerHTML = "";
             const search = document.getElementById('search-user').value.toLowerCase();
-            const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search) || u.utr?.includes(search)));
+            const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search)));
             
             filtered.forEach(u => {
                 const status = u.paymentStatus;
-                const checkIn = u.checkedIn ? '<span class="badge badge-green">IN</span>' : '<span class="badge badge-none">OUT</span>';
-                let verifyBtn = status === 'Pending' ? `<button onclick="verifyUser('${u.key}','${u.name}')" class="bg-green-600 px-2 py-1 rounded text-xs text-white">Verify</button>` : ``;
+                const checkIn = u.checkedIn ? '<span class="badge badge-green">IN</span>' : '<span class="badge badge-red">OUT</span>';
+                let btn = status === 'Pending' ? `<button onclick="verifyUser('${u.key}','${u.name}')" class="bg-green-600 px-2 py-1 rounded text-xs text-white">Verify</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
                 
-                // ADDED EDIT BUTTON HERE
                 tbody.innerHTML += `<tr>
-                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400">${u.spectrumId || 'No ID'}</div></td>
-                    <td>${u.order?.pass || '-'}</td>
+                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td>
+                    <td><div class="text-pink-400 font-bold text-xs">${u.order?.pass}</div></td>
                     <td>${checkIn}</td>
                     <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${u.utr||''}</span></td>
                     <td class="flex gap-2 items-center">
-                        ${verifyBtn}
-                        <button onclick="openEditModal('${u.key}')" class="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs">Edit</button>
-                        <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                        ${btn}
+                        <button onclick="openEdit('${u.key}')" class="text-blue-400"><i data-lucide="edit-3" class="w-4"></i></button>
+                        <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button>
                     </td>
                 </tr>`;
             });
             lucide.createIcons();
         }
 
-        function openEditModal(key) {
-            const u = allUsers.find(user => user.key === key);
-            document.getElementById('edit-key').value = key;
-            document.getElementById('edit-name').value = u.name;
-            document.getElementById('edit-phone').value = u.phone;
-            document.getElementById('edit-email').value = u.email;
-            document.getElementById('edit-college').value = u.collegeName || '';
-            document.getElementById('edit-spectrum-id').innerText = u.spectrumId || 'N/A';
-            document.getElementById('edit-utr').value = u.utr || '';
-            document.getElementById('edit-pass').value = u.order?.pass || 'General';
-            document.getElementById('edit-status').value = u.paymentStatus;
-            document.getElementById('edit-user-modal').classList.remove('hidden');
+        // --- GATE SCANNER ---
+        function initGateScanner() {
+            if(!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                html5QrcodeScanner.render(onScanSuccess);
+                document.getElementById('qr-reader-placeholder').style.display = 'none';
+            }
         }
-
-        function saveUserChanges() {
-            const key = document.getElementById('edit-key').value;
-            const updates = {
-                name: document.getElementById('edit-name').value,
-                phone: document.getElementById('edit-phone').value,
-                collegeName: document.getElementById('edit-college').value,
-                utr: document.getElementById('edit-utr').value,
-                paymentStatus: document.getElementById('edit-status').value,
-                "order/pass": document.getElementById('edit-pass').value
-            };
-            db.ref('users/' + key).update(updates).then(() => { alert("Saved!"); closeEditModal(); });
-        }
-        function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
-
-        // --- OTHER HELPERS ---
-        function renderStaff(data) {
-            const b=document.getElementById('staff-table-body'); b.innerHTML=""; 
-            if(data) Object.entries(data).forEach(([k,v])=>{ b.innerHTML+=`<tr><td class="font-bold text-white">${k}</td><td class="font-mono text-slate-400">${v.password}</td><td>${v.role||v.club_code}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4 h-4"></i></button></td></tr>`; });
-            lucide.createIcons();
-        }
-        function renderApprovals(data) {
-            const l=document.getElementById('approval-list'); l.innerHTML=""; let c=0;
-            if(data) Object.entries(data).forEach(([id,ev])=>{ if(ev.status==='pending_approval'){ c++; l.innerHTML+=`<div class="bg-slate-800 p-4 rounded flex justify-between"><div><h4 class="text-white">Event ${id}</h4><p class="text-xs text-yellow-500">${ev.budget_request}</p></div><button onclick="approveEv('${id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs">APPROVE</button></div>`; } });
-            if(c>0){document.getElementById('badge-approve').innerText=c; document.getElementById('badge-approve').classList.remove('hidden');} else document.getElementById('badge-approve').classList.add('hidden');
-        }
-        function renderPromos(data) {
-            const b = document.getElementById('promo-body'); b.innerHTML="";
-            if(data) Object.entries(data).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="delPromo('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; });
-            lucide.createIcons();
-        }
-        
-        // Actions
-        function showAdminTab(id) { ['dashboard','users','promos','staff','approvals','updates'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
-        function verifyUser(k, n) { if(confirm("Verify "+n+"?")) db.ref('users/'+k).update({paymentStatus:"Verified"}); }
-        function delUser(k) { if(confirm("Delete?")) db.ref('users/'+k).remove(); }
-        function createStaff() { const u=document.getElementById('new-staff-user').value,p=document.getElementById('new-staff-pass').value,r=document.getElementById('new-staff-role').value; if(!u)return; let c=r; if(r==='admin')c='all'; if(r==='gate')c='gate_access'; db.ref('club_auth/'+u).set({password:p,role:r,club_code:c}).then(()=>{alert("Created");}); }
-        function delStaff(u) { if(u!=='C H' && confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
-        function createPromo() { const c=document.getElementById('p-code').value.toUpperCase(), v=document.getElementById('p-val').value, t=document.getElementById('p-type').value, l=document.getElementById('p-limit').value; if(c&&v) db.ref('promos/'+c).set({discount:parseInt(v), type:t, limit:parseInt(l), used:0}).then(()=>alert("Created")); }
-        function delPromo(k) { if(confirm("Delete?")) db.ref('promos/'+k).remove(); }
-        function pushUpdate() { const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
-        function approveEv(id) { db.ref('events_status/'+id).update({status:'live'}); }
-        
-        // GATE
-        function gateVerify() {
-            const id=document.getElementById('gate-input').value.toUpperCase().trim(); const res=document.getElementById('gate-result');
-            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s=>{
-                if(!s.exists()){ res.innerHTML="<span class='text-red-500 font-bold'>INVALID</span>"; res.className="p-4 border-2 border-red-600 bg-red-900/50 block text-center rounded mt-4"; return; }
-                const u=Object.values(s.val())[0]; const k=Object.keys(s.val())[0];
-                if(u.paymentStatus==='Verified') {
-                    if(!u.checkedIn){ db.ref('users/'+k).update({checkedIn:true}); res.innerHTML=`<h1 class='text-green-400 font-bold text-2xl'>WELCOME</h1><p class='text-white'>${u.name}</p>`; res.className="p-4 border-2 border-green-600 bg-green-900/50 block text-center rounded mt-4"; }
-                    else{ res.innerHTML=`<h1 class='text-blue-400 font-bold text-2xl'>ALREADY IN</h1><p class='text-white'>${u.name}</p>`; res.className="p-4 border-2 border-blue-600 bg-blue-900/50 block text-center rounded mt-4"; }
-                } else { res.innerHTML=`<h1 class='text-yellow-500 font-bold'>PENDING</h1>`; res.className="p-4 border-2 border-yellow-600 bg-yellow-900/50 block text-center rounded mt-4"; }
+        function onScanSuccess(decodedText) { gateVerify(decodedText); }
+        function gateVerify(id) {
+            id = id.toUpperCase().trim();
+            const res = document.getElementById('gate-result');
+            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s => {
+                if(!s.exists()) { res.innerHTML = `<h1 class="text-red-500 font-bold text-3xl">INVALID</h1>`; res.className="p-6 border-2 border-red-600 bg-red-900/50 rounded mt-4 text-center"; return; }
+                const u = Object.values(s.val())[0]; const k = Object.keys(s.val())[0];
+                if(u.paymentStatus === 'Verified') {
+                    if(!u.checkedIn) {
+                        db.ref('users/'+k).update({checkedIn:true, checkInTime: new Date().toISOString()});
+                        res.innerHTML = `<h1 class="text-green-400 font-bold text-3xl">WELCOME</h1><p class="text-white text-xl mt-2">${u.name}</p><p class="text-gray-400 text-sm font-mono">${u.spectrumId}</p>`;
+                        res.className = "p-6 border-2 border-green-600 bg-green-900/50 rounded mt-4 text-center";
+                        logAction("GATE", `${u.name} Checked In`);
+                    } else {
+                        res.innerHTML = `<h1 class="text-blue-400 font-bold text-3xl">ALREADY IN</h1><p class="text-white mt-2">${u.name}</p>`;
+                        res.className = "p-6 border-2 border-blue-600 bg-blue-900/50 rounded mt-4 text-center";
+                    }
+                } else {
+                    res.innerHTML = `<h1 class="text-yellow-500 font-bold text-3xl">PENDING</h1><p class="text-white mt-2">Payment not verified</p>`;
+                    res.className = "p-6 border-2 border-yellow-600 bg-yellow-900/50 rounded mt-4 text-center";
+                }
                 res.classList.remove('hidden');
             });
         }
-        
-        // CLUB LOGIC
+
+        // --- CLUB ---
         function initClubPanel() {
             const container = document.getElementById('club-events-container');
-            const events = [ {id:1,club:'culture',title:'Street Battle'},{id:2,club:'culture',title:'Solo Singing'},{id:3,club:'culture',title:'Runway Rivals'},{id:4,club:'entertainment',title:'Battle of Bands'},{id:5,club:'entertainment',title:'EDM Night'},{id:6,club:'sports',title:'Valorant'},{id:7,club:'sports',title:'FIFA 26'},{id:8,club:'sports',title:'Box Cricket'},{id:9,club:'photo',title:'Photo Walk'},{id:10,club:'photo',title:'Treasure Hunt'},{id:11,club:'lit',title:'Debate War'},{id:12,club:'lit',title:'Open Mic'},{id:13,club:'essc',title:'Eco Drive'},{id:101,club:'entertainment',title:'EDM Add-on'},{id:102,club:'entertainment',title:'Fashion Add-on'} ];
+            const events = [
+                {id:1,club:'culture',title:'Street Battle'},{id:2,club:'culture',title:'Solo Singing'},{id:3,club:'culture',title:'Runway Rivals'},
+                {id:4,club:'entertainment',title:'Battle of Bands'},{id:5,club:'entertainment',title:'EDM Night'},
+                {id:6,club:'sports',title:'Valorant'},{id:7,club:'sports',title:'FIFA 26'},{id:8,club:'sports',title:'Box Cricket'},
+                {id:9,club:'photo',title:'Photo Walk'},{id:10,club:'photo',title:'Treasure Hunt'},
+                {id:11,club:'lit',title:'Debate War'},{id:12,club:'lit',title:'Open Mic'},
+                {id:13,club:'essc',title:'Eco Drive'},
+                {id:101,club:'entertainment',title:'EDM Add-on'},{id:102,club:'entertainment',title:'Fashion Add-on'}
+            ];
             const myEvents = events.filter(e => e.club === currentClubCode);
             container.innerHTML = "";
+            
             myEvents.forEach(e => {
                 db.ref('events_status/'+e.id).on('value', s => {
                     const st = s.val()?.status || 'upcoming';
-                    let btn = `<button onclick="reqStart(${e.id})" class="bg-pink-600 text-white px-3 py-1 rounded text-xs font-bold">START</button>`;
-                    if(st==='pending_approval') btn = `<span class="text-yellow-500 text-xs">Waiting...</span>`;
-                    if(st==='live') btn = `<span class="text-green-500 text-xs animate-pulse">LIVE</span>`;
-                    container.innerHTML += `<div class="bg-slate-800 p-4 rounded border border-slate-700 flex justify-between items-center text-white"><span>${e.title}</span> ${btn}</div>`;
+                    let btn = `<button onclick="reqStart(${e.id})" class="bg-pink-600 text-white px-4 py-2 rounded text-xs font-bold">REQUEST START</button>`;
+                    if(st==='live') btn = `<div class="flex gap-2"><button onclick="openClubScanner(${e.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Scan</button><button onclick="endEvent(${e.id})" class="bg-red-600 text-white px-3 py-1 rounded text-xs">End</button></div>`;
+                    if(st==='ended') btn = `<span class="text-gray-500 text-xs font-bold">ENDED</span>`;
+                    
+                    container.innerHTML += `
+                        <div class="cyber-card flex justify-between items-center">
+                            <div><h3 class="text-white font-bold">${e.title}</h3><span class="text-[10px] text-gray-400 font-mono">ID: ${e.id} | ${st.toUpperCase()}</span></div>
+                            <div class="flex flex-col gap-2 items-end">
+                                ${btn}
+                                <button onclick="viewParticipants(${e.id}, '${e.title}')" class="text-[10px] text-gray-400 hover:text-white underline">View List</button>
+                            </div>
+                        </div>`;
                 });
             });
         }
-        function reqStart(id){ const b=prompt("Budget?"); if(b) db.ref('events_status/'+id).update({status:'pending_approval', budget_request:b}); }
 
+        // --- CLUB SCANNER & LIST ---
+        function viewParticipants(id, title) {
+            document.getElementById('parts-modal').classList.remove('hidden');
+            const list = document.getElementById('parts-list');
+            list.innerHTML = `<div class="text-white font-bold mb-4 border-b border-zinc-700 pb-2">${title}</div><p class="text-gray-500 text-xs">Loading...</p>`;
+            
+            db.ref('users').once('value').then(snap => {
+                if(!snap.exists()) return;
+                list.innerHTML = `<div class="text-white font-bold mb-4 border-b border-zinc-700 pb-2">${title}</div>`;
+                let count = 0;
+                Object.values(snap.val()).forEach(u => {
+                    let hasAccess = false;
+                    if(u.order && u.order.events && u.order.events.some(ev => ev.id == id)) hasAccess = true;
+                    if(u.order && u.order.pass === "Standard" && id < 100) hasAccess = true;
+                    if(u.order.pass === "Neon Pulse" && id == 5) hasAccess = true;
+                    if(u.order.pass === "Vogue Gala" && id == 3) hasAccess = true;
+
+                    if(hasAccess) {
+                        count++;
+                        list.innerHTML += `<div class="text-sm text-gray-300 py-2 border-b border-zinc-800 flex justify-between items-center"><span>${u.name}</span><span class="font-mono text-xs bg-zinc-800 px-2 rounded text-pink-500">${u.spectrumId}</span></div>`;
+                    }
+                });
+                if(count===0) list.innerHTML += `<p class="text-gray-500 text-center mt-4">No participants found.</p>`;
+            });
+        }
+
+        function openClubScanner(id) {
+            selectedEventId = id; document.getElementById('club-scan-modal').classList.remove('hidden');
+            // Init scanner if needed (simplified for single file, normally use library)
+        }
+        
+        function verifyEventAccess(sid) {
+            sid = sid.toUpperCase().trim();
+            const res = document.getElementById('club-scan-res');
+            db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(s => {
+                if(!s.exists()) { res.innerHTML = "<span class='text-red-500 font-bold'>INVALID</span>"; return; }
+                const u = Object.values(s.val())[0];
+                let access = false;
+                if(u.order.pass === "Standard" && selectedEventId < 100) access = true;
+                if(u.order.events && u.order.events.some(ev => ev.id == selectedEventId)) access = true;
+                if(u.order.pass === "Neon Pulse" && selectedEventId == 5) access = true;
+                if(u.order.pass === "Vogue Gala" && selectedEventId == 102) access = true; // Use ID 102 for Fashion
+
+                if(access) {
+                    res.innerHTML = `<div class="bg-green-600 text-white p-2 rounded mt-2 font-bold">ALLOWED: ${u.name}</div>`;
+                    logAction("EVENT", `${u.name} @ Event ${selectedEventId}`);
+                } else res.innerHTML = `<div class="bg-red-600 text-white p-2 rounded mt-2 font-bold">DENIED</div>`;
+            });
+        }
+
+        // --- EXPORT DATA ---
+        function exportData() {
+            let csv = "Name,Email,Phone,College,SpectrumID,Pass,Total,UTR,Status\n";
+            allUsers.forEach(u => {
+                csv += `${u.name},${u.email},${u.phone},${u.collegeName},${u.spectrumId},${u.order?.pass},${u.order?.total},${u.utr},${u.paymentStatus}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'spectrum_users.csv'; a.click();
+        }
+
+        // --- HELPERS ---
+        function showAdminTab(id) { ['dashboard','users','promos','staff','approvals','updates','results','logs'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function renderApprovals(d){ const l=document.getElementById('approval-list'); l.innerHTML=""; if(d) Object.entries(d).forEach(([id,ev])=>{ if(ev.status==='pending_approval'){ l.innerHTML+=`<div class="cyber-card flex justify-between"><div><h4 class="text-white font-bold">Event ${id}</h4><p class="text-xs text-yellow-500">${ev.budget_request}</p></div><button onclick="approveEv('${id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">APPROVE</button></div>`; } if(ev.status==='ended'){ document.getElementById('results-list').innerHTML+=`<div class="cyber-card"><h4 class="text-white font-bold">Event ${id}</h4><p class="text-xs text-yellow-400">1. ${ev.winners[1]}</p></div>`; } }); }
+        function verifyUser(k,n){ if(confirm("Verify "+n+"?")) db.ref('users/'+k).update({paymentStatus:"Verified"}); }
+        function delUser(k){ if(confirm("Delete?")) db.ref('users/'+k).remove(); }
+        function createStaff(){ const u=document.getElementById('new-staff-user').value,p=document.getElementById('new-staff-pass').value,r=document.getElementById('new-staff-role').value; if(u) db.ref('club_auth/'+u).set({password:p,role:r,club_code:r}).then(()=>alert("Created")); }
+        function delStaff(u){ if(u!=='C H' && confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
+        function createPromo(){ const c=document.getElementById('p-code').value.toUpperCase(),v=document.getElementById('p-val').value,t=document.getElementById('p-type').value,l=document.getElementById('p-limit').value; if(c) db.ref('promos/'+c).set({discount:v,type:t,limit:l,used:0}).then(()=>alert("Created")); }
+        function delPromo(k) { if(confirm("Delete?")) db.ref('promos/'+k).remove(); }
+        function pushUpdate() { const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
+        function reqStart(id){ const b=prompt("Budget?"); if(b) db.ref('events_status/'+id).update({status:'pending_approval', budget_request:b}); }
+        function approveEv(id){ db.ref('events_status/'+id).update({status:'live'}); logAction("ADMIN", "Approved Event "+id); }
+        function endEvent(id){ selectedEventId=id; document.getElementById('winner-modal').classList.remove('hidden'); }
+        function submitWinners(){ const w1=document.getElementById('w-1').value, w2=document.getElementById('w-2').value, w3=document.getElementById('w-3').value; db.ref('events_status/'+selectedEventId).update({status:'ended', winners:{1:w1,2:w2,3:w3}}); document.getElementById('winner-modal').classList.add('hidden'); }
+        
+        // EDIT USER FUNCTIONS
+        function openEdit(key){ const u=allUsers.find(x=>x.key===key); document.getElementById('e-key').value=key; document.getElementById('edit-name').value=u.name; document.getElementById('edit-phone').value=u.phone; document.getElementById('edit-email').value=u.email; document.getElementById('edit-college').value=u.collegeName||''; document.getElementById('edit-spectrum-id').innerText=u.spectrumId||'-'; document.getElementById('edit-utr').value=u.utr||''; document.getElementById('edit-pass').value=u.order?.pass||'General'; document.getElementById('edit-status').value=u.paymentStatus; document.getElementById('edit-user-modal').classList.remove('hidden'); }
+        function saveUserChanges(){ const k=document.getElementById('e-key').value; db.ref('users/'+k).update({ name:document.getElementById('edit-name').value, phone:document.getElementById('edit-phone').value, collegeName:document.getElementById('edit-college').value, utr:document.getElementById('edit-utr').value, paymentStatus:document.getElementById('edit-status').value, "order/pass":document.getElementById('edit-pass').value }).then(()=>{ alert("Saved"); closeEditModal(); }); }
+        function closeEditModal(){ document.getElementById('edit-user-modal').classList.add('hidden'); }
+        
         document.getElementById('search-user').addEventListener('input', renderUsers);
     </script>
 </body>
