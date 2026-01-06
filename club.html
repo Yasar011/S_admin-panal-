@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Club Manager | Spectrum '26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Manrope', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-active { color: #db2777; border-bottom: 2px solid #db2777; }
+        .page { display: none; padding-bottom: 80px; }
+        .page.active { display: block; }
+        
+        /* Mobile Optimizations */
+        button:active { transform: scale(0.98); }
+        input, select, textarea { font-size: 16px; } /* Prevents zoom on iOS */
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div id="login-view" class="fixed inset-0 z-50 bg-black flex items-center justify-center p-6 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
+        <div class="w-full max-w-sm">
+            <div class="text-center mb-10">
+                <i data-lucide="zap" class="w-12 h-12 text-pink-500 mx-auto mb-4"></i>
+                <h1 class="text-3xl font-black tracking-tighter">CLUB ACCESS</h1>
+                <p class="text-slate-500 text-xs font-mono mt-2">AUTHORIZED PERSONNEL ONLY</p>
+            </div>
+            <div class="space-y-4">
+                <input id="login-id" class="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl text-white outline-none focus:border-pink-500 font-bold" placeholder="Club ID (e.g. culture)">
+                <input id="login-key" type="password" class="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl text-white outline-none focus:border-pink-500 font-bold" placeholder="Secret Key">
+                <button onclick="clubLogin()" class="w-full bg-pink-600 text-white font-bold py-4 rounded-xl hover:bg-pink-500 shadow-lg shadow-pink-900/30">ENTER SYSTEM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app" class="hidden">
+        
+        <!-- TOP NAV -->
+        <div class="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-800 p-4 flex justify-between items-center">
+            <h1 class="font-bold text-lg flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> <span id="header-club-name">CLUB</span></h1>
+            <button onclick="location.reload()" class="text-xs text-red-500 font-bold border border-red-900 px-3 py-1 rounded">EXIT</button>
+        </div>
+
+        <!-- TABS -->
+        <div id="tab-events" class="page active p-4">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                    <p class="text-slate-400 text-[10px] uppercase font-bold">Total Regs</p>
+                    <h2 class="text-2xl font-black text-white" id="stat-regs">0</h2>
+                </div>
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                    <p class="text-slate-400 text-[10px] uppercase font-bold">Revenue</p>
+                    <h2 class="text-2xl font-black text-green-400" id="stat-rev">₹0</h2>
+                </div>
+            </div>
+
+            <h3 class="text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest">Your Events</h3>
+            <div id="events-list" class="space-y-4">
+                <!-- Events Injected Here -->
+            </div>
+        </div>
+
+        <div id="tab-requests" class="page p-4">
+            <h2 class="text-2xl font-bold mb-2">Logistics & Support</h2>
+            <p class="text-slate-400 text-xs mb-6">Request items or support from the Admin team.</p>
+            
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
+                <textarea id="req-msg" rows="3" class="w-full bg-black border border-zinc-700 rounded-lg p-3 text-sm text-white mb-3" placeholder="Ex: Need 5 wireless mics at Main Stage..."></textarea>
+                <div class="flex gap-2">
+                    <select id="req-priority" class="bg-black border border-zinc-700 text-white text-xs p-2 rounded-lg"><option value="Normal">Normal</option><option value="High">High Priority</option></select>
+                    <button onclick="sendRequest()" class="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-xs">SEND REQUEST</button>
+                </div>
+            </div>
+
+            <h3 class="text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest">Request History</h3>
+            <div id="requests-list" class="space-y-2"></div>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <div class="fixed bottom-0 w-full bg-zinc-900 border-t border-zinc-800 flex justify-around p-2 pb-safe z-50">
+            <button onclick="switchTab('events')" class="flex flex-col items-center p-2 text-pink-500 nav-btn" id="btn-events">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span class="text-[10px] font-bold mt-1">Events</span>
+            </button>
+            <button onclick="switchTab('requests')" class="flex flex-col items-center p-2 text-slate-500 nav-btn" id="btn-requests">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <span class="text-[10px] font-bold mt-1">Support</span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- SCANNER MODAL -->
+    <div id="scanner-modal" class="fixed inset-0 z-[60] bg-black hidden flex-col">
+        <div class="p-4 flex justify-between items-center bg-zinc-900">
+            <h3 class="font-bold text-white" id="scanner-title">Verify Participant</h3>
+            <button onclick="closeScanner()" class="text-gray-400"><i data-lucide="x"></i></button>
+        </div>
+        <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+            <div id="reader" class="w-full h-full object-cover"></div>
+            <div class="absolute inset-0 border-[30px] border-black/50 pointer-events-none flex items-center justify-center">
+                <div class="w-64 h-64 border-2 border-pink-500 rounded-lg"></div>
+            </div>
+        </div>
+        <div class="p-4 bg-zinc-900 min-h-[150px]">
+            <p id="scan-status" class="text-center text-slate-400 text-xs mb-2">Scanning...</p>
+            <div id="scan-result" class="hidden text-center"></div>
+        </div>
+    </div>
+
+    <!-- PARTICIPANTS MODAL -->
+    <div id="participants-modal" class="fixed inset-0 z-[60] bg-black hidden flex-col">
+        <div class="p-4 flex justify-between items-center border-b border-zinc-800 bg-zinc-900">
+            <div>
+                <h3 class="font-bold text-white" id="plist-title">Participants</h3>
+                <p class="text-[10px] text-slate-400" id="plist-count">0 Registered</p>
+            </div>
+            <button onclick="document.getElementById('participants-modal').classList.add('hidden')" class="bg-zinc-800 p-2 rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="plist-container"></div>
+    </div>
+
+    <!-- RESULTS MODAL -->
+    <div id="results-modal" class="fixed inset-0 z-[60] flex items-center justify-center hidden p-4" style="background: rgba(0,0,0,0.9);">
+        <div class="bg-zinc-900 border border-zinc-700 w-full max-w-sm p-6 rounded-2xl">
+            <h3 class="text-xl font-bold text-white mb-4">Publish Winners</h3>
+            <input type="hidden" id="res-id">
+            <div class="space-y-3">
+                <input id="res-1" placeholder="🥇 1st Place Name/ID" class="w-full bg-black border border-yellow-600 p-3 rounded text-white">
+                <input id="res-2" placeholder="🥈 2nd Place Name/ID" class="w-full bg-black border border-slate-600 p-3 rounded text-white">
+                <input id="res-3" placeholder="🥉 3rd Place Name/ID" class="w-full bg-black border border-orange-800 p-3 rounded text-white">
+                <button onclick="submitResults()" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl mt-2">BROADCAST RESULTS</button>
+            </div>
+            <button onclick="document.getElementById('results-modal').classList.add('hidden')" class="w-full mt-4 text-xs text-slate-500">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let myClub = null;
+        let myEvents = [];
+        let html5QrcodeScanner = null;
+        let activeEventId = null;
+        let activeEventTitle = null;
+        let scannerMode = 'verify'; // 'verify' or 'register'
+
+        function initSystem() { lucide.createIcons(); }
+        window.onload = initSystem;
+
+        function clubLogin() {
+            const u = document.getElementById('login-id').value.trim();
+            const p = document.getElementById('login-key').value.trim();
+            if(!u || !p) return alert("Enter credentials");
+
+            db.ref('club_auth/' + u).once('value').then(snap => {
+                const data = snap.val();
+                if(data && data.password === p) {
+                    myClub = data.club_code;
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    document.getElementById('header-club-name').innerText = (myClub === 'all' ? 'ADMIN' : myClub).toUpperCase();
+                    loadDashboard();
+                    loadRequests();
+                } else {
+                    alert("Access Denied");
+                }
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('text-pink-500', 'text-slate-500'));
+            document.getElementById('btn-' + tab).classList.replace('text-slate-500', 'text-pink-500');
+        }
+
+        function loadDashboard() {
+            // 1. Get My Events
+            db.ref('events').on('value', snap => {
+                const all = snap.val() || {};
+                const list = document.getElementById('events-list');
+                list.innerHTML = "";
+                myEvents = [];
+
+                Object.entries(all).forEach(([id, e]) => {
+                    if(myClub === 'all' || e.club === myClub) {
+                        e.id = id;
+                        myEvents.push(e);
+                        renderEventCard(e, list);
+                    }
+                });
+                
+                // 2. Calculate Stats from Users
+                db.ref('users').once('value').then(uSnap => {
+                    let regs = 0;
+                    let rev = 0;
+                    const users = Object.values(uSnap.val() || {});
+                    
+                    myEvents.forEach(ev => {
+                        const count = users.filter(u => 
+                            (u.order?.events?.some(x => x.id == ev.id)) || 
+                            (u.order?.pass?.includes('Nexus') && !ev.isPremium)
+                        ).length;
+                        
+                        // Update card count
+                        const countEl = document.getElementById(`count-${ev.id}`);
+                        if(countEl) countEl.innerText = count + " Regs";
+
+                        regs += count;
+                        // Est revenue (simplified)
+                        rev += (count * (ev.price || 0));
+                    });
+                    
+                    document.getElementById('stat-regs').innerText = regs;
+                    document.getElementById('stat-rev').innerText = "₹" + rev.toLocaleString();
+                });
+            });
+        }
+
+        function renderEventCard(e, container) {
+            // Get Status
+            db.ref('events_status/' + e.id).on('value', snap => {
+                const data = snap.val() || {};
+                const status = data.status || 'upcoming';
+                
+                let controls = "";
+                if(status === 'upcoming') {
+                    controls = `<button onclick="setStatus('${e.id}', 'live', '${e.title}')" class="flex-1 bg-green-600 text-white py-2 rounded text-xs font-bold">START EVENT</button>`;
+                } else if (status === 'live') {
+                    controls = `
+                        <button onclick="startScanner('${e.id}', '${e.title}')" class="flex-1 bg-blue-600 text-white py-2 rounded text-xs font-bold animate-pulse">SCAN ENTRY</button>
+                        <button onclick="setStatus('${e.id}', 'ended', '${e.title}')" class="flex-1 bg-red-600 text-white py-2 rounded text-xs font-bold">END</button>
+                    `;
+                } else {
+                    controls = `<button onclick="openResults('${e.id}')" class="flex-1 bg-yellow-600 text-white py-2 rounded text-xs font-bold">PUBLISH WINNERS</button>`;
+                }
+
+                const existing = document.getElementById(`card-${e.id}`);
+                const html = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex gap-3">
+                            <img src="${e.img}" class="w-12 h-12 rounded-lg bg-zinc-800 object-cover">
+                            <div>
+                                <h3 class="font-bold text-white text-sm">${e.title}</h3>
+                                <p class="text-[10px] text-slate-400">${e.day || 'Day 1'} • <span id="count-${e.id}">Loading...</span></p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold px-2 py-1 rounded ${status === 'live' ? 'bg-green-900 text-green-400' : 'bg-zinc-800 text-slate-400'}">${status}</span>
+                    </div>
+                    <div class="flex gap-2 mb-2">
+                        ${controls}
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="viewParticipants('${e.id}', '${e.title}')" class="flex-1 border border-zinc-700 text-slate-400 py-2 rounded text-[10px] font-bold">VIEW LIST</button>
+                        <button onclick="startRegistrationScanner('${e.id}', '${e.title}')" class="flex-1 border border-blue-900 text-blue-400 py-2 rounded text-[10px] font-bold flex items-center justify-center gap-1"><i data-lucide="user-plus" class="w-3 h-3"></i> ADD USER</button>
+                    </div>
+                `;
+
+                if(existing) {
+                    existing.innerHTML = html;
+                } else {
+                    const div = document.createElement('div');
+                    div.id = `card-${e.id}`;
+                    div.className = "bg-zinc-900/80 border border-zinc-800 p-4 rounded-xl";
+                    div.innerHTML = html;
+                    container.appendChild(div);
+                }
+                lucide.createIcons();
+            });
+        }
+
+        // --- ACTIONS ---
+        function setStatus(id, status, title) {
+            if(!confirm(`Change status of ${title} to ${status.toUpperCase()}?`)) return;
+            db.ref('events_status/' + id).update({ status: status });
+            if(status === 'live') {
+                db.ref('updates').push({ message: `🔴 NOW LIVE: ${title} has started!`, timestamp: Date.now() });
+            }
+        }
+
+        function viewParticipants(id, title) {
+            const container = document.getElementById('plist-container');
+            container.innerHTML = "<p class='text-center text-slate-500 mt-4'>Loading...</p>";
+            document.getElementById('plist-title').innerText = title;
+            document.getElementById('participants-modal').classList.remove('hidden');
+            document.getElementById('participants-modal').style.display = 'flex';
+
+            db.ref('users').once('value').then(snap => {
+                const users = Object.values(snap.val() || {});
+                const eventMeta = myEvents.find(x => x.id == id);
+                const isPremium = eventMeta ? eventMeta.isPremium : false;
+
+                const list = users.filter(u => 
+                    u.order?.events?.some(ev => ev.id == id) || 
+                    (u.order?.pass?.includes('Nexus') && !isPremium)
+                );
+
+                document.getElementById('plist-count').innerText = `${list.length} Registered`;
+                container.innerHTML = "";
+                
+                list.forEach(u => {
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center bg-zinc-900 p-3 rounded border border-zinc-800">
+                            <div>
+                                <p class="text-white text-sm font-bold">${u.name}</p>
+                                <p class="text-[10px] text-slate-500">${u.spectrumId}</p>
+                            </div>
+                            <div class="text-right">
+                                <a href="tel:${u.phone}" class="text-green-500 text-xs font-bold"><i data-lucide="phone" class="w-4 h-4 inline"></i> Call</a>
+                            </div>
+                        </div>
+                    `;
+                });
+                lucide.createIcons();
+            });
+        }
+
+        // --- SCANNER ---
+        function startScanner(id, title) {
+            activeEventId = id;
+            activeEventTitle = title;
+            scannerMode = 'verify';
+            document.getElementById('scanner-title').innerText = "Verify Entry: " + title;
+            openScannerModal();
+        }
+
+        function startRegistrationScanner(id, title) {
+            activeEventId = id;
+            activeEventTitle = title;
+            scannerMode = 'register';
+            document.getElementById('scanner-title').innerText = "Register for: " + title;
+            openScannerModal();
+        }
+
+        function openScannerModal() {
+            document.getElementById('scanner-modal').classList.remove('hidden');
+            document.getElementById('scanner-modal').style.display = 'flex';
+            
+            if(!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader");
+            }
+            html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScan);
+        }
+
+        function closeScanner() {
+            if(html5QrcodeScanner) html5QrcodeScanner.stop();
+            document.getElementById('scanner-modal').style.display = 'none';
+        }
+
+        function onScan(decodedText) {
+            if (scannerMode === 'verify') {
+                checkEntry(decodedText);
+            } else if (scannerMode === 'register') {
+                registerUserForEvent(decodedText);
+            }
+        }
+
+        function checkEntry(decodedText) {
+            const resBox = document.getElementById('scan-result');
+            resBox.innerHTML = "<p class='text-yellow-500 animate-pulse font-bold'>VERIFYING...</p>";
+            resBox.classList.remove('hidden');
+
+            db.ref('users').orderByChild('spectrumId').equalTo(decodedText).once('value').then(snap => {
+                if(!snap.exists()) {
+                    showScanResult(false, "INVALID ID", decodedText);
+                    return;
+                }
+                const u = Object.values(snap.val())[0];
+
+                const eventMeta = myEvents.find(x => x.id == activeEventId);
+                const isPremium = eventMeta ? eventMeta.isPremium : false;
+                
+                let hasAccess = false;
+                if(u.order?.pass?.includes('Nexus') && !isPremium) hasAccess = true;
+                if(u.order?.events?.some(ev => ev.id == activeEventId)) hasAccess = true;
+
+                if(hasAccess) {
+                    showScanResult(true, "ALLOWED", u.name);
+                } else {
+                    showScanResult(false, "NO TICKET", u.name);
+                }
+            });
+        }
+
+        function registerUserForEvent(sid) {
+            const resBox = document.getElementById('scan-result');
+            resBox.innerHTML = "<p class='text-blue-500 animate-pulse font-bold'>REGISTERING...</p>";
+            resBox.classList.remove('hidden');
+
+            db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(snap => {
+                if(!snap.exists()) {
+                     showScanResult(false, "INVALID ID", sid);
+                     return;
+                }
+                const u = Object.values(snap.val())[0];
+                const key = Object.keys(snap.val())[0];
+
+                // Check if already registered
+                if (u.order?.events?.some(ev => ev.id == activeEventId)) {
+                    showScanResult(false, "ALREADY ADDED", u.name);
+                    return;
+                }
+
+                const eventMeta = myEvents.find(x => x.id == activeEventId);
+                const newEvent = {
+                    id: activeEventId,
+                    title: activeEventTitle,
+                    price: eventMeta.price || 0,
+                    isPremium: eventMeta.isPremium || false,
+                    addedBy: 'ClubHead'
+                };
+                
+                let currentEvents = u.order?.events || [];
+                currentEvents.push(newEvent);
+                
+                db.ref('users/' + key + '/order/events').set(currentEvents).then(() => {
+                     showScanResult(true, "REGISTERED", u.name);
+                });
+            });
+        }
+
+        function showScanResult(success, title, sub) {
+            const resBox = document.getElementById('scan-result');
+            const color = success ? 'bg-green-600' : 'bg-red-600';
+            resBox.innerHTML = `
+                <div class="${color} p-4 rounded-xl text-white shadow-xl transform transition-all">
+                    <h2 class="text-2xl font-black">${title}</h2>
+                    <p class="text-xs opacity-80 font-mono">${sub}</p>
+                </div>
+            `;
+            setTimeout(() => { resBox.innerHTML = ""; resBox.classList.add('hidden'); }, 3000);
+        }
+
+        // --- REQUESTS ---
+        function sendRequest() {
+            const msg = document.getElementById('req-msg').value;
+            const prio = document.getElementById('req-priority').value;
+            if(!msg) return;
+
+            db.ref('club_requests').push({
+                club: myClub,
+                message: msg,
+                priority: prio,
+                status: 'Open',
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Sent to Admin!");
+                document.getElementById('req-msg').value = "";
+            });
+        }
+
+        function loadRequests() {
+            db.ref('club_requests').orderByChild('club').equalTo(myClub).on('value', snap => {
+                const list = document.getElementById('requests-list');
+                list.innerHTML = "";
+                if(snap.val()) {
+                    Object.values(snap.val()).reverse().forEach(r => {
+                        const color = r.status === 'Open' ? 'text-yellow-500' : 'text-green-500';
+                        list.innerHTML += `
+                            <div class="bg-zinc-900 border border-zinc-800 p-3 rounded text-sm">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-[10px] text-slate-500">${new Date(r.timestamp).toLocaleTimeString()}</span>
+                                    <span class="text-[10px] font-bold ${color}">${r.status}</span>
+                                </div>
+                                <p class="text-slate-300">${r.message}</p>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
+        // --- RESULTS ---
+        function openResults(id) {
+            document.getElementById('res-id').value = id;
+            document.getElementById('results-modal').classList.remove('hidden');
+        }
+        function submitResults() {
+            const id = document.getElementById('res-id').value;
+            const res = [null, document.getElementById('res-1').value, document.getElementById('res-2').value, document.getElementById('res-3').value];
+            
+            db.ref('events_status/' + id).update({ results: res });
+            
+            const eventName = myEvents.find(e => e.id == id)?.title || "Event";
+            db.ref('updates').push({
+                message: `🏆 RESULTS: ${eventName} Winners - 1. ${res[1]}, 2. ${res[2]}`,
+                timestamp: Date.now()
+            });
+            
+            alert("Published & Broadcasted!");
+            document.getElementById('results-modal').classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
