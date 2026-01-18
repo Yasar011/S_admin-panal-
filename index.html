@@ -62,6 +62,12 @@
         /* Animations */
         .animate-in { animation: fadeUp 0.5s ease-out forwards; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
 <body onload="initSystem()">
@@ -98,14 +104,15 @@
             </div>
             <div class="flex-1 space-y-1">
                 <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
-                <div class="nav-item" onclick="showAdminTab('events')"><i data-lucide="calendar-plus" class="w-4 h-4"></i> Manage Events</div>
+                <!-- Verification Desk (New) -->
+                <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
+                
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
                 <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
-                <div class="nav-item" onclick="showAdminTab('payment')"><i data-lucide="credit-card" class="w-4 h-4"></i> Payments</div>
+                <div class="nav-item" onclick="showAdminTab('payment')"><i data-lucide="credit-card" class="w-4 h-4"></i> Payments & UPI</div>
                 <div class="nav-item" onclick="showAdminTab('promos')"><i data-lucide="ticket" class="w-4 h-4"></i> Promo Codes</div>
                 <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Staff & Clubs</div>
-                <div class="nav-item" onclick="showAdminTab('approvals')"><i data-lucide="check-circle" class="w-4 h-4"></i> Approvals <span id="badge-approve" class="ml-auto bg-red-600 text-[9px] px-2 rounded-full hidden">!</span></div>
                 <div class="nav-item" onclick="showAdminTab('updates')"><i data-lucide="radio" class="w-4 h-4"></i> Updates</div>
             </div>
             <button onclick="logout()" class="mt-auto border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors">LOGOUT</button>
@@ -124,32 +131,46 @@
                 </div>
             </div>
 
-            <!-- EVENTS MANAGEMENT (NEW) -->
-            <div id="tab-events" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Event Management</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Event Form -->
-                    <div class="card lg:col-span-1 border-l-4 border-pink-600 h-fit">
-                        <h3 class="font-bold text-white mb-4 uppercase text-sm tracking-widest">Create / Edit</h3>
-                        <input type="hidden" id="evt-id">
-                        <div class="space-y-3">
-                            <div><label class="text-[10px] text-slate-400 uppercase">Title</label><input id="evt-title" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="e.g. Street Battle"></div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div><label class="text-[10px] text-slate-400 uppercase">Club</label><select id="evt-club" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none"><option value="entertainment">Entertainment</option><option value="culture">Culture</option><option value="sports">Sports</option><option value="lit">Literary</option><option value="essc">ESSC</option><option value="adventure">Adventure</option></select></div>
-                                <div><label class="text-[10px] text-slate-400 uppercase">Price (₹)</label><input id="evt-price" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="0"></div>
-                            </div>
-                            <div><label class="text-[10px] text-slate-400 uppercase">Members</label><input id="evt-members" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="e.g. Solo, 5 Members"></div>
-                            <div><label class="text-[10px] text-slate-400 uppercase">Description</label><textarea id="evt-desc" rows="2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="Short description..."></textarea></div>
-                            <div><label class="text-[10px] text-slate-400 uppercase">Image URL</label><input id="evt-img" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="https://..."></div>
-                            <div><label class="text-[10px] text-slate-400 uppercase">Rulebook URL</label><input id="evt-rules" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm outline-none" placeholder="Drive Link..."></div>
-                            <div class="flex items-center gap-2 mt-2"><input type="checkbox" id="evt-premium" class="w-4 h-4 accent-pink-600"><label for="evt-premium" class="text-xs text-white uppercase font-bold">Premium Event</label></div>
-                            <div class="flex gap-2 mt-4"><button onclick="saveEvent()" class="flex-1 bg-pink-600 text-white font-bold py-2 rounded text-sm hover:bg-pink-500">SAVE</button><button onclick="clearEventForm()" class="px-4 py-2 border border-slate-600 text-slate-400 rounded hover:text-white text-sm">RESET</button></div>
+            <!-- VERIFICATION DESK (NEW) -->
+            <div id="tab-verification" class="hidden animate-in h-full">
+                <h2 class="text-2xl font-bold text-white mb-6">Payment Verification Desk</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
+                    <!-- Pending List -->
+                    <div class="card lg:col-span-1 p-0 flex flex-col overflow-hidden">
+                        <div class="p-4 border-b border-slate-700 bg-slate-800/50"><h3 class="font-bold text-white">Pending Requests</h3><p class="text-xs text-slate-400">Select to verify</p></div>
+                        <div id="pending-list" class="flex-1 overflow-y-auto p-2 space-y-2">
+                            <!-- Populated by JS -->
+                            <div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>
                         </div>
                     </div>
-                    <!-- Event List -->
-                    <div class="lg:col-span-2 card p-0 overflow-hidden flex flex-col h-[650px]">
-                        <div class="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center"><h3 class="font-bold text-white text-sm uppercase">Active Events</h3><span class="text-[10px] text-slate-500 font-mono" id="event-count">0 RECORDS</span></div>
-                        <div class="overflow-y-auto flex-1 p-2 space-y-2" id="events-list"></div>
+                    
+                    <!-- Detail View -->
+                    <div class="card lg:col-span-2 p-0 flex flex-col bg-slate-900 overflow-hidden relative">
+                        <div id="verify-placeholder" class="flex flex-col items-center justify-center h-full text-slate-600">
+                            <i data-lucide="search" class="w-12 h-12 mb-4"></i>
+                            <p>Select a transaction to verify</p>
+                        </div>
+                        <div id="verify-detail" class="hidden flex-1 flex flex-col h-full">
+                            <div class="p-6 border-b border-slate-700 flex justify-between items-start bg-slate-800/30">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-white" id="v-name">User Name</h2>
+                                    <p class="text-sm text-slate-400 font-mono" id="v-id">SPEC-------</p>
+                                    <p class="text-xs text-blue-400 mt-1 uppercase font-bold" id="v-reason">Reason: Pass Purchase</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-3xl font-bold text-green-400" id="v-amount">₹0</p>
+                                    <p class="text-xs text-slate-500 font-mono mt-1">UTR: <span id="v-utr" class="text-white select-all">---</span></p>
+                                </div>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-6 flex justify-center bg-black/50">
+                                <img id="v-img" src="" class="max-h-full object-contain border border-slate-700 rounded" alt="Payment Screenshot">
+                                <p id="v-no-img" class="hidden text-slate-500 self-center">No Screenshot Uploaded</p>
+                            </div>
+                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex gap-4">
+                                <button onclick="processVerification(false)" class="flex-1 border border-red-900 text-red-500 hover:bg-red-900 hover:text-white py-3 rounded font-bold transition-colors">REJECT</button>
+                                <button onclick="processVerification(true)" class="flex-1 bg-green-600 text-white hover:bg-green-500 py-3 rounded font-bold transition-colors shadow-lg shadow-green-900/20">APPROVE & VERIFY</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -184,10 +205,19 @@
             <div id="tab-payment" class="hidden animate-in">
                 <h2 class="text-2xl font-bold text-white mb-6">Payment Configuration</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card"><h3 class="font-bold text-white mb-4">Primary UPI ID</h3><input id="admin-upi" type="text" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm mb-4"><button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Update UPI</button></div>
-                    <div class="card"><h3 class="font-bold text-white mb-4">Backup URL</h3><input id="admin-backup" type="text" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm mb-4"><button onclick="updatePaymentConfig('backup')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Update Backup</button></div>
+                    <div class="card">
+                        <h3 class="font-bold text-white mb-2">UPI ID Rotation</h3>
+                        <p class="text-xs text-slate-400 mb-4">Enter multiple UPI IDs separated by commas. The system will rotate them randomly and on error reports.</p>
+                        <textarea id="admin-upi" rows="3" class="w-full bg-slate-900 border border-slate-700 p-3 rounded text-white text-sm mb-4 font-mono" placeholder="merchant@upi, backup@upi"></textarea>
+                        <button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Update IDs</button>
+                    </div>
+                    <div class="card">
+                        <h3 class="font-bold text-white mb-4">Backup Payment URL</h3>
+                        <input id="admin-backup" type="text" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm mb-4" placeholder="https://razorpay.me/...">
+                        <button onclick="updatePaymentConfig('backup')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Update Backup</button>
+                    </div>
                 </div>
-                <div class="mt-6 text-xs text-slate-500 font-mono">Current Config: <span id="current-config-display">Loading...</span></div>
+                <div class="mt-6 text-xs text-slate-500 font-mono">Current Active: <span id="current-config-display" class="text-white">Loading...</span></div>
             </div>
 
             <!-- Promos Tab -->
@@ -219,9 +249,6 @@
                 </div>
                 <div class="card p-0"><table class="w-full"><thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Action</th></tr></thead><tbody id="staff-table-body"></tbody></table></div>
             </div>
-
-            <!-- Approvals -->
-            <div id="tab-approvals" class="hidden animate-in"><h2 class="text-2xl font-bold text-white mb-6">Start Requests</h2><div id="approval-list" class="space-y-4"></div></div>
 
             <!-- Updates -->
             <div id="tab-updates" class="hidden animate-in"><h2 class="text-2xl font-bold text-white mb-6">Live Announcements</h2><div class="card"><textarea id="update-msg" class="w-full bg-slate-900 border border-slate-700 p-4 rounded text-white mb-4" placeholder="Message..."></textarea><button onclick="pushUpdate()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold w-full">Broadcast</button></div></div>
@@ -279,7 +306,7 @@
 
     <script>
         let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; let selectedEventId = null;
-        let html5QrcodeScanner = null; let clubScanner = null;
+        let html5QrcodeScanner = null; let clubScanner = null; let pendingUsers = []; let activeVerifyKey = null;
 
         function initSystem() {
             lucide.createIcons();
@@ -304,98 +331,124 @@
         function logout() { location.reload(); }
 
         function initAdminPanel() {
-            // EVENTS LISTENER (NEW)
-            db.ref('events').on('value', snap => {
-                const events = snap.val();
-                const container = document.getElementById('events-list');
-                const count = document.getElementById('event-count');
-                container.innerHTML = "";
-                
-                if(events) {
-                    const entries = Object.entries(events);
-                    count.innerText = entries.length + " RECORDS";
-                    entries.forEach(([id, e]) => {
-                        const premiumTag = e.isPremium ? '<span class="text-pink-500 text-[10px] uppercase font-bold ml-2">PREMIUM</span>' : '';
-                        container.innerHTML += `
-                        <div class="bg-zinc-900 border border-zinc-800 p-3 rounded flex justify-between items-center hover:border-slate-600 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <img src="${e.img}" class="w-12 h-12 object-cover rounded bg-black">
-                                <div>
-                                    <h4 class="text-white font-bold text-sm">${e.title} ${premiumTag}</h4>
-                                    <p class="text-xs text-slate-500">${e.club.toUpperCase()} • ₹${e.price} • ${e.members}</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="editEvent('${id}')" class="p-2 text-blue-400 hover:bg-slate-800 rounded"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                <button onclick="deleteEvent('${id}')" class="p-2 text-red-500 hover:bg-slate-800 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>`;
-                    });
-                } else {
-                    count.innerText = "0 RECORDS";
-                    container.innerHTML = "<p class='text-slate-500 text-xs text-center p-4'>No events found.</p>";
-                }
-                lucide.createIcons();
-            });
-
             // USERS LISTENER
             db.ref('users').on('value', snap => {
                 const data = snap.val(); if(!data) return;
-                allUsers = []; allMerch = []; allTransactions = []; let rev = 0;
+                allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; let rev = 0;
+                
                 Object.keys(data).forEach(key => {
-                    const u = data[key]; u.key = key; allUsers.push(u); rev += parseInt(u.order?.total || 0);
+                    const u = data[key]; u.key = key; 
+                    allUsers.push(u); 
+                    if(u.paymentStatus === 'Pending') pendingUsers.push(u);
+                    
+                    rev += parseInt(u.order?.total || 0);
+                    
                     if (u.order && u.order.total > 0) { allTransactions.push({ timestamp: new Date(u.order.timestamp).getTime() || 0, dateStr: new Date(u.order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Ticket (${u.order.pass})`, utr: u.utr || '-', amount: u.order.total, status: u.paymentStatus }); }
                     if(u.merch_orders) { Object.keys(u.merch_orders).forEach(mKey => { const order = u.merch_orders[mKey]; allMerch.push({ ...order, userName: u.name, userEmail: u.email, dbPath: `users/${key}/merch_orders/${mKey}` }); allTransactions.push({ timestamp: order.timestamp || 0, dateStr: new Date(order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Merch (${order.item})`, utr: '-', amount: order.price, status: order.status }); }); }
                 });
-                document.getElementById('stat-users').innerText = allUsers.length; document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length; document.getElementById('stat-pending').innerText = allUsers.filter(u=>u.paymentStatus==='Pending').length; document.getElementById('stat-revenue').innerText = "₹" + rev.toLocaleString();
-                renderUsers(); renderMerchTable(); renderFinanceTable();
+                
+                document.getElementById('stat-users').innerText = allUsers.length; 
+                document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length; 
+                document.getElementById('stat-pending').innerText = pendingUsers.length; 
+                document.getElementById('stat-revenue').innerText = "₹" + rev.toLocaleString();
+                
+                renderUsers(); 
+                renderMerchTable(); 
+                renderFinanceTable();
+                renderPendingQueue();
             });
 
-            db.ref('system_config').on('value', (s) => { const c = s.val() || {}; document.getElementById('admin-upi').value = c.upi_id || "chyasar2004-2@oksbi"; document.getElementById('admin-backup').value = c.backup_url || "#"; document.getElementById('current-config-display').innerText = `UPI: ${c.upi_id||'-'} | Backup: ${c.backup_url||'-'}`; });
+            db.ref('system_config').on('value', (s) => { const c = s.val() || {}; document.getElementById('admin-upi').value = c.upi_id || "chyasar2004-2@oksbi"; document.getElementById('admin-backup').value = c.backup_url || "#"; document.getElementById('current-config-display').innerText = `UPIs: ${c.upi_id||'-'}`; });
             db.ref('club_auth').on('value', snap => { const b = document.getElementById('staff-table-body'); b.innerHTML = ""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-gray-400 font-mono">${v.password}</td><td>${v.role}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
             db.ref('promos').on('value', snap => { const b = document.getElementById('promo-body'); b.innerHTML=""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="db.ref('promos/${k}').remove()" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
-            db.ref('events_status').on('value', snap => renderApprovals(snap.val()));
         }
 
-        // --- EVENT FUNCTIONS (NEW) ---
-        function saveEvent() {
-            const id = document.getElementById('evt-id').value || Date.now().toString();
-            const data = {
-                id: id,
-                title: document.getElementById('evt-title').value,
-                club: document.getElementById('evt-club').value,
-                price: parseInt(document.getElementById('evt-price').value) || 0,
-                members: document.getElementById('evt-members').value,
-                desc: document.getElementById('evt-desc').value,
-                img: document.getElementById('evt-img').value || 'https://via.placeholder.com/600x400',
-                rules: document.getElementById('evt-rules').value || '#',
-                isPremium: document.getElementById('evt-premium').checked
-            };
-            if(!data.title) return alert("Title required");
-            db.ref('events/' + id).set(data).then(() => { alert("Saved!"); clearEventForm(); });
-        }
-
-        function clearEventForm() {
-            document.getElementById('evt-id').value = "";
-            ['title','price','members','desc','img','rules'].forEach(k => document.getElementById('evt-'+k).value = "");
-            document.getElementById('evt-premium').checked = false;
-        }
-
-        function deleteEvent(id) { if(confirm("Delete this event?")) db.ref('events/' + id).remove(); }
-        
-        function editEvent(id) {
-            db.ref('events/' + id).once('value').then(snap => {
-                const e = snap.val();
-                document.getElementById('evt-id').value = id;
-                document.getElementById('evt-title').value = e.title;
-                document.getElementById('evt-club').value = e.club;
-                document.getElementById('evt-price').value = e.price;
-                document.getElementById('evt-members').value = e.members;
-                document.getElementById('evt-desc').value = e.desc;
-                document.getElementById('evt-img').value = e.img;
-                document.getElementById('evt-rules').value = e.rules;
-                document.getElementById('evt-premium').checked = e.isPremium;
+        // --- VERIFICATION DESK LOGIC ---
+        function renderPendingQueue() {
+            const container = document.getElementById('pending-list');
+            container.innerHTML = "";
+            if(pendingUsers.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>';
+                return;
+            }
+            
+            pendingUsers.sort((a,b) => b.order?.timestamp - a.order?.timestamp).forEach(u => {
+                container.innerHTML += `
+                <div onclick="selectForVerify('${u.key}')" class="bg-slate-900 border border-slate-800 p-3 rounded cursor-pointer hover:border-pink-500 transition-colors flex justify-between items-center group">
+                    <div>
+                        <div class="font-bold text-white text-sm">${u.name}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">${u.verificationReason || 'Unknown Reason'}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-green-400 font-bold text-xs">₹${u.pendingAmount || u.order?.total || 0}</div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-white"></i>
+                    </div>
+                </div>`;
             });
+            lucide.createIcons();
+        }
+
+        function selectForVerify(key) {
+            activeVerifyKey = key;
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+
+            document.getElementById('verify-placeholder').classList.add('hidden');
+            document.getElementById('verify-detail').classList.remove('hidden');
+            
+            document.getElementById('v-name').innerText = u.name;
+            document.getElementById('v-id').innerText = u.spectrumId || 'NOT GENERATED';
+            document.getElementById('v-reason').innerText = (u.verificationReason || 'Manual Verification').toUpperCase();
+            document.getElementById('v-amount').innerText = "₹" + (u.pendingAmount || u.order?.total || 0);
+            document.getElementById('v-utr').innerText = u.utr || 'N/A';
+            
+            const imgEl = document.getElementById('v-img');
+            const noImgEl = document.getElementById('v-no-img');
+            
+            if(u.paymentScreenshot) {
+                imgEl.src = u.paymentScreenshot;
+                imgEl.classList.remove('hidden');
+                noImgEl.classList.add('hidden');
+            } else {
+                imgEl.classList.add('hidden');
+                noImgEl.classList.remove('hidden');
+            }
+        }
+
+        function processVerification(approved) {
+            if(!activeVerifyKey) return;
+            const u = allUsers.find(x => x.key === activeVerifyKey);
+            
+            if(approved) {
+                if(confirm("Confirm PAYMENT RECEIVED?")) {
+                    db.ref('users/' + activeVerifyKey).update({ 
+                        paymentStatus: 'Verified',
+                        pendingAmount: 0 
+                    });
+                    
+                    // Also verify specific order if it was a merch payment
+                    if(u.merch_orders) {
+                        Object.keys(u.merch_orders).forEach(mk => {
+                            if(u.merch_orders[mk].status === 'Payment Pending') {
+                                db.ref(`users/${activeVerifyKey}/merch_orders/${mk}`).update({status: 'Ordered'});
+                            }
+                        });
+                    }
+                    
+                    resetVerifyView();
+                }
+            } else {
+                if(prompt("Type 'REJECT' to deny this payment.") === 'REJECT') {
+                    db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'None', pendingAmount: 0, verificationReason: null });
+                    resetVerifyView();
+                }
+            }
+        }
+
+        function resetVerifyView() {
+            activeVerifyKey = null;
+            document.getElementById('verify-placeholder').classList.remove('hidden');
+            document.getElementById('verify-detail').classList.add('hidden');
         }
 
         // --- RENDER TABLES ---
@@ -405,8 +458,8 @@
             const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search) || u.utr?.includes(search)));
             filtered.sort((a,b) => (a.paymentStatus === 'Pending' ? -1 : 1)).forEach(u => {
                 const status = u.paymentStatus;
-                let btn = status === 'Pending' ? `<button onclick="verifyUser('${u.key}','${u.name}')" class="bg-green-600 px-2 py-1 rounded text-xs text-white">Verify</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
-                let proof = u.utr || '-'; if(u.paymentScreenshot) proof += ` <a href="${u.paymentScreenshot}" target="_blank" class="text-blue-400 underline text-xs ml-1">IMG</a>`;
+                let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
+                let proof = u.utr || '-';
                 tbody.innerHTML += `<tr><td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td><td><div class="text-pink-400 font-bold text-xs">${u.order?.pass}</div></td><td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td><td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td><td class="flex gap-2 items-center">${btn}<button onclick="openEdit('${u.key}')" class="text-blue-400"><i data-lucide="edit-3" class="w-4"></i></button><button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`;
             });
             lucide.createIcons();
@@ -415,7 +468,7 @@
         function renderMerchTable() {
             const tbody = document.getElementById('merch-table-body'); tbody.innerHTML = "";
             allMerch.sort((a,b) => b.timestamp - a.timestamp).forEach(o => {
-                const status = o.status === 'Ordered' ? `<button onclick="db.ref('${o.dbPath}').update({status:'Contacted'})" class="bg-blue-600 px-2 py-1 rounded text-xs text-white">Mark Contacted</button>` : `<span class="badge badge-green">Contacted</span>`;
+                const status = o.status === 'Ordered' ? `<button onclick="db.ref('${o.dbPath}').update({status:'Contacted'})" class="bg-blue-600 px-2 py-1 rounded text-xs text-white">Mark Contacted</button>` : `<span class="badge badge-green">${o.status}</span>`;
                 tbody.innerHTML += `<tr><td><div class="font-bold text-white">${o.userName}</div><div class="text-[10px] text-gray-500">${o.userEmail}</div></td><td><div class="text-white text-xs">${o.item}</div><div class="text-slate-400 text-xs">Size: ${o.size}</div></td><td class="font-mono text-green-400">₹${o.price}</td><td class="text-xs text-slate-400 max-w-[150px] truncate">${o.address}</td><td>${status}</td></tr>`;
             });
         }
@@ -432,17 +485,12 @@
         function openEdit(key) { const u = allUsers.find(x => x.key === key); document.getElementById('edit-key').value = key; document.getElementById('edit-name').value = u.name; document.getElementById('edit-phone').value = u.phone; document.getElementById('edit-college').value = u.collegeName || ''; document.getElementById('edit-utr').value = u.utr || ''; document.getElementById('edit-pass').value = u.order?.pass || 'General'; document.getElementById('edit-status').value = u.paymentStatus; document.getElementById('edit-user-modal').classList.remove('hidden'); }
         function saveUserChanges() { const key = document.getElementById('edit-key').value; db.ref('users/' + key).update({ name: document.getElementById('edit-name').value, phone: document.getElementById('edit-phone').value, collegeName: document.getElementById('edit-college').value, utr: document.getElementById('edit-utr').value, paymentStatus: document.getElementById('edit-status').value, "order/pass": document.getElementById('edit-pass').value }).then(() => { alert("Saved!"); closeEditModal(); }); }
         function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
-        function verifyUser(k,n){ if(confirm("Verify "+n+"?")) db.ref('users/'+k).update({paymentStatus:"Verified"}); }
         function delUser(k){ if(confirm("Delete?")) db.ref('users/'+k).remove(); }
         function createStaff(){ const u=document.getElementById('new-staff-user').value,p=document.getElementById('new-staff-pass').value,r=document.getElementById('new-staff-role').value; if(u) db.ref('club_auth/'+u).set({password:p,role:r,club_code:r}).then(()=>alert("Created")); }
         function delStaff(u){ if(u!=='C H'&&confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
         function createPromo(){ const c=document.getElementById('p-code').value.toUpperCase(),v=document.getElementById('p-val').value,t=document.getElementById('p-type').value,l=document.getElementById('p-limit').value; if(c) db.ref('promos/'+c).set({discount:v,type:t,limit:l,used:0}).then(()=>alert("Created")); }
         function pushUpdate(){ const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
-        function reqStart(id){ db.ref('events_status/'+id).update({status:'pending_approval', budget_request:'Request'}); alert("Sent"); }
-        function approveEv(id){ db.ref('events_status/'+id).update({status:'live'}); }
-        function endEvent(id){ if(confirm("End Event?")) db.ref('events_status/'+id).update({status:'ended'}); }
-        function showAdminTab(id) { ['dashboard','users','promos','staff','approvals','updates','merch','payment','finance','events'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
-        function renderApprovals(d){ const l=document.getElementById('approval-list'); l.innerHTML=""; if(d) Object.entries(d).forEach(([id,ev])=>{ if(ev.status==='pending_approval'){ l.innerHTML+=`<div class="card flex justify-between"><div><h4 class="text-white font-bold">Event ${id}</h4><p class="text-xs text-yellow-500">${ev.budget_request}</p></div><button onclick="approveEv('${id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">APPROVE</button></div>`; } }); }
+        function showAdminTab(id) { ['dashboard','users','promos','staff','updates','merch','payment','finance','verification'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
         
         document.getElementById('search-user').addEventListener('input', renderUsers);
         function initGateScanner() { if(!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }); html5QrcodeScanner.render(onScanSuccess); document.getElementById('qr-reader-placeholder').style.display = 'none'; } }
