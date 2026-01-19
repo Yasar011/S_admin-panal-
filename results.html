@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESULTS CONSOLE | SPECTRUM '26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        
+        /* Table Styles */
+        th { text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; color: #94a3b8; padding: 16px; border-bottom: 1px solid #1e293b; text-align: left; }
+        td { padding: 16px; border-bottom: 1px solid #1e293b; color: #e2e8f0; font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #1e293b; }
+
+        .gold { color: #fbbf24; font-weight: bold; }
+        .silver { color: #94a3b8; font-weight: 600; }
+        .bronze { color: #b45309; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. SIMPLE LOGIN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm text-center">
+            <div class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-500/30">
+                <i data-lucide="trophy" class="w-8 h-8 text-yellow-500"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-widest mb-2">RESULTS CORE</h1>
+            <p class="text-xs text-slate-500 font-mono mb-8">SECURE DATA ACCESS</p>
+            
+            <input id="access-pass" type="password" placeholder="ENTER ACCESS KEY" class="w-full bg-slate-900 border border-slate-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.2em] outline-none focus:border-yellow-500 transition-colors mb-4">
+            <button onclick="authenticate()" class="w-full bg-yellow-600 text-black font-bold py-4 rounded-lg hover:bg-yellow-500 transition-colors">UNLOCK DATABASE</button>
+            <p id="error-msg" class="text-red-500 text-xs mt-4 font-mono h-4"></p>
+        </div>
+    </div>
+
+    <!-- 2. MAIN DASHBOARD -->
+    <div id="dashboard" class="hidden min-h-screen pb-20">
+        
+        <!-- Header -->
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="award" class="text-yellow-500 w-6 h-6"></i>
+                    <div>
+                        <h2 class="text-white font-bold text-lg leading-none">MASTER STANDINGS</h2>
+                        <p class="text-[10px] text-slate-400 font-mono">SPECTRUM '26 OFFICIAL RECORDS</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="exportToExcel()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-2">
+                        <i data-lucide="sheet"></i> EXPORT EXCEL
+                    </button>
+                    <button onclick="location.reload()" class="bg-slate-800 text-slate-300 px-4 py-2 rounded text-xs font-bold hover:bg-slate-700">LOGOUT</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                    <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Total Events</p>
+                    <h3 class="text-3xl font-bold text-white" id="stat-total">0</h3>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                    <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Results Declared</p>
+                    <h3 class="text-3xl font-bold text-green-400" id="stat-declared">0</h3>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+                    <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Pending Results</p>
+                    <h3 class="text-3xl font-bold text-yellow-500" id="stat-pending">0</h3>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="results-table">
+                        <thead class="bg-slate-950">
+                            <tr>
+                                <th>Event Name</th>
+                                <th>Category</th>
+                                <th class="text-yellow-500"><i data-lucide="trophy" class="inline w-3 h-3 mr-1"></i> Winner (1st)</th>
+                                <th class="text-slate-400">Runner Up (2nd)</th>
+                                <th class="text-orange-700">Third Place (3rd)</th>
+                                <th>Declared At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="loading-state" class="p-8 text-center text-slate-500 text-sm">
+                    Connecting to mainframe...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- EVENT CONFIG (Same as other files for mapping) ---
+        const eventsData = [
+            { id: 101, club: 'entertainment', title: 'EDM Night (Add-on)' }, 
+            { id: 102, club: 'entertainment', title: 'Fashion Show (Main)' },
+            { id: 1, club: 'culture', title: 'Street Battle' },
+            { id: 2, club: 'culture', title: 'Solo Singing' },
+            { id: 3, club: 'culture', title: 'Runway Rivals' },
+            { id: 4, club: 'culture', title: 'Battle of Bands' },
+            { id: 5, club: 'entertainment', title: 'EDM Night (Main)' },
+            { id: 6, club: 'sports', title: 'Valorant' },
+            { id: 7, club: 'sports', title: 'FIFA 26' },
+            { id: 8, club: 'sports', title: 'Box Cricket' },
+            { id: 9, club: 'adventure', title: 'Photo Walk' },
+            { id: 10, club: 'adventure', title: 'Treasure Hunt' },
+            { id: 11, club: 'lit', title: 'Debate War' },
+            { id: 12, club: 'lit', title: 'Open Mic' },
+            { id: 13, club: 'environment', title: 'Eco Drive' },
+            { id: 15, club: 'environment', title: 'Trash to Art' },
+            { id: 16, club: 'lit', title: 'Creative Writing' },
+            { id: 17, club: 'essc', title: 'Social Case Study' },
+            { id: 18, club: 'essc', title: 'Nukkad Natak' },
+            { id: 19, club: 'sports', title: 'BGMI' }
+        ];
+
+        let resultsData = [];
+
+        function authenticate() {
+            const pass = document.getElementById('access-pass').value;
+            // Hardcoded password as requested
+            if(pass === 'SPECTRUM' || pass === 'admin') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                initResults();
+            } else {
+                document.getElementById('error-msg').innerText = "ACCESS DENIED";
+            }
+        }
+
+        function initResults() {
+            lucide.createIcons();
+            
+            db.ref('results').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                const tableBody = document.getElementById('table-body');
+                const loading = document.getElementById('loading-state');
+                
+                tableBody.innerHTML = "";
+                resultsData = [];
+                let declaredCount = 0;
+
+                // Create a map of results
+                eventsData.forEach(event => {
+                    const result = data[event.id];
+                    let row = '';
+                    
+                    if(result) {
+                        declaredCount++;
+                        const date = new Date(result.timestamp).toLocaleString();
+                        
+                        // Push for export
+                        resultsData.push({
+                            event: event.title,
+                            category: event.club.toUpperCase(),
+                            first: result.first,
+                            second: result.second,
+                            third: result.third,
+                            time: date
+                        });
+
+                        row = `
+                        <tr>
+                            <td class="font-bold text-white">${event.title}</td>
+                            <td><span class="bg-slate-800 text-slate-400 px-2 py-1 rounded text-[10px] uppercase font-bold">${event.club}</span></td>
+                            <td class="gold">${result.first}</td>
+                            <td class="silver">${result.second}</td>
+                            <td class="bronze">${result.third}</td>
+                            <td class="text-slate-500 text-[10px] font-mono">${date}</td>
+                        </tr>`;
+                    } else {
+                        // Push empty for export consistency
+                        resultsData.push({
+                            event: event.title,
+                            category: event.club.toUpperCase(),
+                            first: 'Pending',
+                            second: '-',
+                            third: '-',
+                            time: '-'
+                        });
+
+                        row = `
+                        <tr>
+                            <td class="font-bold text-slate-400">${event.title}</td>
+                            <td><span class="bg-slate-800 text-slate-500 px-2 py-1 rounded text-[10px] uppercase font-bold">${event.club}</span></td>
+                            <td colspan="4" class="text-slate-600 text-xs italic tracking-wider">RESULT PENDING</td>
+                        </tr>`;
+                    }
+                    tableBody.innerHTML += row;
+                });
+
+                // Update Stats
+                document.getElementById('stat-total').innerText = eventsData.length;
+                document.getElementById('stat-declared').innerText = declaredCount;
+                document.getElementById('stat-pending').innerText = eventsData.length - declaredCount;
+                
+                loading.classList.add('hidden');
+                lucide.createIcons();
+            });
+        }
+
+        function exportToExcel() {
+            if(resultsData.length === 0) return alert("No data to export.");
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Event Name,Category,Winner (1st),Runner Up (2nd),Third Place,Declaration Time\n";
+
+            resultsData.forEach(row => {
+                // Escape commas in names to prevent CSV breakage
+                const safe = (str) => `"${str.toString().replace(/"/g, '""')}"`; 
+                csvContent += `${safe(row.event)},${safe(row.category)},${safe(row.first)},${safe(row.second)},${safe(row.third)},${safe(row.time)}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Spectrum_Results_Official.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
