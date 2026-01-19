@@ -3,677 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spectrum '26 | Command Center</title>
-    
+    <title>SPECTRUM OPS HUB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
-
-    <!-- FIREBASE SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
-            authDomain: "spectram-234f7.firebaseapp.com",
-            projectId: "spectram-234f7",
-            storageBucket: "spectram-234f7.firebasestorage.app",
-            messagingSenderId: "192476382126",
-            appId: "1:192476382126:web:26422db3e948165933be3f",
-            measurementId: "G-SK3RN0FDZK",
-            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-    </script>
-
+    
     <style>
-        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
         
-        /* Layout */
-        .view-section { display: none; height: 100vh; flex-direction: column; }
-        .view-section.active { display: flex; }
-        .view-section.flex-row { flex-direction: row; }
+        .portal-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .portal-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
         
-        /* Sidebar */
-        aside { background: #0f172a; border-right: 1px solid #1e293b; z-index: 50; }
-        .nav-item { display: flex; items: center; gap: 10px; padding: 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; color: #94a3b8; transition: 0.2s; }
-        .nav-item:hover, .nav-item.active { background: #1e293b; color: white; }
-        
-        /* Cards & Tables */
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
-        th { text-align: left; padding: 12px; background: #0f172a; color: #64748b; font-size: 11px; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #334155; font-size: 13px; }
-        
-        /* Badges */
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        .badge-green { background: #064e3b; color: #34d399; }
-        .badge-yellow { background: #451a03; color: #fbbf24; }
-        .badge-red { background: #450a0a; color: #f87171; }
-        .badge-blue { background: #1e3a8a; color: #60a5fa; }
-        .badge-purple { background: #581c87; color: #d8b4fe; }
-        .badge-none { background: #1f2937; color: #9ca3af; }
-
-        /* Modal - Z-Index 100 to stay on top */
-        .modal-overlay { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 100; }
-        
-        /* Animations */
-        .animate-in { animation: fadeUp 0.5s ease-out forwards; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        /* Grid Background Pattern */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
     </style>
 </head>
-<body onload="initSystem()">
+<body class="min-h-screen flex flex-col items-center justify-center p-6 relative">
 
-    <!-- 1. LOGIN SCREEN -->
-    <div id="view-login" class="view-section active items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
-        <div class="bg-slate-900 p-8 rounded-xl border border-slate-700 w-full max-w-sm shadow-2xl animate-in">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-white tracking-widest">COMMAND</h1>
-                <p class="text-xs text-pink-500 font-mono mt-1">SPECTRUM '26 CENTRAL</p>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs text-slate-400 uppercase font-bold">Identity</label>
-                    <input id="login-user" type="text" placeholder="Username" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 uppercase font-bold">Access Key</label>
-                    <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
-                </div>
-                <button onclick="handleLogin()" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">AUTHENTICATE</button>
-            </div>
-            <p id="login-status" class="text-center text-xs text-red-500 mt-4 h-4"></p>
+    <div class="absolute inset-0 bg-grid pointer-events-none"></div>
+
+    <div class="max-w-4xl w-full relative z-10">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-black text-white tracking-tighter mb-2">COMMAND HUB</h1>
+            <p class="text-slate-500 font-mono text-sm tracking-widest uppercase">Spectrum '26 Operational Control</p>
         </div>
-    </div>
 
-    <!-- 2. SUPER ADMIN DASHBOARD -->
-    <div id="view-admin" class="view-section flex-row">
-        <!-- Sidebar -->
-        <aside class="w-64 flex flex-col p-4">
-            <div class="mb-8 px-2">
-                <h1 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shield-alert" class="text-pink-600"></i> MASTER</h1>
-                <p class="text-[10px] text-slate-500 font-mono">ROOT ACCESS</p>
-            </div>
-            <div class="flex-1 space-y-1">
-                <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
-                <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
-                <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
-                <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
-                <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
-                <div class="nav-item" onclick="showAdminTab('payment')"><i data-lucide="credit-card" class="w-4 h-4"></i> Payments & UPI</div>
-                <div class="nav-item" onclick="showAdminTab('promos')"><i data-lucide="ticket" class="w-4 h-4"></i> Promo Codes</div>
-                <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Staff & Clubs</div>
-                <div class="nav-item" onclick="showAdminTab('updates')"><i data-lucide="radio" class="w-4 h-4"></i> Updates</div>
-            </div>
-            <button onclick="logout()" class="mt-auto border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors">LOGOUT</button>
-        </aside>
-
-        <!-- Content -->
-        <main class="flex-1 overflow-y-auto p-8 bg-slate-950">
-            <!-- Dashboard -->
-            <div id="tab-dashboard" class="animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Live Overview</h2>
-                <div class="grid grid-cols-4 gap-6 mb-8">
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Users</p><h3 id="stat-users" class="text-3xl font-bold text-white">0</h3></div>
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400">₹0</h3></div>
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
-                    <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
-                </div>
-                
-                <h3 class="text-xl font-bold text-white mb-4">Revenue Intelligence</h3>
-                <div class="grid grid-cols-3 gap-6 mb-8">
-                    <div class="card bg-slate-900 border-pink-500/30">
-                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-pink-400 font-bold uppercase">Pass Sales</span><i data-lucide="ticket" class="text-pink-500 w-4"></i></div>
-                        <h4 class="text-2xl font-bold text-white" id="rev-pass">₹0</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- 1. ADMIN CONSOLE -->
+            <a href="admin.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:border-pink-500/50">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-pink-900/30 p-3 rounded-lg text-pink-500 group-hover:bg-pink-600 group-hover:text-white transition-colors">
+                        <i data-lucide="shield-alert" class="w-8 h-8"></i>
                     </div>
-                    <div class="card bg-slate-900 border-cyan-500/30">
-                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-cyan-400 font-bold uppercase">Merch Sales</span><i data-lucide="shirt" class="text-cyan-500 w-4"></i></div>
-                        <h4 class="text-2xl font-bold text-white" id="rev-merch">₹0</h4>
+                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Master Admin</h2>
+                <p class="text-sm text-slate-400">Manage users, payments, staff access, and global configurations.</p>
+            </a>
+
+            <!-- 2. CLUB OPS -->
+            <a href="club.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:border-blue-500/50">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-blue-900/30 p-3 rounded-lg text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <i data-lucide="zap" class="w-8 h-8"></i>
                     </div>
-                    <div class="card bg-slate-900">
-                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-slate-400 font-bold uppercase">Avg Order</span><i data-lucide="trending-up" class="text-slate-500 w-4"></i></div>
-                        <h4 class="text-2xl font-bold text-white" id="rev-avg">₹0</h4>
+                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Club Ops</h2>
+                <p class="text-sm text-slate-400">Manage specific events, take attendance, and declare winners.</p>
+            </a>
+
+            <!-- 3. GATE CONTROL -->
+            <a href="gate.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:border-green-500/50">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-green-900/30 p-3 rounded-lg text-green-500 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                        <i data-lucide="scan-line" class="w-8 h-8"></i>
                     </div>
+                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
                 </div>
-            </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Gate Control</h2>
+                <p class="text-sm text-slate-400">Security checkpoint for verifying passes and managing entry flow.</p>
+            </a>
 
-            <!-- VERIFICATION DESK -->
-            <div id="tab-verification" class="hidden animate-in h-full">
-                <h2 class="text-2xl font-bold text-white mb-6">Payment Verification Desk</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
-                    <!-- Pending List -->
-                    <div class="card lg:col-span-1 p-0 flex flex-col overflow-hidden">
-                        <div class="p-4 border-b border-slate-700 bg-slate-800/50"><h3 class="font-bold text-white">Pending Requests</h3><p class="text-xs text-slate-400">Select to verify</p></div>
-                        <div id="pending-list" class="flex-1 overflow-y-auto p-2 space-y-2">
-                            <!-- Populated by JS -->
-                            <div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>
-                        </div>
+            <!-- 4. RESULTS DASHBOARD -->
+            <a href="results.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:border-yellow-500/50">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-yellow-900/30 p-3 rounded-lg text-yellow-500 group-hover:bg-yellow-600 group-hover:text-white transition-colors">
+                        <i data-lucide="trophy" class="w-8 h-8"></i>
                     </div>
-                    
-                    <!-- Detail View -->
-                    <div class="card lg:col-span-2 p-0 flex flex-col bg-slate-900 overflow-hidden relative">
-                        <div id="verify-placeholder" class="flex flex-col items-center justify-center h-full text-slate-600">
-                            <i data-lucide="search" class="w-12 h-12 mb-4"></i>
-                            <p>Select a transaction to verify</p>
-                        </div>
-                        <div id="verify-detail" class="hidden flex-1 flex flex-col h-full">
-                            <div class="p-6 border-b border-slate-700 flex justify-between items-start bg-slate-800/30">
-                                <div>
-                                    <h2 class="text-2xl font-bold text-white" id="v-name">User Name</h2>
-                                    <p class="text-sm text-slate-400 font-mono" id="v-id">SPEC-------</p>
-                                    <p class="text-xs text-blue-400 mt-1 uppercase font-bold" id="v-reason">Reason: Pass Purchase</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-3xl font-bold text-green-400" id="v-amount">₹0</p>
-                                    <p class="text-xs text-slate-500 font-mono mt-1">UTR: <span id="v-utr" class="text-white select-all">---</span></p>
-                                </div>
-                            </div>
-                            <div class="flex-1 overflow-y-auto p-6 flex justify-center bg-black/50">
-                                <img id="v-img" src="" class="max-h-full object-contain border border-slate-700 rounded" alt="Payment Screenshot">
-                                <p id="v-no-img" class="hidden text-slate-500 self-center">No Screenshot Uploaded</p>
-                            </div>
-                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex gap-4">
-                                <button onclick="processVerification(false)" class="flex-1 border border-red-900 text-red-500 hover:bg-red-900 hover:text-white py-3 rounded font-bold transition-colors">REJECT</button>
-                                <button onclick="processVerification(true)" class="flex-1 bg-green-600 text-white hover:bg-green-500 py-3 rounded font-bold transition-colors shadow-lg shadow-green-900/20">APPROVE & VERIFY</button>
-                            </div>
-                        </div>
-                    </div>
+                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
                 </div>
-            </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Results & Data</h2>
+                <p class="text-sm text-slate-400">View declared winners and export result data to Excel.</p>
+            </a>
 
-            <!-- Finance Tab -->
-            <div id="tab-finance" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Transaction History</h2>
-                <div class="card p-0 overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">Time</th><th class="p-4">User</th><th class="p-4">Type</th><th class="p-4">Ref</th><th class="p-4 text-right">Amount</th><th class="p-4 text-right">Status</th></tr></thead>
-                        <tbody id="finance-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Users Tab -->
-            <div id="tab-users" class="hidden animate-in">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Registrations</h2>
-                    <input type="text" id="search-user" placeholder="Search Name/ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
-                </div>
-                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="user-table-body"></tbody></table></div>
-            </div>
-
-            <!-- Merch Tab -->
-            <div id="tab-merch" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Merchandise Orders</h2>
-                <div class="grid grid-cols-3 gap-6 mb-6">
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Revenue</span><h3 id="merch-total-rev" class="text-xl font-bold text-green-400">₹0</h3></div>
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Orders</span><h3 id="merch-total-count" class="text-xl font-bold text-white">0</h3></div>
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Pending Delivery</span><h3 id="merch-pending-count" class="text-xl font-bold text-yellow-400">0</h3></div>
-                </div>
-                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>Buyer</th><th>Item & Size</th><th>Price</th><th>Address</th><th>Status</th></tr></thead><tbody id="merch-table-body"></tbody></table></div>
-            </div>
-
-            <!-- Payment Settings Tab -->
-            <div id="tab-payment" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Payment Configuration</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card">
-                        <h3 class="font-bold text-white mb-2">UPI ID Configuration</h3>
-                        <p class="text-xs text-slate-400 mb-4">Set up to 3 UPI IDs. The system will rotate them automatically.</p>
-                        <div class="space-y-3 mb-4">
-                            <div><label class="text-[10px] text-slate-500 uppercase">Primary UPI</label><input id="upi-1" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
-                            <div><label class="text-[10px] text-slate-500 uppercase">Secondary UPI</label><input id="upi-2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
-                            <div><label class="text-[10px] text-slate-500 uppercase">Tertiary UPI</label><input id="upi-3" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
-                        </div>
-                        <button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold w-full">Save UPI Config</button>
-                    </div>
-                    <div class="card">
-                        <h3 class="font-bold text-white mb-4">Backup Payment URL</h3>
-                        <input id="admin-backup" type="text" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm mb-4" placeholder="https://razorpay.me/...">
-                        <button onclick="updatePaymentConfig('backup')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Update Backup</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Promos Tab -->
-            <div id="tab-promos" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Promo Codes</h2>
-                <div class="card mb-8">
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div><label class="text-xs text-slate-400 block mb-1">Code</label><input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Discount</label><input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Type</label><select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Limit</label><input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold">Create</button>
-                    </div>
-                </div>
-                <div class="card p-0"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
-            </div>
-
-            <!-- Staff Tab -->
-            <div id="tab-staff" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Staff Access</h2>
-                <div class="card mb-8">
-                    <h3 class="font-bold text-white mb-4">Create New Login</h3>
-                    <div class="flex gap-2 items-end">
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Username</label><input id="new-staff-user" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Password</label><input id="new-staff-pass" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Role</label><select id="new-staff-role" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="admin">Admin</option><option value="gate">Gate</option><option value="culture">Culture</option><option value="sports">Sports</option></select></div>
-                        <button onclick="createStaff()" class="bg-pink-600 text-white px-6 py-2 rounded text-sm font-bold hover:bg-pink-700 h-[38px]">ADD</button>
-                    </div>
-                </div>
-                <div class="card p-0"><table class="w-full"><thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Action</th></tr></thead><tbody id="staff-table-body"></tbody></table></div>
-            </div>
-
-            <!-- Updates -->
-            <div id="tab-updates" class="hidden animate-in"><h2 class="text-2xl font-bold text-white mb-6">Live Announcements</h2><div class="card"><textarea id="update-msg" class="w-full bg-slate-900 border border-slate-700 p-4 rounded text-white mb-4" placeholder="Message..."></textarea><button onclick="pushUpdate()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold w-full">Broadcast</button></div></div>
-        </main>
-    </div>
-
-    <!-- 3. USER EDIT MODAL -->
-    <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg w-full max-w-lg shadow-2xl relative">
-            <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-white">Edit User</h2><button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button></div>
-            <div class="space-y-4">
-                <input type="hidden" id="edit-key">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500">Name</label><input id="edit-name" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                    <div><label class="text-xs text-slate-500">Phone</label><input id="edit-phone" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                </div>
-                <div><label class="text-xs text-slate-500">College</label><input id="edit-college" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                <div><label class="text-xs text-slate-500">UTR</label><input id="edit-utr" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-xs text-slate-500">Pass</label><select id="edit-pass" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="General">General</option><option value="Standard">Standard</option><option value="Neon Pulse">Neon Pulse</option><option value="Vogue Gala">Vogue Gala</option></select></div>
-                    <div><label class="text-xs text-slate-500">Status</label><select id="edit-status" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="Pending">Pending</option><option value="Verified">Verified</option><option value="None">None</option></select></div>
-                </div>
-                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded">SAVE CHANGES</button>
-            </div>
         </div>
-    </div>
 
-    <!-- 4. SQUAD INFO MODAL -->
-    <div id="squad-info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
-        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-sm shadow-2xl">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-white font-bold">Team Roster</h3><button onclick="document.getElementById('squad-info-modal').classList.add('hidden')"><i data-lucide="x" class="text-white"></i></button></div>
-            <div id="squad-info-content" class="space-y-3 text-sm text-slate-300"></div>
-        </div>
-    </div>
-
-    <!-- 5. FULL USER DETAILS MODAL (NEW) -->
-    <div id="user-details-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
-        <div class="bg-slate-900 border border-slate-700 p-0 rounded-lg w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-lg">
-                <h3 class="text-xl font-bold text-white">User Intelligence Profile</h3>
-                <button onclick="document.getElementById('user-details-modal').classList.add('hidden')" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto space-y-6">
-                <!-- Profile Header -->
-                <div class="flex items-start gap-4">
-                    <div class="w-16 h-16 bg-gradient-to-br from-pink-600 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white" id="ud-initials">--</div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white" id="ud-name">User Name</h2>
-                        <p class="text-sm text-blue-400 font-mono" id="ud-id">SPEC ID</p>
-                        <div class="flex gap-4 mt-2 text-xs text-slate-400">
-                            <span id="ud-email">email@example.com</span> • <span id="ud-phone">+91 0000000000</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1" id="ud-college">College Name</p>
-                    </div>
-                </div>
-
-                <!-- Sections Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Events -->
-                    <div class="bg-black/30 border border-slate-800 rounded p-4">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Event Manifest</h4>
-                        <div id="ud-events-list" class="space-y-2 max-h-40 overflow-y-auto text-sm">
-                            <!-- Populated via JS -->
-                        </div>
-                    </div>
-                    
-                    <!-- Financials -->
-                    <div class="bg-black/30 border border-slate-800 rounded p-4">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Wallet Status</h4>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-sm text-slate-300">Total Spent</span>
-                            <span class="text-lg font-bold text-green-400" id="ud-total-spent">₹0</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-slate-300">Current Pass</span>
-                            <span class="badge badge-purple" id="ud-pass-badge">NONE</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Transaction Log -->
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Transaction Ledger</h4>
-                    <div class="border border-slate-800 rounded overflow-hidden">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-950 text-slate-500"><tr><th class="p-3">Date</th><th class="p-3">Item</th><th class="p-3">Ref</th><th class="p-3 text-right">Amt</th></tr></thead>
-                            <tbody id="ud-tx-body" class="divide-y divide-slate-800 text-slate-300 font-mono"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 6. CLUB MANAGER & GATE VERIFIER -->
-    <div id="view-club" class="view-section flex-col w-full bg-black">
-        <nav class="bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center"><div class="font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-pink-500"></i> <span id="club-display-name">CLUB</span></div><button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white">LOGOUT</button></nav>
-        <div class="p-8 max-w-5xl mx-auto w-full animate-in overflow-y-auto"><h2 class="text-2xl font-bold text-white mb-6">Manage Events</h2><div id="club-events-container" class="grid grid-cols-1 gap-4"></div></div>
-    </div>
-
-    <div id="view-gate" class="view-section items-center justify-center bg-black">
-        <div class="w-full max-w-md p-4 animate-in">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-2xl">
-                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="scan"></i> GATE</h2><button onclick="logout()" class="text-xs text-red-500">EXIT</button></div>
-                <div id="reader" class="w-full h-64 bg-black border-2 border-dashed border-zinc-700 rounded mb-4 flex items-center justify-center text-gray-600"><div id="qr-reader-placeholder">CAMERA LOADING...</div></div>
-                <input id="gate-input" type="text" placeholder="MANUAL ID" class="w-full bg-black border-slate-700 p-4 text-center text-white mb-4 uppercase text-2xl tracking-widest outline-none">
-                <button onclick="gateVerify(document.getElementById('gate-input').value)" class="w-full bg-blue-600 text-white font-bold py-4 rounded text-lg">VERIFY ENTRY</button>
-                <div id="gate-result" class="hidden mt-6 p-6 rounded border-2 text-center transition-all duration-200"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="club-scan-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
-        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-md shadow-2xl">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-white font-bold">Event Check-In</h3><button onclick="document.getElementById('club-scan-modal').classList.add('hidden')"><i data-lucide="x" class="text-white"></i></button></div>
-            <div id="club-reader" class="w-full mb-4 bg-black h-48 rounded border border-zinc-700"></div>
-            <input id="club-manual-id" placeholder="Enter ID" class="w-full bg-black border-zinc-700 p-2 text-white rounded mb-2 text-center uppercase">
-            <button onclick="verifyEventAccess(document.getElementById('club-manual-id').value)" class="w-full bg-pink-600 text-white font-bold py-2 rounded">CHECK</button>
-            <div id="club-scan-res" class="mt-4 text-center"></div>
+        <div class="mt-12 text-center">
+            <a href="index.html" class="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest border-b border-transparent hover:border-white pb-1">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Main Site
+            </a>
         </div>
     </div>
 
     <script>
-        let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; let selectedEventId = null;
-        let html5QrcodeScanner = null; let clubScanner = null; let pendingUsers = []; let activeVerifyKey = null;
-
-        function initSystem() {
-            lucide.createIcons();
-            db.ref('club_auth/C H').once('value', s => { if(!s.exists()) db.ref('club_auth/C H').set({ password: "Yasar", role: "admin", club_code: "all" }); });
-        }
-
-        function handleLogin() {
-            const u = document.getElementById('login-user').value.trim();
-            const p = document.getElementById('login-pass').value.trim();
-            if(!u || !p) return;
-            db.ref('club_auth/' + u).once('value').then(snap => {
-                const data = snap.val();
-                if(data && data.password === p) {
-                    currentUserRole = data.role; currentClubCode = data.club_code;
-                    document.getElementById('view-login').classList.remove('active');
-                    if (data.role === 'admin' || data.club_code === 'all') { document.getElementById('view-admin').classList.add('active'); initAdminPanel(); } 
-                    else if (data.role === 'gate') { document.getElementById('view-gate').classList.add('active'); initGateScanner(); } 
-                    else { document.getElementById('view-club').classList.add('active'); document.getElementById('club-display-name').innerText = u.toUpperCase(); initClubPanel(); }
-                } else alert("Invalid Credentials");
-            });
-        }
-        function logout() { location.reload(); }
-
-        function initAdminPanel() {
-            // USERS LISTENER
-            db.ref('users').on('value', snap => {
-                const data = snap.val(); if(!data) return;
-                allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; 
-                let rev = 0; let merchRev = 0; let passRev = 0;
-                
-                Object.keys(data).forEach(key => {
-                    const u = data[key]; u.key = key; 
-                    allUsers.push(u); 
-                    if(u.paymentStatus === 'Pending') pendingUsers.push(u);
-                    
-                    if (u.order && u.order.total > 0) { 
-                        rev += parseInt(u.order.total);
-                        passRev += parseInt(u.order.total);
-                        allTransactions.push({ timestamp: new Date(u.order.timestamp).getTime() || 0, dateStr: new Date(u.order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Ticket (${u.order.pass})`, utr: u.utr || '-', amount: u.order.total, status: u.paymentStatus }); 
-                    }
-                    if(u.merch_orders) { 
-                        Object.keys(u.merch_orders).forEach(mKey => { 
-                            const order = u.merch_orders[mKey]; 
-                            allMerch.push({ ...order, userName: u.name, userEmail: u.email, dbPath: `users/${key}/merch_orders/${mKey}` }); 
-                            merchRev += parseInt(order.price || 0);
-                            allTransactions.push({ timestamp: order.timestamp || 0, dateStr: new Date(order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Merch (${order.item})`, utr: '-', amount: order.price, status: order.status }); 
-                        }); 
-                    }
-                });
-                
-                document.getElementById('stat-users').innerText = allUsers.length; 
-                document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length; 
-                document.getElementById('stat-pending').innerText = pendingUsers.length; 
-                document.getElementById('stat-revenue').innerText = "₹" + (rev + merchRev).toLocaleString();
-                
-                // Revenue Breakdown
-                document.getElementById('rev-pass').innerText = "₹" + passRev.toLocaleString();
-                document.getElementById('rev-merch').innerText = "₹" + merchRev.toLocaleString();
-                document.getElementById('rev-avg').innerText = "₹" + (allUsers.length ? Math.round((rev+merchRev)/allUsers.length) : 0);
-
-                // Merch Stats
-                document.getElementById('merch-total-rev').innerText = "₹" + merchRev.toLocaleString();
-                document.getElementById('merch-total-count').innerText = allMerch.length;
-                document.getElementById('merch-pending-count').innerText = allMerch.filter(m=>m.status==='Ordered').length;
-
-                renderUsers(); 
-                renderMerchTable(); 
-                renderFinanceTable();
-                renderPendingQueue();
-            });
-
-            db.ref('system_config').on('value', (s) => { 
-                const c = s.val() || {}; 
-                const upis = (c.upi_id || "").split(',');
-                document.getElementById('upi-1').value = upis[0] ? upis[0].trim() : '';
-                document.getElementById('upi-2').value = upis[1] ? upis[1].trim() : '';
-                document.getElementById('upi-3').value = upis[2] ? upis[2].trim() : '';
-                document.getElementById('admin-backup').value = c.backup_url || "#"; 
-            });
-            db.ref('club_auth').on('value', snap => { const b = document.getElementById('staff-table-body'); b.innerHTML = ""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-gray-400 font-mono">${v.password}</td><td>${v.role}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
-            db.ref('promos').on('value', snap => { const b = document.getElementById('promo-body'); b.innerHTML=""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="db.ref('promos/${k}').remove()" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
-        }
-
-        // --- VERIFICATION DESK ---
-        function renderPendingQueue() {
-            const container = document.getElementById('pending-list');
-            container.innerHTML = "";
-            if(pendingUsers.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>';
-                return;
-            }
-            pendingUsers.sort((a,b) => b.order?.timestamp - a.order?.timestamp).forEach(u => {
-                container.innerHTML += `<div onclick="selectForVerify('${u.key}')" class="bg-slate-900 border border-slate-800 p-3 rounded cursor-pointer hover:border-pink-500 transition-colors flex justify-between items-center group"><div><div class="font-bold text-white text-sm">${u.name}</div><div class="text-[10px] text-slate-400 font-mono">${u.verificationReason || 'Unknown Reason'}</div></div><div class="text-right"><div class="text-green-400 font-bold text-xs">₹${u.pendingAmount || u.order?.total || 0}</div><i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-white"></i></div></div>`;
-            });
-            lucide.createIcons();
-        }
-
-        function selectForVerify(key) {
-            activeVerifyKey = key;
-            const u = allUsers.find(x => x.key === key);
-            if(!u) return;
-            document.getElementById('verify-placeholder').classList.add('hidden');
-            document.getElementById('verify-detail').classList.remove('hidden');
-            document.getElementById('v-name').innerText = u.name;
-            document.getElementById('v-id').innerText = u.spectrumId || 'NOT GENERATED';
-            document.getElementById('v-reason').innerText = (u.verificationReason || 'Manual Verification').toUpperCase();
-            document.getElementById('v-amount').innerText = "₹" + (u.pendingAmount || u.order?.total || 0);
-            document.getElementById('v-utr').innerText = u.utr || 'N/A';
-            const imgEl = document.getElementById('v-img');
-            const noImgEl = document.getElementById('v-no-img');
-            if(u.paymentScreenshot) { imgEl.src = u.paymentScreenshot; imgEl.classList.remove('hidden'); noImgEl.classList.add('hidden'); } else { imgEl.classList.add('hidden'); noImgEl.classList.remove('hidden'); }
-        }
-
-        function processVerification(approved) {
-            if(!activeVerifyKey) return;
-            const u = allUsers.find(x => x.key === activeVerifyKey);
-            if(approved) {
-                if(confirm("Confirm PAYMENT RECEIVED?")) {
-                    db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'Verified', pendingAmount: 0 });
-                    if(u.merch_orders) { Object.keys(u.merch_orders).forEach(mk => { if(u.merch_orders[mk].status === 'Payment Pending') { db.ref(`users/${activeVerifyKey}/merch_orders/${mk}`).update({status: 'Ordered'}); } }); }
-                    resetVerifyView();
-                }
-            } else {
-                if(prompt("Type 'REJECT' to deny this payment.") === 'REJECT') { db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'None', pendingAmount: 0, verificationReason: null }); resetVerifyView(); }
-            }
-        }
-
-        function resetVerifyView() { activeVerifyKey = null; document.getElementById('verify-placeholder').classList.remove('hidden'); document.getElementById('verify-detail').classList.add('hidden'); }
-
-        // --- RENDER TABLES ---
-        function renderUsers() {
-            const tbody = document.getElementById('user-table-body'); tbody.innerHTML = "";
-            const search = document.getElementById('search-user').value.toLowerCase();
-            const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search) || u.utr?.includes(search)));
-            filtered.sort((a,b) => (a.paymentStatus === 'Pending' ? -1 : 1)).forEach(u => {
-                const status = u.paymentStatus;
-                let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
-                
-                // Fix for Unknown Pass logic + Squads
-                let passDisplay = u.order?.pass;
-                if(!passDisplay || passDisplay === "Unknown") { passDisplay = u.verificationReason || "No Pass"; }
-                
-                let squadBtn = '';
-                if(u.squads && Object.keys(u.squads).length > 0) {
-                    squadBtn = `<button onclick="viewSquads('${u.key}')" class="ml-2 text-purple-400 hover:text-white"><i data-lucide="users" class="w-4"></i></button>`;
-                }
-
-                let proof = u.utr || '-';
-                tbody.innerHTML += `
-                <tr>
-                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td>
-                    <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span>${squadBtn}</div></td>
-                    <td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td>
-                    <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td>
-                    <td class="flex gap-2 items-center">
-                        ${btn}
-                        <button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-cyan-300"><i data-lucide="info" class="w-4"></i></button>
-                        <button onclick="openEdit('${u.key}')" class="text-blue-400"><i data-lucide="edit-3" class="w-4"></i></button>
-                        <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button>
-                    </td>
-                </tr>`;
-            });
-            lucide.createIcons();
-        }
-
-        function showUserDetails(key) {
-            const u = allUsers.find(x => x.key === key);
-            if(!u) return;
-
-            // Fill Basic Details
-            document.getElementById('ud-initials').innerText = u.name.substring(0,2).toUpperCase();
-            document.getElementById('ud-name').innerText = u.name;
-            document.getElementById('ud-id').innerText = u.spectrumId || 'Not Assigned';
-            document.getElementById('ud-email').innerText = u.email;
-            document.getElementById('ud-phone').innerText = u.phone;
-            document.getElementById('ud-college').innerText = u.collegeName || 'N/A';
-            document.getElementById('ud-pass-badge').innerText = u.order?.pass || 'No Pass';
-
-            // Fill Events
-            const eventContainer = document.getElementById('ud-events-list');
-            eventContainer.innerHTML = '';
-            if (u.order && u.order.events && u.order.events.length > 0) {
-                u.order.events.forEach(e => {
-                    eventContainer.innerHTML += `<div class="flex justify-between border-b border-slate-800 pb-1 mb-1 last:border-0"><span class="text-white">${e.title}</span><span class="text-slate-500 text-[10px]">${e.isPremium ? 'PRO' : 'REG'}</span></div>`;
-                });
-            } else {
-                eventContainer.innerHTML = '<span class="text-slate-600 italic">No registered events.</span>';
-            }
-
-            // Fill Transaction Log (Filter allTransactions)
-            const txBody = document.getElementById('ud-tx-body');
-            txBody.innerHTML = '';
-            let totalSpent = 0;
-            
-            // 1. Check direct transactions array
-            if(u.transactions) {
-                Object.values(u.transactions).forEach(tx => {
-                    totalSpent += parseInt(tx.amount || 0);
-                    txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(tx.timestamp).toLocaleDateString()}</td><td class="p-3">${tx.items || tx.reason}</td><td class="p-3 text-[10px]">${tx.utr}</td><td class="p-3 text-right text-green-400">₹${tx.amount}</td></tr>`;
-                });
-            }
-            // 2. Fallback to order details if no new transaction logs
-            else {
-                if(u.order && u.order.total) {
-                    totalSpent += parseInt(u.order.total);
-                    txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(u.order.timestamp).toLocaleDateString()}</td><td class="p-3">Pass & Events</td><td class="p-3 text-[10px]">${u.utr || '-'}</td><td class="p-3 text-right text-green-400">₹${u.order.total}</td></tr>`;
-                }
-                if(u.merch_orders) {
-                    Object.values(u.merch_orders).forEach(m => {
-                        totalSpent += parseInt(m.price || 0);
-                        txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(m.timestamp).toLocaleDateString()}</td><td class="p-3">Merch: ${m.item}</td><td class="p-3 text-[10px]">-</td><td class="p-3 text-right text-green-400">₹${m.price}</td></tr>`;
-                    });
-                }
-            }
-            
-            document.getElementById('ud-total-spent').innerText = "₹" + totalSpent;
-            document.getElementById('user-details-modal').classList.remove('hidden');
-        }
-
-        function renderMerchTable() {
-            const tbody = document.getElementById('merch-table-body'); tbody.innerHTML = "";
-            allMerch.sort((a,b) => b.timestamp - a.timestamp).forEach(o => {
-                const status = o.status === 'Ordered' ? `<button onclick="db.ref('${o.dbPath}').update({status:'Contacted'})" class="bg-blue-600 px-2 py-1 rounded text-xs text-white">Mark Contacted</button>` : `<span class="badge badge-green">${o.status}</span>`;
-                tbody.innerHTML += `<tr><td><div class="font-bold text-white">${o.userName}</div><div class="text-[10px] text-gray-500">${o.userEmail}</div></td><td><div class="text-white text-xs">${o.item}</div><div class="text-slate-400 text-xs">Size: ${o.size}</div></td><td class="font-mono text-green-400">₹${o.price}</td><td class="text-xs text-slate-400 max-w-[150px] truncate">${o.address}</td><td>${status}</td></tr>`;
-            });
-        }
-
-        function renderFinanceTable() {
-            const tbody = document.getElementById('finance-table-body'); tbody.innerHTML = "";
-            allTransactions.sort((a,b) => b.timestamp - a.timestamp).forEach(t => {
-                let statusColor = t.status === 'Verified' ? 'text-green-500' : (t.status === 'Pending' ? 'text-yellow-500' : 'text-gray-500');
-                tbody.innerHTML += `<tr class="table-row border-b border-zinc-800/50"><td class="p-4 text-slate-400">${t.dateStr}</td><td class="p-4"><div class="font-bold text-white">${t.user}</div><div class="text-[10px] text-gray-500">${t.email}</div></td><td class="p-4 text-white">${t.type}</td><td class="p-4 font-mono text-xs">${t.utr}</td><td class="p-4 text-right text-white font-mono">₹${t.amount}</td><td class="p-4 text-right ${statusColor} text-[10px] uppercase font-bold">${t.status}</td></tr>`;
-            });
-        }
-
-        function updatePaymentConfig(type) { 
-            if (type === 'upi') {
-                const u1 = document.getElementById('upi-1').value.trim();
-                const u2 = document.getElementById('upi-2').value.trim();
-                const u3 = document.getElementById('upi-3').value.trim();
-                const combined = [u1, u2, u3].filter(Boolean).join(',');
-                db.ref('system_config/upi_id').set(combined).then(() => alert("UPI List Updated"));
-            } else {
-                const val = document.getElementById('admin-backup').value;
-                if(!val) return; 
-                db.ref('system_config/backup_url').set(val).then(() => alert("Backup Updated")); 
-            }
-        }
-
-        function viewSquads(key) {
-            const u = allUsers.find(x => x.key === key);
-            if(!u || !u.squads) return;
-            const content = document.getElementById('squad-info-content');
-            content.innerHTML = "";
-            Object.keys(u.squads).forEach(evtId => {
-                content.innerHTML += `<div class="bg-black/30 p-2 rounded border border-slate-700"><p class="text-xs font-bold text-pink-400 mb-1">Event ID: ${evtId}</p><p class="font-mono text-xs break-all">${u.squads[evtId].join(', ')}</p></div>`;
-            });
-            document.getElementById('squad-info-modal').classList.remove('hidden');
-        }
-
-        function openEdit(key) { const u = allUsers.find(x => x.key === key); document.getElementById('edit-key').value = key; document.getElementById('edit-name').value = u.name; document.getElementById('edit-phone').value = u.phone; document.getElementById('edit-college').value = u.collegeName || ''; document.getElementById('edit-utr').value = u.utr || ''; document.getElementById('edit-pass').value = u.order?.pass || 'General'; document.getElementById('edit-status').value = u.paymentStatus; document.getElementById('edit-user-modal').classList.remove('hidden'); }
-        function saveUserChanges() { const key = document.getElementById('edit-key').value; db.ref('users/' + key).update({ name: document.getElementById('edit-name').value, phone: document.getElementById('edit-phone').value, collegeName: document.getElementById('edit-college').value, utr: document.getElementById('edit-utr').value, paymentStatus: document.getElementById('edit-status').value, "order/pass": document.getElementById('edit-pass').value }).then(() => { alert("Saved!"); closeEditModal(); }); }
-        function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
-        function delUser(k){ if(confirm("Delete?")) db.ref('users/'+k).remove(); }
-        function createStaff(){ const u=document.getElementById('new-staff-user').value,p=document.getElementById('new-staff-pass').value,r=document.getElementById('new-staff-role').value; if(u) db.ref('club_auth/'+u).set({password:p,role:r,club_code:r}).then(()=>alert("Created")); }
-        function delStaff(u){ if(u!=='C H'&&confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
-        function createPromo(){ const c=document.getElementById('p-code').value.toUpperCase(),v=document.getElementById('p-val').value,t=document.getElementById('p-type').value,l=document.getElementById('p-limit').value; if(c) db.ref('promos/'+c).set({discount:v,type:t,limit:l,used:0}).then(()=>alert("Created")); }
-        function pushUpdate(){ const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
-        function showAdminTab(id) { ['dashboard','users','promos','staff','updates','merch','payment','finance','verification'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
-        
-        document.getElementById('search-user').addEventListener('input', renderUsers);
-        function initGateScanner() { if(!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }); html5QrcodeScanner.render(onScanSuccess); document.getElementById('qr-reader-placeholder').style.display = 'none'; } }
-        function onScanSuccess(decodedText) { gateVerify(decodedText); }
-        function gateVerify(id) { id = id.toUpperCase().trim(); const res = document.getElementById('gate-result'); db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s => { if(!s.exists()) { res.innerHTML = `<h1 class="text-red-500 font-bold text-3xl">INVALID</h1>`; res.className="p-6 border-2 border-red-600 bg-red-900/50 rounded mt-4 text-center"; return; } const u = Object.values(s.val())[0]; const k = Object.keys(s.val())[0]; if(u.paymentStatus === 'Verified') { if(!u.checkedIn) { db.ref('users/'+k).update({checkedIn:true}); res.innerHTML = `<h1 class="text-green-400 font-bold text-3xl">WELCOME</h1><p class="text-white text-xl mt-2">${u.name}</p><p class="text-gray-400 text-sm font-mono">${u.spectrumId}</p>`; res.className = "p-6 border-2 border-green-600 bg-green-900/50 rounded mt-4 text-center"; } else { res.innerHTML = `<h1 class="text-blue-400 font-bold text-3xl">ALREADY IN</h1><p class="text-white mt-2">${u.name}</p>`; res.className = "p-6 border-2 border-blue-600 bg-blue-900/50 rounded mt-4 text-center"; } } else { res.innerHTML = `<h1 class="text-yellow-500 font-bold text-3xl">PENDING</h1><p class="text-white mt-2">Payment not verified</p>`; res.className = "p-6 border-2 border-yellow-600 bg-yellow-900/50 rounded mt-4 text-center"; } res.classList.remove('hidden'); }); }
-        function initClubPanel() { const container = document.getElementById('club-events-container'); const events = [{id:1,club:'culture',title:'Street Battle'},{id:2,club:'culture',title:'Solo Singing'},{id:3,club:'culture',title:'Runway Rivals'},{id:4,club:'entertainment',title:'Battle of Bands'},{id:5,club:'entertainment',title:'EDM Night'},{id:6,club:'sports',title:'Valorant'},{id:7,club:'sports',title:'FIFA 26'},{id:8,club:'sports',title:'Box Cricket'},{id:9,club:'photo',title:'Photo Walk'},{id:10,club:'photo',title:'Treasure Hunt'},{id:11,club:'lit',title:'Debate War'},{id:12,club:'lit',title:'Open Mic'},{id:13,club:'essc',title:'Eco Drive'},{id:101,club:'entertainment',title:'EDM Add-on'},{id:102,club:'entertainment',title:'Fashion Add-on'}]; const myEvents = events.filter(e => e.club === currentClubCode); container.innerHTML = ""; myEvents.forEach(e => { db.ref('events_status/'+e.id).on('value', s => { const st = s.val()?.status || 'upcoming'; let btn = `<button onclick="reqStart(${e.id})" class="bg-pink-600 text-white px-4 py-2 rounded text-xs font-bold">REQUEST START</button>`; if(st==='live') btn = `<div class="flex gap-2"><button onclick="openClubScanner(${e.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Scan</button><button onclick="endEvent(${e.id})" class="bg-red-600 text-white px-3 py-1 rounded text-xs">End</button></div>`; if(st==='ended') btn = `<span class="text-gray-500 text-xs font-bold">ENDED</span>`; if(st==='pending_approval') btn = `<span class="text-yellow-500 text-xs font-bold">Waiting...</span>`; container.innerHTML += `<div class="card flex justify-between items-center"><div><h3 class="text-white font-bold">${e.title}</h3><span class="text-[10px] text-gray-400 font-mono">ID: ${e.id} | ${st.toUpperCase()}</span></div><div class="flex flex-col gap-2 items-end">${btn}</div></div>`; }); }); }
-        function openClubScanner(id) { selectedEventId=id; document.getElementById('club-scan-modal').classList.remove('hidden'); if(!clubScanner){clubScanner=new Html5QrcodeScanner("club-reader",{fps:10,qrbox:200});clubScanner.render(verifyEventAccess);} }
-        function verifyEventAccess(sid) { sid = sid.toUpperCase().trim(); const res = document.getElementById('club-scan-res'); db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(s => { if(!s.exists()){ res.innerHTML="<span class='text-red-500'>INVALID</span>"; return; } const u=Object.values(s.val())[0]; let access=false; if(u.order.pass==="Standard" && selectedEventId<100) access=true; if(u.order.events && u.order.events.some(ev=>ev.id==selectedEventId)) access=true; if(u.order.pass==="Neon Pulse" && selectedEventId==5) access=true; if(u.order.pass==="Vogue Gala" && selectedEventId==102) access=true; if(access) res.innerHTML=`<div class="bg-green-600 text-white p-2 rounded mt-2 font-bold">ALLOWED: ${u.name}</div>`; else res.innerHTML=`<div class="bg-red-600 text-white p-2 rounded mt-2 font-bold">DENIED</div>`; }); }
+        lucide.createIcons();
     </script>
 </body>
 </html>
