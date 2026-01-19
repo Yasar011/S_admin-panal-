@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GATE CONTROL | SPECTRUM '26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+
+    <style>
+        body { background-color: #000000; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow-x: hidden; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        
+        /* Scanner Overlay */
+        #reader { border: none !important; }
+        #reader video { object-fit: cover; border-radius: 12px; }
+        
+        /* Animations */
+        .scan-line { width: 100%; height: 2px; background: #3b82f6; position: absolute; top: 0; animation: scan 2s infinite linear; box-shadow: 0 0 10px #3b82f6; z-index: 10; }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+
+        .modal-enter { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Status Colors */
+        .status-ok { background: radial-gradient(circle at center, #064e3b 0%, #022c22 100%); border: 1px solid #059669; }
+        .status-warn { background: radial-gradient(circle at center, #451a03 0%, #450a0a 100%); border: 1px solid #f59e0b; }
+        .status-error { background: radial-gradient(circle at center, #450a0a 0%, #000000 100%); border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm text-center">
+            <i data-lucide="shield-check" class="w-16 h-16 text-blue-500 mx-auto mb-6"></i>
+            <h1 class="text-3xl font-bold text-white tracking-widest mb-2">GATE CONTROL</h1>
+            <p class="text-xs text-gray-500 font-mono mb-8">AUTHORIZED PERSONNEL ONLY</p>
+            
+            <div class="space-y-4">
+                <input id="gate-user" type="text" placeholder="OPERATOR ID" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-sm tracking-widest outline-none focus:border-blue-500 transition-colors uppercase">
+                <input id="gate-pass" type="password" placeholder="ACCESS KEY" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.5em] outline-none focus:border-blue-500 transition-colors">
+                <button onclick="authenticate()" id="btn-auth" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors">INITIALIZE SYSTEM</button>
+            </div>
+            <p id="login-msg" class="text-red-500 text-xs mt-4 h-4 font-mono"></p>
+        </div>
+    </div>
+
+    <!-- MAIN INTERFACE -->
+    <div id="main-interface" class="hidden min-h-screen flex flex-col max-w-md mx-auto relative bg-zinc-950 shadow-2xl">
+        
+        <!-- Header -->
+        <header class="bg-zinc-900/80 backdrop-blur border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-20">
+            <div>
+                <h2 class="text-white font-bold text-lg">MAIN GATE</h2>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span class="text-[10px] text-gray-400 font-mono">SYSTEM ONLINE</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 uppercase" id="current-date-disp">--/--</p>
+                <p class="text-[10px] text-blue-400 uppercase">Checked In Today</p>
+                <p id="total-count" class="text-2xl font-bold text-white font-mono leading-none">0</p>
+            </div>
+        </header>
+
+        <!-- Scanner Area -->
+        <div class="p-4 relative">
+            <div class="relative bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-inner h-80">
+                <div id="reader" class="w-full h-full"></div>
+                <div id="scan-overlay" class="absolute inset-0 pointer-events-none hidden">
+                    <div class="scan-line"></div>
+                    <div class="absolute inset-0 border-2 border-blue-500/30"></div>
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
+                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
+                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+                </div>
+                <div id="camera-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-600 flex-col">
+                    <i data-lucide="camera-off" class="w-8 h-8 mb-2"></i>
+                    <span class="text-xs">Camera Inactive</span>
+                </div>
+            </div>
+            
+            <!-- Manual Entry -->
+            <div class="mt-4 flex gap-2">
+                <input id="manual-id" type="text" placeholder="ENTER SPEC ID MANUALLY" class="flex-1 bg-zinc-900 border border-zinc-800 p-3 rounded text-white text-sm outline-none focus:border-blue-500 font-mono uppercase">
+                <button onclick="processID(document.getElementById('manual-id').value)" class="bg-zinc-800 text-white px-4 rounded hover:bg-zinc-700 transition-colors"><i data-lucide="search" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="flex-1 p-4 bg-zinc-950 overflow-y-auto">
+            <h3 class="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Live Feed</h3>
+            <div id="logs-container" class="space-y-2">
+                <!-- Logs injected here -->
+                <div class="text-center text-zinc-700 text-xs py-10">Waiting for scans...</div>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="p-4 bg-zinc-900 border-t border-zinc-800 flex gap-2">
+            <button onclick="startScanner()" id="btn-scan" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-500">
+                <i data-lucide="qr-code"></i> START SCAN
+            </button>
+            <button onclick="stopScanner()" id="btn-stop" class="hidden flex-1 bg-red-900/50 text-red-400 font-bold py-3 rounded-lg flex items-center justify-center gap-2 border border-red-900 hover:bg-red-900 hover:text-white">
+                <i data-lucide="stop-circle"></i> STOP
+            </button>
+        </div>
+
+    </div>
+
+    <!-- USER VERIFICATION MODAL -->
+    <div id="verify-modal" class="fixed inset-0 z-[100] hidden items-end justify-center sm:items-center bg-black/90 backdrop-blur-sm p-4">
+        <div class="bg-zinc-900 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-zinc-700 modal-enter transform transition-all" id="modal-card">
+            
+            <!-- Result Banner -->
+            <div id="modal-header" class="p-4 text-center">
+                <div id="status-icon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3 bg-black/20 backdrop-blur shadow-lg text-3xl"></div>
+                <h2 id="status-title" class="text-2xl font-black uppercase tracking-wider text-white"></h2>
+                <p id="status-msg" class="text-xs font-mono font-bold mt-1 text-white/80"></p>
+            </div>
+
+            <!-- User Details -->
+            <div class="p-6 bg-zinc-950 border-t border-zinc-800 space-y-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center text-lg font-bold text-gray-400" id="user-avatar">?</div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white leading-tight" id="user-name">Loading...</h3>
+                        <p class="text-xs text-blue-400 font-mono" id="user-id">SPEC------</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-zinc-900 p-3 rounded border border-zinc-800">
+                        <span class="text-[10px] text-gray-500 uppercase block">Pass Type</span>
+                        <span class="text-sm font-bold text-white" id="user-pass">---</span>
+                    </div>
+                    <div class="bg-zinc-900 p-3 rounded border border-zinc-800">
+                        <span class="text-[10px] text-gray-500 uppercase block">Payment</span>
+                        <span class="text-sm font-bold text-white" id="user-payment">---</span>
+                    </div>
+                </div>
+
+                <div id="warning-box" class="hidden bg-yellow-900/20 border border-yellow-700/50 p-3 rounded text-yellow-500 text-xs">
+                    <i data-lucide="alert-triangle" class="inline w-3 h-3 mr-1"></i> <span id="warning-text"></span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="p-4 bg-zinc-900 border-t border-zinc-800 grid grid-cols-2 gap-3">
+                <button onclick="closeModal()" class="border border-zinc-700 text-gray-400 font-bold py-3 rounded hover:bg-white hover:text-black transition-colors text-xs uppercase">Cancel</button>
+                <button id="btn-action" class="bg-white text-black font-bold py-3 rounded hover:bg-gray-200 transition-colors text-xs uppercase shadow-[0_0_15px_rgba(255,255,255,0.3)]">Action</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let html5QrcodeScanner = null;
+        let isScanning = false;
+        let currentScannedUser = null;
+        let currentKey = null;
+        
+        // UTILS
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`; // e.g., "27-2-2026"
+        }
+
+        function authenticate() {
+            const u = document.getElementById('gate-user').value.trim();
+            const p = document.getElementById('gate-pass').value.trim();
+            const btn = document.getElementById('btn-auth');
+            const msg = document.getElementById('login-msg');
+
+            if(!u || !p) { msg.innerText = "Credentials Required"; return; }
+            
+            btn.innerText = "VERIFYING...";
+            
+            // Check Database for Gate/Admin user
+            db.ref('club_auth/' + u).once('value').then(snap => {
+                const data = snap.val();
+                if(data && data.password === p && (data.role === 'gate' || data.role === 'admin')) {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-interface').classList.remove('hidden');
+                    document.getElementById('current-date-disp').innerText = getTodayKey();
+                    initGate();
+                } else {
+                    msg.innerText = "ACCESS DENIED: Invalid or Unauthorized";
+                    btn.innerText = "INITIALIZE SYSTEM";
+                }
+            }).catch(err => {
+                msg.innerText = "Network Error";
+                btn.innerText = "INITIALIZE SYSTEM";
+            });
+        }
+
+        function initGate() {
+            lucide.createIcons();
+            const todayKey = getTodayKey();
+
+            // Listen for stats
+            db.ref('users').on('value', snap => {
+                let count = 0;
+                const logs = document.getElementById('logs-container');
+                let logHtml = '';
+                
+                if(snap.val()) {
+                    const users = Object.values(snap.val());
+                    
+                    // Count check-ins for TODAY
+                    count = users.filter(u => u.checkIns && u.checkIns[todayKey]).length;
+                    document.getElementById('total-count').innerText = count;
+
+                    // Recent Logs (Filter for today's checkins and show recent)
+                    const recentEntries = users
+                        .filter(u => u.checkIns && u.checkIns[todayKey])
+                        .sort((a,b) => (b.lastCheckInTime || 0) - (a.lastCheckInTime || 0))
+                        .slice(0, 5);
+                    
+                    recentEntries.forEach(u => {
+                        logHtml += `
+                        <div class="bg-zinc-900 border border-zinc-800 p-3 rounded flex justify-between items-center animate-in fade-in slide-in-from-bottom-2">
+                            <div>
+                                <p class="text-xs text-white font-bold">${u.name}</p>
+                                <p class="text-[10px] text-green-500 font-mono">Checked In</p>
+                            </div>
+                            <span class="text-[10px] text-zinc-500 font-mono">${u.spectrumId}</span>
+                        </div>`;
+                    });
+                }
+                
+                if(logHtml) logs.innerHTML = logHtml;
+            });
+        }
+
+        function startScanner() {
+            if(isScanning) return;
+            isScanning = true;
+            document.getElementById('btn-scan').classList.add('hidden');
+            document.getElementById('btn-stop').classList.remove('hidden');
+            document.getElementById('scan-overlay').classList.remove('hidden');
+            document.getElementById('camera-placeholder').classList.add('hidden');
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                (errorMessage) => { /* ignore */ }
+            ).catch(err => {
+                alert("Camera Error: " + err);
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if(html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    isScanning = false;
+                    document.getElementById('btn-scan').classList.remove('hidden');
+                    document.getElementById('btn-stop').classList.add('hidden');
+                    document.getElementById('scan-overlay').classList.add('hidden');
+                    document.getElementById('camera-placeholder').classList.remove('hidden');
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            // Pause scanning logic handled by UI modal blocking view
+            processID(decodedText);
+        }
+
+        function processID(id) {
+            id = id.toUpperCase().trim();
+            if(!id) return;
+
+            // Fetch User
+            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(snap => {
+                if(!snap.exists()) {
+                    showModal('error', null, id);
+                    return;
+                }
+                
+                const key = Object.keys(snap.val())[0];
+                const user = Object.values(snap.val())[0];
+                currentScannedUser = user;
+                currentKey = key;
+                const todayKey = getTodayKey();
+
+                // Determine State
+                if(user.paymentStatus !== 'Verified') {
+                    showModal('pending', user, id);
+                } else if (user.checkIns && user.checkIns[todayKey]) {
+                    // Check if checked in TODAY
+                    showModal('duplicate', user, id);
+                } else {
+                    showModal('success', user, id);
+                }
+            });
+        }
+
+        function showModal(type, user, id) {
+            const modal = document.getElementById('verify-modal');
+            const header = document.getElementById('modal-header');
+            const icon = document.getElementById('status-icon');
+            const title = document.getElementById('status-title');
+            const msg = document.getElementById('status-msg');
+            const btn = document.getElementById('btn-action');
+            const warningBox = document.getElementById('warning-box');
+
+            // Reset Styles
+            header.className = "p-6 text-center";
+            warningBox.classList.add('hidden');
+
+            // Set Data
+            document.getElementById('user-name').innerText = user ? user.name : "Unknown User";
+            document.getElementById('user-id').innerText = id;
+            
+            // Smart Pass Logic from Admin (reused here)
+            let displayPass = "---";
+            if(user) {
+                if(user.order && user.order.pass && user.order.pass !== "Unknown") {
+                    displayPass = user.order.pass;
+                } else {
+                    const total = parseInt(user.order?.total || 0);
+                    if(total >= 499) displayPass = "NEXUS PRIME";
+                    else if(total >= 299) displayPass = "CYBER ENTRY";
+                    else displayPass = "VISITOR/MERCH";
+                }
+            }
+            
+            document.getElementById('user-pass').innerText = displayPass;
+            document.getElementById('user-payment').innerText = user ? user.paymentStatus : "---";
+            document.getElementById('user-avatar').innerText = user ? user.name.charAt(0) : "?";
+
+            if(type === 'success') {
+                header.classList.add('status-ok');
+                icon.innerHTML = '<i data-lucide="check" class="text-green-400"></i>';
+                title.innerText = "ACCESS GRANTED";
+                msg.innerText = "Verification Successful";
+                
+                btn.innerText = "APPROVE ENTRY";
+                btn.className = "bg-green-600 text-white w-full py-3 rounded font-bold hover:bg-green-500 shadow-lg shadow-green-900/50";
+                btn.onclick = () => grantAccess(currentKey);
+
+            } else if (type === 'duplicate') {
+                header.classList.add('status-warn');
+                icon.innerHTML = '<i data-lucide="alert-circle" class="text-yellow-500"></i>';
+                title.innerText = "ALREADY INSIDE";
+                msg.innerText = `Checked in for ${getTodayKey()}`;
+                
+                warningBox.classList.remove('hidden');
+                document.getElementById('warning-text').innerText = "Double Entry Detected. Check ID manually.";
+
+                btn.innerText = "RE-ADMIT (OVERRIDE)";
+                btn.className = "bg-yellow-600 text-white w-full py-3 rounded font-bold hover:bg-yellow-500";
+                btn.onclick = () => grantAccess(currentKey); // Allows re-entry if guard permits
+
+            } else if (type === 'pending') {
+                header.classList.add('status-error');
+                icon.innerHTML = '<i data-lucide="x" class="text-red-500"></i>';
+                title.innerText = "PAYMENT PENDING";
+                msg.innerText = "Do not allow entry.";
+                
+                btn.innerText = "DENY ENTRY";
+                btn.className = "bg-red-600 text-white w-full py-3 rounded font-bold hover:bg-red-500";
+                btn.onclick = closeModal;
+
+            } else {
+                // Invalid ID
+                header.classList.add('status-error');
+                icon.innerHTML = '<i data-lucide="help-circle" class="text-red-500"></i>';
+                title.innerText = "INVALID ID";
+                msg.innerText = "ID not found in database.";
+                
+                btn.innerText = "CLOSE";
+                btn.className = "bg-zinc-700 text-white w-full py-3 rounded font-bold";
+                btn.onclick = closeModal;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('verify-modal').classList.add('hidden');
+            document.getElementById('verify-modal').classList.remove('flex');
+        }
+
+        function grantAccess(key) {
+            const todayKey = getTodayKey();
+            
+            // Set date-specific check-in AND global checkedIn for backward compatibility/easy querying
+            const updates = {};
+            updates['checkIns/' + todayKey] = true;
+            updates['checkedIn'] = true; // Overall status
+            updates['lastCheckInTime'] = firebase.database.ServerValue.TIMESTAMP;
+
+            db.ref('users/' + key).update(updates).then(() => {
+                closeModal();
+            });
+        }
+
+        // Init Lucide on load
+        lucide.createIcons();
+    </script>
+</body>
+</html>
