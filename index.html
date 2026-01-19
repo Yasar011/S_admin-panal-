@@ -54,6 +54,7 @@
         .badge-yellow { background: #451a03; color: #fbbf24; }
         .badge-red { background: #450a0a; color: #f87171; }
         .badge-blue { background: #1e3a8a; color: #60a5fa; }
+        .badge-purple { background: #581c87; color: #d8b4fe; }
         .badge-none { background: #1f2937; color: #9ca3af; }
 
         /* Modal - Z-Index 100 to stay on top */
@@ -104,9 +105,7 @@
             </div>
             <div class="flex-1 space-y-1">
                 <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
-                <!-- Verification Desk (New) -->
                 <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
-                
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
                 <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
@@ -129,9 +128,25 @@
                     <div class="card"><p class="text-slate-400 text-xs uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
                     <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
                 </div>
+                
+                <h3 class="text-xl font-bold text-white mb-4">Revenue Intelligence</h3>
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="card bg-slate-900 border-pink-500/30">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-pink-400 font-bold uppercase">Pass Sales</span><i data-lucide="ticket" class="text-pink-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-pass">₹0</h4>
+                    </div>
+                    <div class="card bg-slate-900 border-cyan-500/30">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-cyan-400 font-bold uppercase">Merch Sales</span><i data-lucide="shirt" class="text-cyan-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-merch">₹0</h4>
+                    </div>
+                    <div class="card bg-slate-900">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-slate-400 font-bold uppercase">Avg Order</span><i data-lucide="trending-up" class="text-slate-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-avg">₹0</h4>
+                    </div>
+                </div>
             </div>
 
-            <!-- VERIFICATION DESK (NEW) -->
+            <!-- VERIFICATION DESK -->
             <div id="tab-verification" class="hidden animate-in h-full">
                 <h2 class="text-2xl font-bold text-white mb-6">Payment Verification Desk</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
@@ -192,12 +207,17 @@
                     <h2 class="text-2xl font-bold text-white">Registrations</h2>
                     <input type="text" id="search-user" placeholder="Search Name/ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
                 </div>
-                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="user-table-body"></tbody></table></div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="user-table-body"></tbody></table></div>
             </div>
 
             <!-- Merch Tab -->
             <div id="tab-merch" class="hidden animate-in">
                 <h2 class="text-2xl font-bold text-white mb-6">Merchandise Orders</h2>
+                <div class="grid grid-cols-3 gap-6 mb-6">
+                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Revenue</span><h3 id="merch-total-rev" class="text-xl font-bold text-green-400">₹0</h3></div>
+                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Orders</span><h3 id="merch-total-count" class="text-xl font-bold text-white">0</h3></div>
+                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Pending Delivery</span><h3 id="merch-pending-count" class="text-xl font-bold text-yellow-400">0</h3></div>
+                </div>
                 <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>Buyer</th><th>Item & Size</th><th>Price</th><th>Address</th><th>Status</th></tr></thead><tbody id="merch-table-body"></tbody></table></div>
             </div>
 
@@ -206,10 +226,14 @@
                 <h2 class="text-2xl font-bold text-white mb-6">Payment Configuration</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="card">
-                        <h3 class="font-bold text-white mb-2">UPI ID Rotation</h3>
-                        <p class="text-xs text-slate-400 mb-4">Enter multiple UPI IDs separated by commas. The system will rotate them randomly and on error reports.</p>
-                        <textarea id="admin-upi" rows="3" class="w-full bg-slate-900 border border-slate-700 p-3 rounded text-white text-sm mb-4 font-mono" placeholder="merchant@upi, backup@upi"></textarea>
-                        <button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Update IDs</button>
+                        <h3 class="font-bold text-white mb-2">UPI ID Configuration</h3>
+                        <p class="text-xs text-slate-400 mb-4">Set up to 3 UPI IDs. The system will rotate them automatically.</p>
+                        <div class="space-y-3 mb-4">
+                            <div><label class="text-[10px] text-slate-500 uppercase">Primary UPI</label><input id="upi-1" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                            <div><label class="text-[10px] text-slate-500 uppercase">Secondary UPI</label><input id="upi-2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                            <div><label class="text-[10px] text-slate-500 uppercase">Tertiary UPI</label><input id="upi-3" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                        </div>
+                        <button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold w-full">Save UPI Config</button>
                     </div>
                     <div class="card">
                         <h3 class="font-bold text-white mb-4">Backup Payment URL</h3>
@@ -217,7 +241,6 @@
                         <button onclick="updatePaymentConfig('backup')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Update Backup</button>
                     </div>
                 </div>
-                <div class="mt-6 text-xs text-slate-500 font-mono">Current Active: <span id="current-config-display" class="text-white">Loading...</span></div>
             </div>
 
             <!-- Promos Tab -->
@@ -276,7 +299,74 @@
         </div>
     </div>
 
-    <!-- 4. CLUB MANAGER & 5. GATE VERIFIER (Kept same) -->
+    <!-- 4. SQUAD INFO MODAL -->
+    <div id="squad-info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg w-full max-w-sm shadow-2xl">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-white font-bold">Team Roster</h3><button onclick="document.getElementById('squad-info-modal').classList.add('hidden')"><i data-lucide="x" class="text-white"></i></button></div>
+            <div id="squad-info-content" class="space-y-3 text-sm text-slate-300"></div>
+        </div>
+    </div>
+
+    <!-- 5. FULL USER DETAILS MODAL (NEW) -->
+    <div id="user-details-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
+        <div class="bg-slate-900 border border-slate-700 p-0 rounded-lg w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-lg">
+                <h3 class="text-xl font-bold text-white">User Intelligence Profile</h3>
+                <button onclick="document.getElementById('user-details-modal').classList.add('hidden')" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- Profile Header -->
+                <div class="flex items-start gap-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-pink-600 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white" id="ud-initials">--</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white" id="ud-name">User Name</h2>
+                        <p class="text-sm text-blue-400 font-mono" id="ud-id">SPEC ID</p>
+                        <div class="flex gap-4 mt-2 text-xs text-slate-400">
+                            <span id="ud-email">email@example.com</span> • <span id="ud-phone">+91 0000000000</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1" id="ud-college">College Name</p>
+                    </div>
+                </div>
+
+                <!-- Sections Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Events -->
+                    <div class="bg-black/30 border border-slate-800 rounded p-4">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Event Manifest</h4>
+                        <div id="ud-events-list" class="space-y-2 max-h-40 overflow-y-auto text-sm">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Financials -->
+                    <div class="bg-black/30 border border-slate-800 rounded p-4">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Wallet Status</h4>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-slate-300">Total Spent</span>
+                            <span class="text-lg font-bold text-green-400" id="ud-total-spent">₹0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-slate-300">Current Pass</span>
+                            <span class="badge badge-purple" id="ud-pass-badge">NONE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Log -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-3">Transaction Ledger</h4>
+                    <div class="border border-slate-800 rounded overflow-hidden">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-500"><tr><th class="p-3">Date</th><th class="p-3">Item</th><th class="p-3">Ref</th><th class="p-3 text-right">Amt</th></tr></thead>
+                            <tbody id="ud-tx-body" class="divide-y divide-slate-800 text-slate-300 font-mono"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. CLUB MANAGER & GATE VERIFIER -->
     <div id="view-club" class="view-section flex-col w-full bg-black">
         <nav class="bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center"><div class="font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-pink-500"></i> <span id="club-display-name">CLUB</span></div><button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white">LOGOUT</button></nav>
         <div class="p-8 max-w-5xl mx-auto w-full animate-in overflow-y-auto"><h2 class="text-2xl font-bold text-white mb-6">Manage Events</h2><div id="club-events-container" class="grid grid-cols-1 gap-4"></div></div>
@@ -334,36 +424,63 @@
             // USERS LISTENER
             db.ref('users').on('value', snap => {
                 const data = snap.val(); if(!data) return;
-                allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; let rev = 0;
+                allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; 
+                let rev = 0; let merchRev = 0; let passRev = 0;
                 
                 Object.keys(data).forEach(key => {
                     const u = data[key]; u.key = key; 
                     allUsers.push(u); 
                     if(u.paymentStatus === 'Pending') pendingUsers.push(u);
                     
-                    rev += parseInt(u.order?.total || 0);
-                    
-                    if (u.order && u.order.total > 0) { allTransactions.push({ timestamp: new Date(u.order.timestamp).getTime() || 0, dateStr: new Date(u.order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Ticket (${u.order.pass})`, utr: u.utr || '-', amount: u.order.total, status: u.paymentStatus }); }
-                    if(u.merch_orders) { Object.keys(u.merch_orders).forEach(mKey => { const order = u.merch_orders[mKey]; allMerch.push({ ...order, userName: u.name, userEmail: u.email, dbPath: `users/${key}/merch_orders/${mKey}` }); allTransactions.push({ timestamp: order.timestamp || 0, dateStr: new Date(order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Merch (${order.item})`, utr: '-', amount: order.price, status: order.status }); }); }
+                    if (u.order && u.order.total > 0) { 
+                        rev += parseInt(u.order.total);
+                        passRev += parseInt(u.order.total);
+                        allTransactions.push({ timestamp: new Date(u.order.timestamp).getTime() || 0, dateStr: new Date(u.order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Ticket (${u.order.pass})`, utr: u.utr || '-', amount: u.order.total, status: u.paymentStatus }); 
+                    }
+                    if(u.merch_orders) { 
+                        Object.keys(u.merch_orders).forEach(mKey => { 
+                            const order = u.merch_orders[mKey]; 
+                            allMerch.push({ ...order, userName: u.name, userEmail: u.email, dbPath: `users/${key}/merch_orders/${mKey}` }); 
+                            merchRev += parseInt(order.price || 0);
+                            allTransactions.push({ timestamp: order.timestamp || 0, dateStr: new Date(order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Merch (${order.item})`, utr: '-', amount: order.price, status: order.status }); 
+                        }); 
+                    }
                 });
                 
                 document.getElementById('stat-users').innerText = allUsers.length; 
                 document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length; 
                 document.getElementById('stat-pending').innerText = pendingUsers.length; 
-                document.getElementById('stat-revenue').innerText = "₹" + rev.toLocaleString();
+                document.getElementById('stat-revenue').innerText = "₹" + (rev + merchRev).toLocaleString();
                 
+                // Revenue Breakdown
+                document.getElementById('rev-pass').innerText = "₹" + passRev.toLocaleString();
+                document.getElementById('rev-merch').innerText = "₹" + merchRev.toLocaleString();
+                document.getElementById('rev-avg').innerText = "₹" + (allUsers.length ? Math.round((rev+merchRev)/allUsers.length) : 0);
+
+                // Merch Stats
+                document.getElementById('merch-total-rev').innerText = "₹" + merchRev.toLocaleString();
+                document.getElementById('merch-total-count').innerText = allMerch.length;
+                document.getElementById('merch-pending-count').innerText = allMerch.filter(m=>m.status==='Ordered').length;
+
                 renderUsers(); 
                 renderMerchTable(); 
                 renderFinanceTable();
                 renderPendingQueue();
             });
 
-            db.ref('system_config').on('value', (s) => { const c = s.val() || {}; document.getElementById('admin-upi').value = c.upi_id || "chyasar2004-2@oksbi"; document.getElementById('admin-backup').value = c.backup_url || "#"; document.getElementById('current-config-display').innerText = `UPIs: ${c.upi_id||'-'}`; });
+            db.ref('system_config').on('value', (s) => { 
+                const c = s.val() || {}; 
+                const upis = (c.upi_id || "").split(',');
+                document.getElementById('upi-1').value = upis[0] ? upis[0].trim() : '';
+                document.getElementById('upi-2').value = upis[1] ? upis[1].trim() : '';
+                document.getElementById('upi-3').value = upis[2] ? upis[2].trim() : '';
+                document.getElementById('admin-backup').value = c.backup_url || "#"; 
+            });
             db.ref('club_auth').on('value', snap => { const b = document.getElementById('staff-table-body'); b.innerHTML = ""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-gray-400 font-mono">${v.password}</td><td>${v.role}</td><td><button onclick="delStaff('${k}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
             db.ref('promos').on('value', snap => { const b = document.getElementById('promo-body'); b.innerHTML=""; if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { b.innerHTML += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="db.ref('promos/${k}').remove()" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); lucide.createIcons(); });
         }
 
-        // --- VERIFICATION DESK LOGIC ---
+        // --- VERIFICATION DESK ---
         function renderPendingQueue() {
             const container = document.getElementById('pending-list');
             container.innerHTML = "";
@@ -371,19 +488,8 @@
                 container.innerHTML = '<div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>';
                 return;
             }
-            
             pendingUsers.sort((a,b) => b.order?.timestamp - a.order?.timestamp).forEach(u => {
-                container.innerHTML += `
-                <div onclick="selectForVerify('${u.key}')" class="bg-slate-900 border border-slate-800 p-3 rounded cursor-pointer hover:border-pink-500 transition-colors flex justify-between items-center group">
-                    <div>
-                        <div class="font-bold text-white text-sm">${u.name}</div>
-                        <div class="text-[10px] text-slate-400 font-mono">${u.verificationReason || 'Unknown Reason'}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-green-400 font-bold text-xs">₹${u.pendingAmount || u.order?.total || 0}</div>
-                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-white"></i>
-                    </div>
-                </div>`;
+                container.innerHTML += `<div onclick="selectForVerify('${u.key}')" class="bg-slate-900 border border-slate-800 p-3 rounded cursor-pointer hover:border-pink-500 transition-colors flex justify-between items-center group"><div><div class="font-bold text-white text-sm">${u.name}</div><div class="text-[10px] text-slate-400 font-mono">${u.verificationReason || 'Unknown Reason'}</div></div><div class="text-right"><div class="text-green-400 font-bold text-xs">₹${u.pendingAmount || u.order?.total || 0}</div><i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-white"></i></div></div>`;
             });
             lucide.createIcons();
         }
@@ -392,64 +498,33 @@
             activeVerifyKey = key;
             const u = allUsers.find(x => x.key === key);
             if(!u) return;
-
             document.getElementById('verify-placeholder').classList.add('hidden');
             document.getElementById('verify-detail').classList.remove('hidden');
-            
             document.getElementById('v-name').innerText = u.name;
             document.getElementById('v-id').innerText = u.spectrumId || 'NOT GENERATED';
             document.getElementById('v-reason').innerText = (u.verificationReason || 'Manual Verification').toUpperCase();
             document.getElementById('v-amount').innerText = "₹" + (u.pendingAmount || u.order?.total || 0);
             document.getElementById('v-utr').innerText = u.utr || 'N/A';
-            
             const imgEl = document.getElementById('v-img');
             const noImgEl = document.getElementById('v-no-img');
-            
-            if(u.paymentScreenshot) {
-                imgEl.src = u.paymentScreenshot;
-                imgEl.classList.remove('hidden');
-                noImgEl.classList.add('hidden');
-            } else {
-                imgEl.classList.add('hidden');
-                noImgEl.classList.remove('hidden');
-            }
+            if(u.paymentScreenshot) { imgEl.src = u.paymentScreenshot; imgEl.classList.remove('hidden'); noImgEl.classList.add('hidden'); } else { imgEl.classList.add('hidden'); noImgEl.classList.remove('hidden'); }
         }
 
         function processVerification(approved) {
             if(!activeVerifyKey) return;
             const u = allUsers.find(x => x.key === activeVerifyKey);
-            
             if(approved) {
                 if(confirm("Confirm PAYMENT RECEIVED?")) {
-                    db.ref('users/' + activeVerifyKey).update({ 
-                        paymentStatus: 'Verified',
-                        pendingAmount: 0 
-                    });
-                    
-                    // Also verify specific order if it was a merch payment
-                    if(u.merch_orders) {
-                        Object.keys(u.merch_orders).forEach(mk => {
-                            if(u.merch_orders[mk].status === 'Payment Pending') {
-                                db.ref(`users/${activeVerifyKey}/merch_orders/${mk}`).update({status: 'Ordered'});
-                            }
-                        });
-                    }
-                    
+                    db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'Verified', pendingAmount: 0 });
+                    if(u.merch_orders) { Object.keys(u.merch_orders).forEach(mk => { if(u.merch_orders[mk].status === 'Payment Pending') { db.ref(`users/${activeVerifyKey}/merch_orders/${mk}`).update({status: 'Ordered'}); } }); }
                     resetVerifyView();
                 }
             } else {
-                if(prompt("Type 'REJECT' to deny this payment.") === 'REJECT') {
-                    db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'None', pendingAmount: 0, verificationReason: null });
-                    resetVerifyView();
-                }
+                if(prompt("Type 'REJECT' to deny this payment.") === 'REJECT') { db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'None', pendingAmount: 0, verificationReason: null }); resetVerifyView(); }
             }
         }
 
-        function resetVerifyView() {
-            activeVerifyKey = null;
-            document.getElementById('verify-placeholder').classList.remove('hidden');
-            document.getElementById('verify-detail').classList.add('hidden');
-        }
+        function resetVerifyView() { activeVerifyKey = null; document.getElementById('verify-placeholder').classList.remove('hidden'); document.getElementById('verify-detail').classList.add('hidden'); }
 
         // --- RENDER TABLES ---
         function renderUsers() {
@@ -459,10 +534,86 @@
             filtered.sort((a,b) => (a.paymentStatus === 'Pending' ? -1 : 1)).forEach(u => {
                 const status = u.paymentStatus;
                 let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
+                
+                // Fix for Unknown Pass logic + Squads
+                let passDisplay = u.order?.pass;
+                if(!passDisplay || passDisplay === "Unknown") { passDisplay = u.verificationReason || "No Pass"; }
+                
+                let squadBtn = '';
+                if(u.squads && Object.keys(u.squads).length > 0) {
+                    squadBtn = `<button onclick="viewSquads('${u.key}')" class="ml-2 text-purple-400 hover:text-white"><i data-lucide="users" class="w-4"></i></button>`;
+                }
+
                 let proof = u.utr || '-';
-                tbody.innerHTML += `<tr><td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td><td><div class="text-pink-400 font-bold text-xs">${u.order?.pass}</div></td><td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td><td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td><td class="flex gap-2 items-center">${btn}<button onclick="openEdit('${u.key}')" class="text-blue-400"><i data-lucide="edit-3" class="w-4"></i></button><button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`;
+                tbody.innerHTML += `
+                <tr>
+                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td>
+                    <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span>${squadBtn}</div></td>
+                    <td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td>
+                    <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td>
+                    <td class="flex gap-2 items-center">
+                        ${btn}
+                        <button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-cyan-300"><i data-lucide="info" class="w-4"></i></button>
+                        <button onclick="openEdit('${u.key}')" class="text-blue-400"><i data-lucide="edit-3" class="w-4"></i></button>
+                        <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button>
+                    </td>
+                </tr>`;
             });
             lucide.createIcons();
+        }
+
+        function showUserDetails(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+
+            // Fill Basic Details
+            document.getElementById('ud-initials').innerText = u.name.substring(0,2).toUpperCase();
+            document.getElementById('ud-name').innerText = u.name;
+            document.getElementById('ud-id').innerText = u.spectrumId || 'Not Assigned';
+            document.getElementById('ud-email').innerText = u.email;
+            document.getElementById('ud-phone').innerText = u.phone;
+            document.getElementById('ud-college').innerText = u.collegeName || 'N/A';
+            document.getElementById('ud-pass-badge').innerText = u.order?.pass || 'No Pass';
+
+            // Fill Events
+            const eventContainer = document.getElementById('ud-events-list');
+            eventContainer.innerHTML = '';
+            if (u.order && u.order.events && u.order.events.length > 0) {
+                u.order.events.forEach(e => {
+                    eventContainer.innerHTML += `<div class="flex justify-between border-b border-slate-800 pb-1 mb-1 last:border-0"><span class="text-white">${e.title}</span><span class="text-slate-500 text-[10px]">${e.isPremium ? 'PRO' : 'REG'}</span></div>`;
+                });
+            } else {
+                eventContainer.innerHTML = '<span class="text-slate-600 italic">No registered events.</span>';
+            }
+
+            // Fill Transaction Log (Filter allTransactions)
+            const txBody = document.getElementById('ud-tx-body');
+            txBody.innerHTML = '';
+            let totalSpent = 0;
+            
+            // 1. Check direct transactions array
+            if(u.transactions) {
+                Object.values(u.transactions).forEach(tx => {
+                    totalSpent += parseInt(tx.amount || 0);
+                    txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(tx.timestamp).toLocaleDateString()}</td><td class="p-3">${tx.items || tx.reason}</td><td class="p-3 text-[10px]">${tx.utr}</td><td class="p-3 text-right text-green-400">₹${tx.amount}</td></tr>`;
+                });
+            }
+            // 2. Fallback to order details if no new transaction logs
+            else {
+                if(u.order && u.order.total) {
+                    totalSpent += parseInt(u.order.total);
+                    txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(u.order.timestamp).toLocaleDateString()}</td><td class="p-3">Pass & Events</td><td class="p-3 text-[10px]">${u.utr || '-'}</td><td class="p-3 text-right text-green-400">₹${u.order.total}</td></tr>`;
+                }
+                if(u.merch_orders) {
+                    Object.values(u.merch_orders).forEach(m => {
+                        totalSpent += parseInt(m.price || 0);
+                        txBody.innerHTML += `<tr><td class="p-3 text-[10px]">${new Date(m.timestamp).toLocaleDateString()}</td><td class="p-3">Merch: ${m.item}</td><td class="p-3 text-[10px]">-</td><td class="p-3 text-right text-green-400">₹${m.price}</td></tr>`;
+                    });
+                }
+            }
+            
+            document.getElementById('ud-total-spent').innerText = "₹" + totalSpent;
+            document.getElementById('user-details-modal').classList.remove('hidden');
         }
 
         function renderMerchTable() {
@@ -481,7 +632,31 @@
             });
         }
 
-        function updatePaymentConfig(type) { const val = type === 'upi' ? document.getElementById('admin-upi').value : document.getElementById('admin-backup').value; const key = type === 'upi' ? 'upi_id' : 'backup_url'; if(!val) return; db.ref('system_config/' + key).set(val).then(() => alert("Config Updated")); }
+        function updatePaymentConfig(type) { 
+            if (type === 'upi') {
+                const u1 = document.getElementById('upi-1').value.trim();
+                const u2 = document.getElementById('upi-2').value.trim();
+                const u3 = document.getElementById('upi-3').value.trim();
+                const combined = [u1, u2, u3].filter(Boolean).join(',');
+                db.ref('system_config/upi_id').set(combined).then(() => alert("UPI List Updated"));
+            } else {
+                const val = document.getElementById('admin-backup').value;
+                if(!val) return; 
+                db.ref('system_config/backup_url').set(val).then(() => alert("Backup Updated")); 
+            }
+        }
+
+        function viewSquads(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u || !u.squads) return;
+            const content = document.getElementById('squad-info-content');
+            content.innerHTML = "";
+            Object.keys(u.squads).forEach(evtId => {
+                content.innerHTML += `<div class="bg-black/30 p-2 rounded border border-slate-700"><p class="text-xs font-bold text-pink-400 mb-1">Event ID: ${evtId}</p><p class="font-mono text-xs break-all">${u.squads[evtId].join(', ')}</p></div>`;
+            });
+            document.getElementById('squad-info-modal').classList.remove('hidden');
+        }
+
         function openEdit(key) { const u = allUsers.find(x => x.key === key); document.getElementById('edit-key').value = key; document.getElementById('edit-name').value = u.name; document.getElementById('edit-phone').value = u.phone; document.getElementById('edit-college').value = u.collegeName || ''; document.getElementById('edit-utr').value = u.utr || ''; document.getElementById('edit-pass').value = u.order?.pass || 'General'; document.getElementById('edit-status').value = u.paymentStatus; document.getElementById('edit-user-modal').classList.remove('hidden'); }
         function saveUserChanges() { const key = document.getElementById('edit-key').value; db.ref('users/' + key).update({ name: document.getElementById('edit-name').value, phone: document.getElementById('edit-phone').value, collegeName: document.getElementById('edit-college').value, utr: document.getElementById('edit-utr').value, paymentStatus: document.getElementById('edit-status').value, "order/pass": document.getElementById('edit-pass').value }).then(() => { alert("Saved!"); closeEditModal(); }); }
         function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
