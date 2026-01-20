@@ -231,7 +231,7 @@
             { id: 2, club: 'culture', title: 'Solo Singing', members: 'Solo' },
             { id: 3, club: 'culture', title: 'Runway Rivals', members: '1' },
             { id: 4, club: 'culture', title: 'Battle of Bands', members: '3-6' },
-            { id: 5, club: 'entertainment', title: 'EDM Night (Main)', members: '1' }, // Main pass version
+            { id: 5, club: 'entertainment', title: 'EDM Night (Main)', members: '1' },
             { id: 6, club: 'sports', title: 'Valorant', members: '5' },
             { id: 7, club: 'sports', title: 'FIFA 26', members: 'Solo' },
             { id: 8, club: 'sports', title: 'Box Cricket', members: '6-8' },
@@ -252,6 +252,10 @@
         let html5QrcodeScanner = null;
         let isScanning = false;
         let currentAttendees = [];
+        
+        // Global Data Cache
+        window.allUsers = [];
+        window.allStatuses = {};
 
         // --- AUTHENTICATION ---
         function clubLogin() {
@@ -264,7 +268,7 @@
             db.ref('club_auth/' + u).once('value').then(snap => {
                 const data = snap.val();
                 if(data && data.password === p) {
-                    currentClubCode = data.club_code; // e.g. 'culture', 'sports', 'all'
+                    currentClubCode = data.club_code; 
                     document.getElementById('login-view').classList.add('hidden');
                     document.getElementById('dashboard-view').classList.remove('hidden');
                     
@@ -278,25 +282,33 @@
             }).catch(e => err.innerText = "Network Error");
         }
 
-        // --- DASHBOARD LOGIC ---
+        // --- DASHBOARD LOGIC (FIXED) ---
         function initDashboard() {
             const container = document.getElementById('events-list');
             container.innerHTML = '<div class="text-center col-span-full py-10 text-slate-500"><div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>Fetching Data...</div>';
 
-            const myEvents = currentClubCode === 'all' || currentClubCode === 'admin' 
-                ? eventsData 
-                : eventsData.filter(e => e.club === currentClubCode);
-
-            document.getElementById('stat-events').innerText = myEvents.length;
-
-            // Fetch Real-time Data
-            db.ref('users').on('value', usersSnap => {
-                const users = usersSnap.val() ? Object.values(usersSnap.val()) : [];
-                db.ref('events_status').once('value').then(statusSnap => {
-                    const statuses = statusSnap.val() || {};
-                    renderEvents(myEvents, users, statuses);
-                });
+            // 1. Listen for User Changes
+            db.ref('users').on('value', snap => {
+                window.allUsers = snap.val() ? Object.values(snap.val()) : [];
+                renderIfReady();
             });
+
+            // 2. Listen for Event Status Changes
+            db.ref('events_status').on('value', snap => {
+                window.allStatuses = snap.val() || {};
+                renderIfReady();
+            });
+        }
+
+        function renderIfReady() {
+            // Render only if user data is loaded (statuses can be empty initially)
+            if (window.allUsers) {
+                const myEvents = currentClubCode === 'all' || currentClubCode === 'admin' 
+                    ? eventsData 
+                    : eventsData.filter(e => e.club === currentClubCode);
+                
+                renderEvents(myEvents, window.allUsers, window.allStatuses);
+            }
         }
 
         function renderEvents(events, users, statuses) {
@@ -314,8 +326,8 @@
                 }).length;
                 totalRegs += regCount;
 
-                // Status
-                const status = statuses[e.id]?.status || 'upcoming'; // upcoming, live, ended
+                // Status Logic
+                const status = statuses[e.id]?.status || 'upcoming'; 
                 if(status === 'live') totalLive++;
 
                 const statusClass = status === 'live' ? 'text-red-500' : (status === 'ended' ? 'text-gray-500' : 'text-yellow-500');
@@ -347,6 +359,7 @@
                 </div>`;
             });
 
+            document.getElementById('stat-events').innerText = events.length;
             document.getElementById('stat-regs').innerText = totalRegs;
             document.getElementById('stat-live').innerText = totalLive;
             lucide.createIcons();
@@ -391,6 +404,9 @@
         }
 
         function switchTab(tab) {
+            // Auto stop scanner if leaving scan tab to prevent crashes
+            if (tab !== 'scan') stopScanner();
+
             ['scan', 'list', 'winners'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('text-blue-500', 'border-blue-500');
@@ -418,7 +434,7 @@
                         timestamp: Date.now()
                     });
                 }
-                closeEventModal(); // Force refresh by closing
+                closeEventModal(); // Force refresh by closing to update UI
             }
         }
 
@@ -438,6 +454,13 @@
 
         // --- SCANNER & VERIFICATION ---
         function startScanner() {
+            // Check if event is ended
+            const currentStatus = window.allStatuses[activeEventId]?.status;
+            if(currentStatus === 'ended') {
+                alert("Event has ENDED. Cannot scan attendees.");
+                return;
+            }
+
             if(isScanning) return;
             isScanning = true;
             document.getElementById('btn-cam-start').classList.add('hidden');
@@ -464,11 +487,19 @@
                     document.getElementById('btn-cam-start').classList.remove('hidden');
                     document.getElementById('btn-cam-stop').classList.add('hidden');
                     document.getElementById('scan-placeholder').classList.remove('hidden');
-                });
+                }).catch(err => console.error("Failed to stop scanner", err));
             }
         }
 
         function verifyUser(id) {
+            // FIX: Don't verify if modal closed or event ended
+            if(!activeEventId) return;
+            const currentStatus = window.allStatuses[activeEventId]?.status;
+            if(currentStatus === 'ended') {
+                showScanResult(false, "EVENT ENDED");
+                return;
+            }
+
             id = id.toUpperCase().trim();
             if(!id) return;
             const res = document.getElementById('scan-result');
@@ -518,8 +549,11 @@
             const newEventObj = { id: evt.id, title: evt.title, isPremium: false, type: 'OTS' };
 
             db.ref(`users/${key}/order/events`).once('value').then(snap => {
-                let currentEvents = snap.val() || [];
-                if(!Array.isArray(currentEvents)) currentEvents = []; 
+                let currentEvents = snap.val();
+                if (!Array.isArray(currentEvents)) {
+                    currentEvents = currentEvents ? Object.values(currentEvents) : [];
+                }
+                
                 if(!currentEvents.some(e => e.id == activeEventId)) currentEvents.push(newEventObj);
                 
                 const updates = {};
@@ -540,7 +574,7 @@
             
             if(success) {
                 res.classList.add('bg-green-900/50', 'border-green-600', 'text-green-400');
-                setTimeout(() => { if(isScanning) res.classList.add('hidden'); }, 3000);
+                if(isScanning) setTimeout(() => { res.classList.add('hidden'); }, 3000);
             } else {
                 res.classList.add('bg-red-900/50', 'border-red-600', 'text-red-400');
             }
@@ -549,13 +583,25 @@
 
         // --- ATTENDEE & WINNER LOGIC ---
         function refreshAttendees() {
+            // No need to fetch DB, we have window.allUsers
             const container = document.getElementById('attendees-container');
+            currentAttendees = [];
+            
+            if (!window.allUsers) return;
+
+            // Filter attendees for THIS event
+            // Note: window.allUsers is an array of user objects. We need keys to update.
+            // Since window.allUsers came from Object.values(), we lost the keys? 
+            // WAIT. The original init logic: const users = usersSnap.val() ? Object.values(usersSnap.val()) : [];
+            // This strips keys. We need keys for updates.
+            
+            // Re-fetch to be safe and get keys or fix initDashboard.
+            // Let's fix initDashboard to keep keys.
+            // Actually, let's just do a quick fetch here to ensure data integrity for the list.
+            
             db.ref('users').once('value').then(snap => {
                 if(!snap.val()) return;
-                currentAttendees = [];
                 const all = Object.entries(snap.val());
-                
-                // Filter attendees for THIS event
                 currentAttendees = all.filter(([k, u]) => u.attendedEvents && u.attendedEvents[activeEventId]).map(([k, u]) => ({...u, key: k}));
                 
                 document.getElementById('em-count').innerText = currentAttendees.length;
