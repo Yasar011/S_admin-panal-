@@ -27,6 +27,9 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
+
+        // CONFIGURATION
+        const REQUIRED_DOMAIN = "@nift.ac.in"; // Set to "" to allow all emails for testing
     </script>
 
     <style>
@@ -87,7 +90,7 @@
                 
                 <div class="flex justify-between items-center mt-4">
                     <button onclick="toggleForms('forgot')" class="text-xs text-slate-500 hover:text-white transition-colors">Forgot Password?</button>
-                    <button onclick="toggleForms('register')" class="text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors">Apply for Access</button>
+                    <button onclick="openRegister(false)" class="text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors">Apply for Access</button>
                 </div>
             </div>
 
@@ -100,6 +103,8 @@
                     <input id="reg-name" type="text" placeholder="Full Name" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
                     <input id="reg-email" type="email" placeholder="@nift.ac.in Email" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
                 </div>
+                
+                <!-- Password Field (Hidden for upgrades) -->
                 <input id="reg-pass" type="password" placeholder="Set Password" class="w-full bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
                 
                 <div class="grid grid-cols-2 gap-2">
@@ -140,9 +145,12 @@
                 <div class="w-16 h-16 bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto text-yellow-500">
                     <i data-lucide="clock" class="w-8 h-8"></i>
                 </div>
-                <h2 class="text-xl font-bold text-white">Approval Pending</h2>
-                <p class="text-xs text-slate-400">Your staff request has been sent to the Admin.</p>
-                <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout</button>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Approval Pending</h2>
+                    <p class="text-xs text-slate-400 mt-2">Your ID: <span id="pending-key" class="font-mono text-white bg-slate-800 px-1 rounded select-all">---</span></p>
+                    <p class="text-[10px] text-slate-500 mt-2">Copy this ID and add to 'staff_access' in Firebase to self-approve.</p>
+                </div>
+                <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout & Refresh</button>
             </div>
 
             <p id="auth-msg" class="text-center text-xs text-red-400 mt-4 font-mono h-4"></p>
@@ -174,6 +182,25 @@
             document.getElementById('auth-msg').innerText = "";
         }
 
+        // Handle Register Mode (New User vs Upgrade)
+        function openRegister(isUpgrade = false) {
+            toggleForms('register');
+            const passInput = document.getElementById('reg-pass');
+            
+            if (isUpgrade) {
+                // Hiding password field for upgrades to avoid "Parent Element" display bug
+                passInput.classList.add('hidden');
+            } else {
+                // Showing password field for new users
+                passInput.classList.remove('hidden');
+                
+                // Reset fields
+                document.getElementById('reg-email').value = '';
+                document.getElementById('reg-email').disabled = false;
+                document.getElementById('reg-status-text').innerText = "Registration requires Admin Approval.";
+            }
+        }
+
         function toggleClubSelect() {
             const role = document.getElementById('reg-role').value;
             const clubSelect = document.getElementById('reg-club');
@@ -195,9 +222,6 @@
         // AUTH LOGIC
         auth.onAuthStateChanged(user => {
             if (user) {
-                // Check if user is in staff_access (Approved)
-                // If not, check staff_requests (Pending)
-                // If neither, show Registration Form (New Application)
                 verifyAccess(user.email);
             } else {
                 document.getElementById('auth-container').classList.remove('hidden');
@@ -219,6 +243,7 @@
                     // 2. Check Pending Requests
                     db.ref('staff_requests/' + safeEmail).once('value').then(reqSnap => {
                         if (reqSnap.exists()) {
+                            document.getElementById('pending-key').innerText = safeEmail;
                             toggleForms('pending');
                         } else {
                             // 3. Not Staff, Not Pending -> Show Apply Form
@@ -230,10 +255,9 @@
         }
 
         function showApplyFormForUser(email) {
-            toggleForms('register');
+            openRegister(true); // Open in "Upgrade" mode
             document.getElementById('reg-email').value = email;
             document.getElementById('reg-email').disabled = true; // Lock email
-            document.getElementById('reg-pass').parentElement.style.display = 'none'; // Hide password (already logged in)
             document.getElementById('reg-status-text').innerText = "Logged in as Student. Apply for Staff Access below.";
             document.getElementById('reg-name').focus();
         }
@@ -246,9 +270,8 @@
             
             document.getElementById('user-display').innerText = userData.email;
 
-            // Generate Cards based on Role
             const grid = document.getElementById('portal-grid');
-            grid.innerHTML = ""; // Clear existing
+            grid.innerHTML = ""; 
 
             // DEFINITIONS
             const cards = {
@@ -292,9 +315,11 @@
             const club = document.getElementById('reg-club').value;
 
             if(!name || !email || !role) return showMsg("Name, Email, Role required");
-            if(!email.endsWith("@nift.ac.in")) return showMsg("Access Restricted: @nift.ac.in only");
+            
+            if(REQUIRED_DOMAIN && !email.endsWith(REQUIRED_DOMAIN)) {
+                return showMsg(`Access Restricted: ${REQUIRED_DOMAIN} only`);
+            }
 
-            // If user is already logged in, just write DB
             if (auth.currentUser) {
                 submitRequest(auth.currentUser.uid, email, name, role, club);
                 return;
@@ -330,8 +355,6 @@
                 timestamp: Date.now()
             }).then(() => {
                 alert("Application Sent! \nWait for Admin approval.");
-                // Check if we need to sign out (if they were just student)
-                // Actually, let's refresh page to hit the "Pending" state logic
                 location.reload();
             });
         }
