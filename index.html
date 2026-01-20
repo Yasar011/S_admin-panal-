@@ -94,7 +94,7 @@
             <!-- REGISTER FORM (Hidden) -->
             <div id="form-register" class="space-y-3 hidden">
                 <div class="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg mb-2">
-                    <p class="text-[10px] text-yellow-500 leading-tight">⚠️ Registration requires Admin Approval. Use your NIFT email.</p>
+                    <p class="text-[10px] text-yellow-500 leading-tight">⚠️ <span id="reg-status-text">Registration requires Admin Approval.</span></p>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <input id="reg-name" type="text" placeholder="Full Name" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
@@ -124,7 +124,7 @@
                 </div>
 
                 <button onclick="handleRegister()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all mt-2">SUBMIT REQUEST</button>
-                <button onclick="toggleForms('login')" class="w-full text-xs text-slate-500 hover:text-white py-2">Back to Login</button>
+                <button onclick="logout()" id="btn-back-login" class="w-full text-xs text-slate-500 hover:text-white py-2">Cancel / Logout</button>
             </div>
 
             <!-- FORGOT PASSWORD FORM (Hidden) -->
@@ -133,6 +133,16 @@
                 <input id="forgot-email" type="email" placeholder="name@nift.ac.in" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none">
                 <button onclick="handleForgot()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all">SEND LINK</button>
                 <button onclick="toggleForms('login')" class="w-full text-xs text-slate-500 hover:text-white py-2">Back to Login</button>
+            </div>
+            
+            <!-- PENDING APPROVAL SCREEN (Hidden) -->
+            <div id="form-pending" class="text-center hidden space-y-4">
+                <div class="w-16 h-16 bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto text-yellow-500">
+                    <i data-lucide="clock" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Approval Pending</h2>
+                <p class="text-xs text-slate-400">Your staff request has been sent to the Admin.</p>
+                <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout</button>
             </div>
 
             <p id="auth-msg" class="text-center text-xs text-red-400 mt-4 font-mono h-4"></p>
@@ -159,7 +169,7 @@
 
         // UI TOGGLES
         function toggleForms(view) {
-            ['form-login', 'form-register', 'form-forgot'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['form-login', 'form-register', 'form-forgot', 'form-pending'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(`form-${view}`).classList.remove('hidden');
             document.getElementById('auth-msg').innerText = "";
         }
@@ -185,48 +195,56 @@
         // AUTH LOGIC
         auth.onAuthStateChanged(user => {
             if (user) {
+                // Check if user is in staff_access (Approved)
+                // If not, check staff_requests (Pending)
+                // If neither, show Registration Form (New Application)
                 verifyAccess(user.email);
             } else {
                 document.getElementById('auth-container').classList.remove('hidden');
                 document.getElementById('portal-view').classList.add('hidden');
                 document.getElementById('portal-view').classList.remove('opacity-100');
+                toggleForms('login');
             }
         });
 
         function verifyAccess(email) {
             const safeEmail = email.replace(/\./g, ',');
             
-            // Check Staff Access Table (Approved Users)
+            // 1. Check Approved Staff
             db.ref('staff_access/' + safeEmail).once('value').then(snap => {
                 if (snap.exists()) {
                     const data = snap.val();
                     showPortal(data);
                 } else {
-                    // Check Requests Table (Pending Users)
+                    // 2. Check Pending Requests
                     db.ref('staff_requests/' + safeEmail).once('value').then(reqSnap => {
                         if (reqSnap.exists()) {
-                            alert("Your account is pending Admin approval.");
-                            auth.signOut();
+                            toggleForms('pending');
                         } else {
-                            alert("Access Denied. No staff record found.");
-                            auth.signOut();
+                            // 3. Not Staff, Not Pending -> Show Apply Form
+                            showApplyFormForUser(email);
                         }
                     });
                 }
             });
         }
 
+        function showApplyFormForUser(email) {
+            toggleForms('register');
+            document.getElementById('reg-email').value = email;
+            document.getElementById('reg-email').disabled = true; // Lock email
+            document.getElementById('reg-pass').parentElement.style.display = 'none'; // Hide password (already logged in)
+            document.getElementById('reg-status-text').innerText = "Logged in as Student. Apply for Staff Access below.";
+            document.getElementById('reg-name').focus();
+        }
+
         function showPortal(userData) {
             document.getElementById('auth-container').classList.add('hidden');
             const portal = document.getElementById('portal-view');
             portal.classList.remove('hidden');
-            setTimeout(() => portal.classList.add('opacity-100'), 50); // Fade in
+            setTimeout(() => portal.classList.add('opacity-100'), 50); 
             
             document.getElementById('user-display').innerText = userData.email;
-
-            // Direct Redirect Logic (Optional: remove this block if you want them to always see the hub first)
-            // if (userData.role === 'merch') window.location.href = 'MerchDistributor.html';
-            // if (userData.role === 'club') window.location.href = 'club.html';
 
             // Generate Cards based on Role
             const grid = document.getElementById('portal-grid');
@@ -241,9 +259,7 @@
                 merch: `<a href="MerchDistributor.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:border-purple-500/50 md:col-span-2 lg:col-span-1 lg:col-start-2"><div class="flex justify-between items-start mb-4"><div class="bg-purple-900/30 p-3 rounded-lg text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-colors"><i data-lucide="shirt" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Merch Distributor</h2><p class="text-sm text-slate-400">Scanner for distribution desk. Verify orders and mark items delivered.</p></a>`
             };
 
-            // RENDER LOGIC
             if (userData.role === 'admin') {
-                // Admin sees everything
                 Object.values(cards).forEach(c => grid.innerHTML += c);
             } else if (userData.role === 'club') {
                 grid.innerHTML += cards.club;
@@ -275,30 +291,49 @@
             const role = document.getElementById('reg-role').value;
             const club = document.getElementById('reg-club').value;
 
-            if(!name || !email || !pass || !role) return showMsg("All fields required");
+            if(!name || !email || !role) return showMsg("Name, Email, Role required");
             if(!email.endsWith("@nift.ac.in")) return showMsg("Access Restricted: @nift.ac.in only");
+
+            // If user is already logged in, just write DB
+            if (auth.currentUser) {
+                submitRequest(auth.currentUser.uid, email, name, role, club);
+                return;
+            }
+
+            if (!pass) return showMsg("Password required for new account");
 
             showMsg("Processing Registration...", false);
 
             auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-                const safeEmail = email.replace(/\./g, ',');
-                
-                // Write to REQUESTS table, NOT Access table
-                db.ref('staff_requests/' + safeEmail).set({
-                    name: name,
-                    email: email,
-                    role: role,
-                    club_code: club,
-                    uid: cred.user.uid,
-                    status: 'pending',
-                    timestamp: Date.now()
-                }).then(() => {
-                    cred.user.sendEmailVerification();
-                    alert("Application Sent! \n1. Verify your email.\n2. Wait for Admin approval.");
-                    auth.signOut();
+                cred.user.sendEmailVerification();
+                submitRequest(cred.user.uid, email, name, role, club);
+            }).catch(err => {
+                if (err.code === 'auth/email-already-in-use') {
+                    alert("Account exists! Please Login first, then apply.");
                     toggleForms('login');
-                });
-            }).catch(err => showMsg(err.message));
+                    document.getElementById('login-email').value = email;
+                } else {
+                    showMsg(err.message);
+                }
+            });
+        }
+
+        function submitRequest(uid, email, name, role, club) {
+            const safeEmail = email.replace(/\./g, ',');
+            db.ref('staff_requests/' + safeEmail).set({
+                name: name,
+                email: email,
+                role: role,
+                club_code: club,
+                uid: uid,
+                status: 'pending',
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Application Sent! \nWait for Admin approval.");
+                // Check if we need to sign out (if they were just student)
+                // Actually, let's refresh page to hit the "Pending" state logic
+                location.reload();
+            });
         }
 
         function handleForgot() {
