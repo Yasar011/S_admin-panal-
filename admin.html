@@ -29,15 +29,18 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // --- MASTER ADMINS (Hardcoded Bypass) ---
+        const MASTER_EMAILS = ["admin@nift.ac.in", "yasar.h@nift.ac.in"];
+
         // --- AUTH LOGIC ---
         let currentUser = null;
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                // --- MASTER BYPASS: Your email gets instant access ---
-                if(user.email.toLowerCase() === "yasar.h@nift.ac.in" || user.email === "admin@nift.ac.in") {
-                    console.log("Master Admin Detected");
+                // Check if user is a Master Admin (bypass DB check)
+                if(MASTER_EMAILS.includes(user.email.toLowerCase())) {
+                    console.log("Master Access Granted");
                     showDashboard();
                 } else {
                     checkDatabaseRole(user.email);
@@ -47,6 +50,33 @@
             }
         });
 
+        function handleLogin() {
+             const e = document.getElementById('login-user').value.trim();
+             const p = document.getElementById('login-pass').value.trim();
+             
+             if(!e || !p) return alert("Please enter Email and Password");
+
+             document.getElementById('btn-login').innerText = "Authenticating...";
+
+             auth.signInWithEmailAndPassword(e, p).catch(err => {
+                 // AUTO-CREATE ACCOUNT if it's a Master Admin and doesn't exist
+                 if(MASTER_EMAILS.includes(e.toLowerCase()) && err.code === 'auth/user-not-found') {
+                     auth.createUserWithEmailAndPassword(e, p)
+                        .then(() => {
+                            alert("Master Account Created Successfully! Logging in...");
+                            // onAuthStateChanged will handle the rest
+                        })
+                        .catch(createErr => {
+                            alert("Creation Failed: " + createErr.message);
+                            document.getElementById('btn-login').innerText = "AUTHENTICATE";
+                        });
+                 } else {
+                     alert(err.message);
+                     document.getElementById('btn-login').innerText = "AUTHENTICATE";
+                 }
+             });
+        }
+
         function checkDatabaseRole(email) {
             const safeEmail = email.replace(/\./g, ',');
             db.ref('staff_access/' + safeEmail).once('value').then(snap => {
@@ -55,7 +85,7 @@
                     showDashboard();
                 } else {
                     alert("Access Denied: You are not an Admin.");
-                    window.location.href = 'OpsHub.html'; // Send back to Hub
+                    auth.signOut();
                 }
             });
         }
@@ -71,19 +101,11 @@
             document.getElementById('view-login').classList.remove('hidden');
             document.getElementById('view-admin').classList.add('hidden');
             document.getElementById('view-admin').classList.remove('active');
+            if(document.getElementById('btn-login')) document.getElementById('btn-login').innerText = "AUTHENTICATE";
         }
-
-        function handleLogin() {
-             const e = document.getElementById('login-user').value;
-             const p = document.getElementById('login-pass').value;
-             auth.signInWithEmailAndPassword(e, p).catch(err => {
-                 // Auto-create "admin@nift.ac.in" if it doesn't exist yet
-                 if(e === "admin@nift.ac.in" && err.code === 'auth/user-not-found') {
-                     auth.createUserWithEmailAndPassword(e, p).then(() => alert("Admin Account Created"));
-                 } else {
-                     alert(err.message);
-                 }
-             });
+        
+        function logout() {
+            auth.signOut().then(() => window.location.reload());
         }
     </script>
 
@@ -193,6 +215,22 @@
                     <div class="card"><p class="text-slate-400 text-xs uppercase">Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400">₹0</h3></div>
                     <div class="card"><p class="text-slate-400 text-xs uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
                     <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
+                </div>
+                
+                <h3 class="text-xl font-bold text-white mb-4">Revenue Intelligence</h3>
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="card bg-slate-900 border-pink-500/30">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-pink-400 font-bold uppercase">Pass Sales</span><i data-lucide="ticket" class="text-pink-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-pass">₹0</h4>
+                    </div>
+                    <div class="card bg-slate-900 border-cyan-500/30">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-cyan-400 font-bold uppercase">Merch Sales</span><i data-lucide="shirt" class="text-cyan-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-merch">₹0</h4>
+                    </div>
+                    <div class="card bg-slate-900">
+                        <div class="flex justify-between items-start mb-2"><span class="text-xs text-slate-400 font-bold uppercase">Avg Order</span><i data-lucide="trending-up" class="text-slate-500 w-4"></i></div>
+                        <h4 class="text-2xl font-bold text-white" id="rev-avg">₹0</h4>
+                    </div>
                 </div>
             </div>
 
@@ -390,8 +428,6 @@
         function initSystem() {
             lucide.createIcons();
         }
-
-        function logout() { auth.signOut().then(() => location.reload()); }
 
         function initAdminPanel() {
             // STAFF LISTENER (New Feature)
