@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum '26 | Merch Distributor</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    </script>
+
+    <style>
+        body { background-color: #000000; color: #e2e8f0; font-family: 'Manrope', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        .scan-region { border: 2px dashed #4b5563; border-radius: 12px; overflow: hidden; position: relative; }
+        .scan-region video { object-fit: cover; border-radius: 10px; }
+        
+        /* Status Colors */
+        .status-pending { border-left: 4px solid #ef4444; background: #1f1212; }
+        .status-ready { border-left: 4px solid #3b82f6; background: #0f172a; }
+        .status-done { border-left: 4px solid #22c55e; background: #06180c; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl">
+            <div class="text-center mb-8">
+                <i data-lucide="shirt" class="w-12 h-12 text-purple-500 mx-auto mb-4"></i>
+                <h1 class="text-2xl font-bold text-white">MERCH DESK</h1>
+                <p class="text-slate-500 text-xs uppercase tracking-widest mt-1">Staff Access Only</p>
+            </div>
+            <div class="space-y-4">
+                <input id="login-user" type="text" placeholder="Username" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-purple-500 transition-all">
+                <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-purple-500 transition-all">
+                <button onclick="handleLogin()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-lg transition-all">ENTER DESK</button>
+            </div>
+            <p id="login-msg" class="text-red-500 text-xs text-center mt-4 h-4"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="app-screen" class="hidden flex-col h-full max-w-lg mx-auto w-full bg-zinc-950 shadow-2xl border-x border-zinc-800">
+        
+        <!-- Header -->
+        <header class="p-4 bg-zinc-900 border-b border-zinc-800 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="font-bold text-white tracking-wide">DISTRIBUTOR</span>
+            </div>
+            <button onclick="location.reload()" class="text-xs text-red-500 font-bold border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
+        </header>
+
+        <!-- Scanner Section -->
+        <div class="p-4 flex-shrink-0">
+            <div id="reader" class="scan-region w-full h-64 bg-black mb-4 flex items-center justify-center">
+                <div id="cam-placeholder" class="text-slate-600 text-sm animate-pulse">Starting Camera...</div>
+            </div>
+            
+            <div class="flex gap-2">
+                <input id="manual-input" type="text" placeholder="MANUAL ID (e.g. SPEC101)" class="flex-1 bg-zinc-900 border border-zinc-700 p-3 rounded-lg text-white text-center font-mono uppercase text-lg outline-none focus:border-purple-500">
+                <button onclick="fetchUser(document.getElementById('manual-input').value)" class="bg-purple-600 text-white px-6 rounded-lg font-bold"><i data-lucide="search"></i></button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="result-area" class="flex-1 overflow-y-auto p-4 bg-black border-t border-zinc-800">
+            <div class="h-full flex flex-col items-center justify-center text-slate-600">
+                <i data-lucide="scan-line" class="w-16 h-16 mb-4 opacity-50"></i>
+                <p>Ready to Scan</p>
+                <p class="text-xs mt-2">Point camera at User QR Code</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scanner = null;
+        let isScanning = false;
+
+        function init() {
+            lucide.createIcons();
+        }
+
+        // --- AUTH SYSTEM ---
+        function handleLogin() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            const msg = document.getElementById('login-msg');
+
+            if(!u || !p) { msg.innerText = "Please enter credentials"; return; }
+
+            msg.innerText = "Verifying...";
+            
+            db.ref('club_auth/' + u).once('value').then(snap => {
+                const data = snap.val();
+                if(data && data.password === p) {
+                    if(data.role === 'admin' || data.role === 'merch' || data.club_code === 'all') {
+                        document.getElementById('login-screen').classList.add('hidden');
+                        document.getElementById('app-screen').classList.remove('hidden');
+                        document.getElementById('app-screen').classList.add('flex');
+                        startScanner();
+                    } else {
+                        msg.innerText = "Access Denied: Merch Role Required";
+                    }
+                } else {
+                    msg.innerText = "Invalid Username or Password";
+                }
+            }).catch(err => {
+                msg.innerText = "Network Error";
+                console.error(err);
+            });
+        }
+
+        // --- SCANNER SYSTEM ---
+        function startScanner() {
+            if(scanner) return;
+            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250, aspectRatio: 1.0 });
+            scanner.render(onScanSuccess, onScanFailure);
+            document.getElementById('cam-placeholder').style.display = 'none';
+        }
+
+        function onScanSuccess(decodedText) {
+            // Stop scanning temporarily to prevent double fetches
+            if(isScanning) return;
+            isScanning = true;
+            
+            // Play a beep sound (optional logic here)
+            fetchUser(decodedText);
+            
+            // Cooldown
+            setTimeout(() => { isScanning = false; }, 2000);
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure, usually better to ignore logged errors for cleaner console
+        }
+
+        // --- CORE LOGIC ---
+        function fetchUser(id) {
+            id = id.toUpperCase().trim();
+            const container = document.getElementById('result-area');
+            
+            // Loading State
+            container.innerHTML = `<div class="flex h-full items-center justify-center text-purple-500"><i data-lucide="loader-2" class="animate-spin w-10 h-10"></i></div>`;
+            lucide.createIcons();
+
+            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(snap => {
+                if(!snap.exists()) {
+                    showError("INVALID ID", "User not found in database.");
+                    return;
+                }
+
+                const userKey = Object.keys(snap.val())[0];
+                const u = Object.values(snap.val())[0];
+
+                renderProfile(userKey, u);
+            });
+        }
+
+        function renderProfile(key, user) {
+            const container = document.getElementById('result-area');
+            
+            let ordersHtml = '';
+
+            if(!user.merch_orders) {
+                ordersHtml = `<div class="text-center p-8 border-2 border-dashed border-zinc-800 rounded-xl text-slate-500">No Merchandise Purchased</div>`;
+            } else {
+                Object.entries(user.merch_orders).forEach(([orderId, order]) => {
+                    // Logic for card styling based on status
+                    let statusClass = 'status-ready';
+                    let statusText = 'READY TO COLLECT';
+                    let actionBtn = `<button onclick="markDelivered('${key}', '${orderId}')" class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-lg shadow-lg shadow-green-900/30 flex items-center justify-center gap-2 mt-3">HAND OVER <i data-lucide="package-check"></i></button>`;
+
+                    if (order.status === 'Delivered') {
+                        statusClass = 'status-done';
+                        statusText = `DELIVERED • ${new Date(order.deliveredAt || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                        actionBtn = `<div class="w-full py-3 bg-zinc-800 text-green-500 font-bold rounded-lg text-center mt-3 border border-zinc-700 flex items-center justify-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> ALREADY GIVEN</div>`;
+                    } else if (order.status === 'Payment Pending') {
+                        statusClass = 'status-pending';
+                        statusText = 'PAYMENT NOT VERIFIED';
+                        actionBtn = `<div class="w-full py-3 bg-red-900/30 text-red-500 font-bold rounded-lg text-center mt-3 border border-red-900 flex items-center justify-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4"></i> DO NOT GIVE</div>`;
+                    }
+
+                    ordersHtml += `
+                    <div class="p-5 rounded-xl mb-4 relative overflow-hidden shadow-lg ${statusClass}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-white font-bold text-lg leading-tight">${order.item}</h3>
+                                <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-1">${statusText}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-4xl font-black text-white tracking-tighter">${order.size || '?'}</span>
+                                <span class="text-[10px] text-slate-500 uppercase">Size</span>
+                            </div>
+                        </div>
+                        ${actionBtn}
+                    </div>`;
+                });
+            }
+
+            container.innerHTML = `
+                <div class="animate-in pb-10">
+                    <div class="flex items-center gap-4 mb-6 pb-6 border-b border-zinc-800">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                            ${user.name.substring(0,2).toUpperCase()}
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white leading-none">${user.name}</h2>
+                            <p class="text-purple-400 font-mono text-sm mt-1">${user.spectrumId}</p>
+                            <p class="text-slate-500 text-xs mt-1 truncate max-w-[200px]">${user.email}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-slate-500 text-xs font-bold uppercase mb-4 tracking-widest pl-1">Order Manifest</h3>
+                    ${ordersHtml}
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function markDelivered(userKey, orderKey) {
+            if(confirm("Confirm: Item handed over to user?")) {
+                db.ref(`users/${userKey}/merch_orders/${orderKey}`).update({
+                    status: 'Delivered',
+                    deliveredAt: Date.now()
+                }).then(() => {
+                    // Refresh the view
+                    db.ref(`users/${userKey}`).once('value', snap => {
+                        renderProfile(userKey, snap.val());
+                    });
+                });
+            }
+        }
+
+        function showError(title, desc) {
+            const container = document.getElementById('result-area');
+            container.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-center p-6 animate-in">
+                    <div class="w-20 h-20 bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="x-circle" class="w-10 h-10 text-red-500"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">${title}</h2>
+                    <p class="text-slate-400">${desc}</p>
+                    <button onclick="document.getElementById('manual-input').value = ''; document.getElementById('manual-input').focus();" class="mt-6 text-purple-400 hover:text-white text-sm font-bold">Try Another ID</button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
