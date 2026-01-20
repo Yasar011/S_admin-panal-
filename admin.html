@@ -29,22 +29,13 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- MASTER ADMINS (Hardcoded Bypass) ---
-        const MASTER_EMAILS = ["admin@nift.ac.in", "yasar.h@nift.ac.in"];
-
         // --- AUTH LOGIC ---
         let currentUser = null;
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                // Check if user is a Master Admin (bypass DB check)
-                if(MASTER_EMAILS.includes(user.email.toLowerCase())) {
-                    console.log("Master Access Granted");
-                    showDashboard();
-                } else {
-                    checkDatabaseRole(user.email);
-                }
+                checkDatabaseRole(user.email);
             } else {
                 showLogin();
             }
@@ -59,21 +50,8 @@
              document.getElementById('btn-login').innerText = "Authenticating...";
 
              auth.signInWithEmailAndPassword(e, p).catch(err => {
-                 // AUTO-CREATE ACCOUNT if it's a Master Admin and doesn't exist
-                 if(MASTER_EMAILS.includes(e.toLowerCase()) && err.code === 'auth/user-not-found') {
-                     auth.createUserWithEmailAndPassword(e, p)
-                        .then(() => {
-                            alert("Master Account Created Successfully! Logging in...");
-                            // onAuthStateChanged will handle the rest
-                        })
-                        .catch(createErr => {
-                            alert("Creation Failed: " + createErr.message);
-                            document.getElementById('btn-login').innerText = "AUTHENTICATE";
-                        });
-                 } else {
-                     alert(err.message);
-                     document.getElementById('btn-login').innerText = "AUTHENTICATE";
-                 }
+                 alert("Login Failed: " + err.message);
+                 document.getElementById('btn-login').innerText = "AUTHENTICATE";
              });
         }
 
@@ -87,6 +65,10 @@
                     alert("Access Denied: You are not an Admin.");
                     auth.signOut();
                 }
+            }).catch(err => {
+                console.error("Database Error:", err);
+                alert("Connection Error. Please try again.");
+                auth.signOut();
             });
         }
 
