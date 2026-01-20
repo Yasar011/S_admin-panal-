@@ -108,7 +108,11 @@
                 <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
                 <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
+                <!-- NEW EVENTS MANAGER TAB -->
+                <div class="nav-item" onclick="showAdminTab('events')"><i data-lucide="calendar" class="w-4 h-4 text-purple-400"></i> Event Manager</div>
+                
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
+                <div class="nav-item" onclick="showAdminTab('results')"><i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i> Manage Results</div>
                 <div class="nav-item" onclick="showAdminTab('payment')"><i data-lucide="credit-card" class="w-4 h-4"></i> Payments & UPI</div>
                 <div class="nav-item" onclick="showAdminTab('promos')"><i data-lucide="ticket" class="w-4 h-4"></i> Promo Codes</div>
                 <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4"></i> Staff & Clubs</div>
@@ -216,6 +220,60 @@
                 <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="user-table-body"></tbody></table></div>
             </div>
 
+            <!-- NEW: EVENTS MANAGER TAB (EXPANDED) -->
+            <div id="tab-events" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Manage Events (Live Database)</h2>
+                <div class="card p-6 bg-slate-900 border-purple-500/20 mb-6">
+                    <h3 class="text-white font-bold mb-4">Add / Edit Event</h3>
+                    <input type="hidden" id="evt-edit-id">
+                    <div class="grid grid-cols-4 gap-4 items-end">
+                        <div><label class="text-xs text-slate-500 block mb-1">ID</label><input id="evt-id" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="e.g. 101"></div>
+                        <div><label class="text-xs text-slate-500 block mb-1">Title</label><input id="evt-title" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        
+                        <!-- NEW CLUB SELECTOR -->
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">Club</label>
+                            <select id="evt-club" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm">
+                                <option value="entertainment">Entertainment (Flagship)</option>
+                                <option value="adventure">Adventure & Photo</option>
+                                <option value="culture">Cultural</option>
+                                <option value="environment">Environmental</option>
+                                <option value="lit">Literary</option>
+                                <option value="essc">ESSC</option>
+                                <option value="sports">Sports</option>
+                            </select>
+                        </div>
+                        
+                        <div><label class="text-xs text-slate-500 block mb-1">Price</label><input id="evt-price" type="number" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        
+                        <!-- NEW FIELDS -->
+                        <div class="col-span-2"><label class="text-xs text-slate-500 block mb-1">Members</label><input id="evt-members" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Solo, 5, etc."></div>
+                        <div class="col-span-2"><label class="text-xs text-slate-500 block mb-1">Prize Pool</label><input id="evt-prize" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="₹20,000"></div>
+
+                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Image URL</label><input id="evt-img" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="https://..."></div>
+                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Rulebook URL</label><input id="evt-rules" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="https://..."></div>
+                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Short Description</label><textarea id="evt-desc" rows="2" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Event details..."></textarea></div>
+
+                        <div class="col-span-4 flex items-center gap-2 mt-2">
+                             <input type="checkbox" id="evt-premium" class="w-4 h-4 bg-black border-slate-700 rounded">
+                             <label for="evt-premium" class="text-sm text-slate-300 select-none">Is Premium?</label>
+                        </div>
+                        
+                        <div class="col-span-4 flex gap-2">
+                            <button onclick="saveEvent()" class="flex-1 bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-500">SAVE EVENT</button>
+                            <button onclick="clearEventForm()" class="px-4 border border-slate-700 text-slate-400 rounded hover:text-white">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-0 overflow-x-auto">
+                     <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">ID</th><th class="p-4">Title</th><th class="p-4">Club</th><th class="p-4">Price</th><th class="p-4">Actions</th></tr></thead>
+                        <tbody id="events-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Merch Tab -->
             <div id="tab-merch" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
@@ -228,6 +286,40 @@
                     <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Pending Delivery</span><h3 id="merch-pending-count" class="text-xl font-bold text-yellow-400">0</h3></div>
                 </div>
                 <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>Buyer</th><th>Item & Size</th><th>Price</th><th>Address</th><th>Status</th></tr></thead><tbody id="merch-table-body"></tbody></table></div>
+            </div>
+
+            <!-- RESULTS MANAGER TAB -->
+            <div id="tab-results" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Manage Results</h2>
+                <div class="card p-6 bg-slate-900 border-yellow-500/20 mb-6">
+                    <h3 class="text-white font-bold mb-2">Declare / Edit Result</h3>
+                    <p class="text-xs text-slate-400 mb-4">Override or declare results. To edit, find the result in table and click Edit.</p>
+                    <div class="grid grid-cols-5 gap-4 items-end">
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">Event ID</label>
+                            <input id="res-event-id" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="e.g. 102">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">Winner (1st)</label>
+                            <input id="res-winner" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="John Doe">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">Runner Up (2nd)</label>
+                            <input id="res-runner" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Jane Smith">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">Third Place (3rd)</label>
+                            <input id="res-third" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Team X">
+                        </div>
+                        <button onclick="adminDeclareResult()" class="bg-yellow-600 text-black font-bold px-4 py-2 rounded text-sm hover:bg-yellow-500">PUBLISH</button>
+                    </div>
+                </div>
+                <div class="card p-0 overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">Event ID</th><th class="p-4">Winner</th><th class="p-4">Runner Up</th><th class="p-4">Third</th><th class="p-4">Action</th></tr></thead>
+                        <tbody id="results-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Payment Settings Tab -->
@@ -287,9 +379,9 @@
         </main>
     </div>
 
-    <!-- 3. USER EDIT MODAL -->
+    <!-- 3. USER EDIT MODAL (UPDATED) -->
     <div id="edit-user-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay p-4">
-        <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg w-full max-w-lg shadow-2xl relative">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-white">Edit User</h2><button onclick="closeEditModal()" class="text-gray-500 hover:text-white"><i data-lucide="x"></i></button></div>
             <div class="space-y-4">
                 <input type="hidden" id="edit-key">
@@ -303,7 +395,14 @@
                     <div><label class="text-xs text-slate-500">Pass</label><select id="edit-pass" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="General">General</option><option value="Standard">Standard</option><option value="Neon Pulse">Neon Pulse</option><option value="Vogue Gala">Vogue Gala</option></select></div>
                     <div><label class="text-xs text-slate-500">Status</label><select id="edit-status" class="w-full bg-black border border-slate-800 p-2 rounded text-white text-sm"><option value="Pending">Pending</option><option value="Verified">Verified</option><option value="None">None</option></select></div>
                 </div>
-                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded">SAVE CHANGES</button>
+                
+                <hr class="border-slate-800 my-4">
+                <h4 class="text-white text-sm font-bold">Registered Events (Click to Remove)</h4>
+                <div id="edit-events-list" class="space-y-2 max-h-32 overflow-y-auto">
+                    <!-- Events will be populated here -->
+                </div>
+
+                <button onclick="saveUserChanges()" class="w-full bg-green-600 text-white font-bold py-3 rounded mt-2">SAVE CHANGES</button>
             </div>
         </div>
     </div>
@@ -406,6 +505,8 @@
     <script>
         let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; let selectedEventId = null;
         let html5QrcodeScanner = null; let clubScanner = null; let pendingUsers = []; let activeVerifyKey = null;
+        let currentResults = {}; // Store results for editing
+        let currentEventsList = []; // Store events from DB
 
         function initSystem() {
             lucide.createIcons();
@@ -475,6 +576,58 @@
                 renderMerchTable(); 
                 renderFinanceTable();
                 renderPendingQueue();
+            });
+
+            // EVENTS LISTENER (NEW)
+            db.ref('events_config').on('value', snap => {
+                const events = snap.val();
+                const container = document.getElementById('events-table-body');
+                container.innerHTML = "";
+                currentEventsList = [];
+                if(events) {
+                    Object.entries(events).forEach(([key, e]) => {
+                        currentEventsList.push({...e, key});
+                        container.innerHTML += `
+                        <tr class="group hover:bg-slate-900/50">
+                            <td class="p-4 text-white font-mono">${e.id}</td>
+                            <td class="p-4 font-bold text-white">${e.title}</td>
+                            <td class="p-4 text-slate-400 uppercase text-xs">${e.club}</td>
+                            <td class="p-4 text-green-400 font-mono">₹${e.price}</td>
+                            <td class="p-4 flex gap-2">
+                                <button onclick="populateEventEdit('${key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>
+                                <button onclick="deleteEvent('${key}')" class="text-red-500 hover:text-white"><i data-lucide="trash-2" class="w-4"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                     // Init default events if empty
+                     initDefaultEvents();
+                }
+                lucide.createIcons();
+            });
+
+            // RESULTS LISTENER (NEW)
+            db.ref('results').on('value', snap => {
+                const results = snap.val();
+                currentResults = results || {}; // Store for editing
+                const container = document.getElementById('results-table-body');
+                container.innerHTML = "";
+                if(results) {
+                    Object.entries(results).forEach(([id, r]) => {
+                        container.innerHTML += `
+                        <tr>
+                            <td class="p-4 text-white">${id}</td>
+                            <td class="p-4 text-yellow-400 font-bold">${r.first}</td>
+                            <td class="p-4 text-gray-400">${r.second}</td>
+                            <td class="p-4 text-orange-700">${r.third || 'N/A'}</td>
+                            <td class="p-4 flex gap-2">
+                                <button onclick="editResult('${id}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>
+                                <button onclick="deleteResult('${id}')" class="text-red-500 hover:text-white"><i data-lucide="trash-2" class="w-4"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                lucide.createIcons();
             });
 
             db.ref('system_config').on('value', (s) => { 
@@ -552,11 +705,23 @@
                 if(u.squads && Object.keys(u.squads).length > 0) {
                     squadBtn = `<button onclick="viewSquads('${u.key}')" class="ml-2 text-purple-400 hover:text-white"><i data-lucide="users" class="w-4"></i></button>`;
                 }
+                
+                let verifiedBadge = '';
+                // Since this uses firebase auth, emailVerified is not directly on the DB user object unless synced.
+                // Assuming it's synced or we check a property. If not, this is a placeholder for future sync logic.
+                // For now, let's assume 'emailVerified' field exists in DB user object if we synced it.
+                if(u.emailVerified) {
+                    verifiedBadge = `<i data-lucide="check-circle" class="w-3 h-3 text-blue-400 ml-1 inline"></i>`;
+                }
 
                 let proof = u.utr || '-';
                 tbody.innerHTML += `
                 <tr>
-                    <td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div></td>
+                    <td>
+                        <div class="font-bold text-white flex items-center">${u.name} ${verifiedBadge}</div>
+                        <div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div>
+                        <div class="text-[10px] text-slate-500">${u.email}</div>
+                    </td>
                     <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span>${squadBtn}</div></td>
                     <td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td>
                     <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td>
@@ -641,6 +806,85 @@
             });
         }
 
+        // --- EVENTS MANAGER FUNCTIONS ---
+        function initDefaultEvents() {
+            const defaults = [
+                { id: 101, club: 'entertainment', title: 'EDM Night (Add-on)', price: 200, isPremium: true, members: '1' }, 
+                { id: 102, club: 'entertainment', title: 'Fashion Show (Main)', price: 2000, isPremium: true, members: '8-12' },
+                { id: 1, club: 'culture', title: 'Street Battle', price: 50, members: 'Solo/Duo' },
+                // ... Add other default events from main js ...
+                { id: 2, club: 'culture', title: 'Solo Singing', price: 50, members: 'Solo' },
+                { id: 6, club: 'sports', title: 'Valorant', price: 50, members: '5' }
+            ];
+            // Push to DB
+            defaults.forEach(e => db.ref(`events_config/${e.id}`).set(e));
+        }
+
+        function saveEvent() {
+            const id = document.getElementById('evt-id').value;
+            const title = document.getElementById('evt-title').value;
+            const club = document.getElementById('evt-club').value;
+            const price = document.getElementById('evt-price').value;
+            const members = document.getElementById('evt-members').value;
+            const isPremium = document.getElementById('evt-premium').checked;
+            
+            // New Fields
+            const img = document.getElementById('evt-img').value;
+            const rules = document.getElementById('evt-rules').value;
+            const desc = document.getElementById('evt-desc').value;
+            const prize = document.getElementById('evt-prize').value;
+
+            if(!id || !title || !club) return alert("ID, Title and Club are required");
+
+            db.ref(`events_config/${id}`).set({
+                id: parseInt(id), title, club, price: parseInt(price||0), members, isPremium,
+                img, rules, desc, prize
+            }).then(() => {
+                alert("Event Saved!");
+                clearEventForm();
+            });
+        }
+
+        function deleteEvent(key) {
+            if(confirm("Delete this event?")) {
+                db.ref(`events_config/${key}`).remove();
+            }
+        }
+
+        function populateEventEdit(key) {
+            const e = currentEventsList.find(ev => ev.key === key);
+            if(!e) return;
+            document.getElementById('evt-id').value = e.id;
+            document.getElementById('evt-title').value = e.title;
+            document.getElementById('evt-club').value = e.club;
+            document.getElementById('evt-price').value = e.price;
+            document.getElementById('evt-members').value = e.members;
+            document.getElementById('evt-premium').checked = e.isPremium;
+            
+            // Populate New Fields
+            document.getElementById('evt-img').value = e.img || '';
+            document.getElementById('evt-rules').value = e.rules || '';
+            document.getElementById('evt-desc').value = e.desc || '';
+            document.getElementById('evt-prize').value = e.prize || '';
+
+            // Scroll to top
+            document.getElementById('tab-events').scrollIntoView();
+        }
+
+        function clearEventForm() {
+            document.getElementById('evt-id').value = '';
+            document.getElementById('evt-title').value = '';
+            document.getElementById('evt-club').value = 'entertainment'; // Reset to default
+            document.getElementById('evt-price').value = '';
+            document.getElementById('evt-members').value = '';
+            document.getElementById('evt-premium').checked = false;
+            
+            document.getElementById('evt-img').value = '';
+            document.getElementById('evt-rules').value = '';
+            document.getElementById('evt-desc').value = '';
+            document.getElementById('evt-prize').value = '';
+        }
+
         // --- NEW EXPORT FUNCTION ---
         function exportAdminData(type) {
             let csv = "";
@@ -684,6 +928,52 @@
             }
         }
 
+        // --- NEW RESULTS MANAGER LOGIC ---
+        function adminDeclareResult() {
+            const eid = document.getElementById('res-event-id').value;
+            const w1 = document.getElementById('res-winner').value;
+            const w2 = document.getElementById('res-runner').value;
+            const w3 = document.getElementById('res-third').value;
+
+            if(!eid || !w1) return alert("Event ID and Winner are required.");
+
+            if(confirm("Force Publish Result?")) {
+                db.ref(`results/${eid}`).set({
+                    first: w1,
+                    second: w2 || 'N/A',
+                    third: w3 || 'N/A',
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Published!");
+                    // Clear inputs
+                    document.getElementById('res-event-id').value = '';
+                    document.getElementById('res-winner').value = '';
+                    document.getElementById('res-runner').value = '';
+                    document.getElementById('res-third').value = '';
+                });
+            }
+        }
+        
+        function editResult(id) {
+            const r = currentResults[id];
+            if(!r) return;
+            
+            // Populate form
+            document.getElementById('res-event-id').value = id;
+            document.getElementById('res-winner').value = r.first || '';
+            document.getElementById('res-runner').value = r.second !== 'N/A' ? r.second : '';
+            document.getElementById('res-third').value = r.third !== 'N/A' ? r.third : '';
+            
+            // Scroll to top of table/form container
+            document.getElementById('tab-results').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function deleteResult(id) {
+            if(confirm("Delete this result?")) {
+                db.ref(`results/${id}`).remove();
+            }
+        }
+
         function updatePaymentConfig(type) { 
             if (type === 'upi') {
                 const u1 = document.getElementById('upi-1').value.trim();
@@ -709,7 +999,53 @@
             document.getElementById('squad-info-modal').classList.remove('hidden');
         }
 
-        function openEdit(key) { const u = allUsers.find(x => x.key === key); document.getElementById('edit-key').value = key; document.getElementById('edit-name').value = u.name; document.getElementById('edit-phone').value = u.phone; document.getElementById('edit-college').value = u.collegeName || ''; document.getElementById('edit-utr').value = u.utr || ''; document.getElementById('edit-pass').value = u.order?.pass || 'General'; document.getElementById('edit-status').value = u.paymentStatus; document.getElementById('edit-user-modal').classList.remove('hidden'); }
+        // UPDATED OPEN EDIT FUNCTION WITH EVENT REMOVAL LOGIC
+        function openEdit(key) { 
+            const u = allUsers.find(x => x.key === key); 
+            document.getElementById('edit-key').value = key; 
+            document.getElementById('edit-name').value = u.name; 
+            document.getElementById('edit-phone').value = u.phone; 
+            document.getElementById('edit-college').value = u.collegeName || ''; 
+            document.getElementById('edit-utr').value = u.utr || ''; 
+            document.getElementById('edit-pass').value = u.order?.pass || 'General'; 
+            document.getElementById('edit-status').value = u.paymentStatus; 
+            
+            // Populate Events List with Delete Option
+            const eventsContainer = document.getElementById('edit-events-list');
+            eventsContainer.innerHTML = '';
+            
+            if(u.order && u.order.events && u.order.events.length > 0) {
+                u.order.events.forEach((ev, index) => {
+                    eventsContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-black/50 p-2 rounded border border-slate-700">
+                        <span class="text-white text-xs">${ev.title}</span>
+                        <button onclick="removeUserEvent('${key}', ${index})" class="text-red-500 hover:text-red-400">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>`;
+                });
+            } else {
+                eventsContainer.innerHTML = '<span class="text-slate-500 text-xs italic">No events registered</span>';
+            }
+            
+            document.getElementById('edit-user-modal').classList.remove('hidden'); 
+            lucide.createIcons();
+        }
+
+        // NEW FUNCTION TO REMOVE EVENT FROM USER
+        function removeUserEvent(userKey, eventIndex) {
+            if(!confirm("Remove this event from user?")) return;
+            
+            const u = allUsers.find(x => x.key === userKey);
+            const updatedEvents = [...u.order.events];
+            updatedEvents.splice(eventIndex, 1);
+            
+            db.ref(`users/${userKey}/order/events`).set(updatedEvents).then(() => {
+                // Refresh modal
+                openEdit(userKey);
+            });
+        }
+
         function saveUserChanges() { const key = document.getElementById('edit-key').value; db.ref('users/' + key).update({ name: document.getElementById('edit-name').value, phone: document.getElementById('edit-phone').value, collegeName: document.getElementById('edit-college').value, utr: document.getElementById('edit-utr').value, paymentStatus: document.getElementById('edit-status').value, "order/pass": document.getElementById('edit-pass').value }).then(() => { alert("Saved!"); closeEditModal(); }); }
         function closeEditModal() { document.getElementById('edit-user-modal').classList.add('hidden'); }
         function delUser(k){ if(confirm("Delete?")) db.ref('users/'+k).remove(); }
@@ -717,7 +1053,7 @@
         function delStaff(u){ if(u!=='C H'&&confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
         function createPromo(){ const c=document.getElementById('p-code').value.toUpperCase(),v=document.getElementById('p-val').value,t=document.getElementById('p-type').value,l=document.getElementById('p-limit').value; if(c) db.ref('promos/'+c).set({discount:v,type:t,limit:l,used:0}).then(()=>alert("Created")); }
         function pushUpdate(){ const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
-        function showAdminTab(id) { ['dashboard','users','promos','staff','updates','merch','payment','finance','verification'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function showAdminTab(id) { ['dashboard','users','promos','staff','updates','merch','payment','finance','verification','results','events'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
         
         document.getElementById('search-user').addEventListener('input', renderUsers);
         function initGateScanner() { if(!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }); html5QrcodeScanner.render(onScanSuccess); document.getElementById('qr-reader-placeholder').style.display = 'none'; } }
