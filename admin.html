@@ -107,9 +107,10 @@
                 <div class="nav-item active" onclick="showAdminTab('dashboard')"><i data-lucide="layout-grid" class="w-4 h-4"></i> Dashboard</div>
                 <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
-                <div class="nav-item" onclick="showAdminTab('users')"><i data-lucide="users" class="w-4 h-4"></i> Registrations</div>
-                <!-- NEW EVENTS MANAGER TAB -->
-                <div class="nav-item" onclick="showAdminTab('events')"><i data-lucide="calendar" class="w-4 h-4 text-purple-400"></i> Event Manager</div>
+                
+                <!-- SEPARATE STUDENTS TABS -->
+                <div class="nav-item" onclick="showAdminTab('nift')"><i data-lucide="graduation-cap" class="w-4 h-4 text-pink-400"></i> NIFT Students</div>
+                <div class="nav-item" onclick="showAdminTab('others')"><i data-lucide="users" class="w-4 h-4"></i> Non-NIFT / Others</div>
                 
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
                 <div class="nav-item" onclick="showAdminTab('results')"><i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i> Manage Results</div>
@@ -208,83 +209,47 @@
                 </div>
             </div>
 
-            <!-- Users Tab -->
-            <div id="tab-users" class="hidden animate-in">
+            <!-- NIFT STUDENTS TAB -->
+            <div id="tab-nift" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Registrations</h2>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="graduation-cap" class="text-pink-500"></i> NIFT Students</h2>
                     <div class="flex gap-2 items-center">
-                        <button onclick="exportAdminData('users')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
-                        <input type="text" id="search-user" placeholder="Search Name/ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                        <button onclick="exportAdminData('nift')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                        <input type="text" id="search-nift" placeholder="Search NIFTians..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
                     </div>
                 </div>
-                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="user-table-body"></tbody></table></div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Payment</th><th>Action</th></tr></thead><tbody id="nift-table-body"></tbody></table></div>
             </div>
 
-            <!-- NEW: EVENTS MANAGER TAB (EXPANDED) -->
-            <div id="tab-events" class="hidden animate-in">
-                <h2 class="text-2xl font-bold text-white mb-6">Manage Events (Live Database)</h2>
-                <div class="card p-6 bg-slate-900 border-purple-500/20 mb-6">
-                    <h3 class="text-white font-bold mb-4">Add / Edit Event</h3>
-                    <input type="hidden" id="evt-edit-id">
-                    <div class="grid grid-cols-4 gap-4 items-end">
-                        <div><label class="text-xs text-slate-500 block mb-1">ID</label><input id="evt-id" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="e.g. 101"></div>
-                        <div><label class="text-xs text-slate-500 block mb-1">Title</label><input id="evt-title" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        
-                        <!-- NEW CLUB SELECTOR -->
-                        <div>
-                            <label class="text-xs text-slate-500 block mb-1">Club</label>
-                            <select id="evt-club" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm">
-                                <option value="entertainment">Entertainment (Flagship)</option>
-                                <option value="adventure">Adventure & Photo</option>
-                                <option value="culture">Cultural</option>
-                                <option value="environment">Environmental</option>
-                                <option value="lit">Literary</option>
-                                <option value="essc">ESSC</option>
-                                <option value="sports">Sports</option>
-                            </select>
-                        </div>
-                        
-                        <div><label class="text-xs text-slate-500 block mb-1">Price</label><input id="evt-price" type="number" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        
-                        <!-- NEW FIELDS -->
-                        <div class="col-span-2"><label class="text-xs text-slate-500 block mb-1">Members</label><input id="evt-members" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Solo, 5, etc."></div>
-                        <div class="col-span-2"><label class="text-xs text-slate-500 block mb-1">Prize Pool</label><input id="evt-prize" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="₹20,000"></div>
-
-                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Image URL</label><input id="evt-img" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="https://..."></div>
-                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Rulebook URL</label><input id="evt-rules" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="https://..."></div>
-                        <div class="col-span-4"><label class="text-xs text-slate-500 block mb-1">Short Description</label><textarea id="evt-desc" rows="2" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Event details..."></textarea></div>
-
-                        <div class="col-span-4 flex items-center gap-2 mt-2">
-                             <input type="checkbox" id="evt-premium" class="w-4 h-4 bg-black border-slate-700 rounded">
-                             <label for="evt-premium" class="text-sm text-slate-300 select-none">Is Premium?</label>
-                        </div>
-                        
-                        <div class="col-span-4 flex gap-2">
-                            <button onclick="saveEvent()" class="flex-1 bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-500">SAVE EVENT</button>
-                            <button onclick="clearEventForm()" class="px-4 border border-slate-700 text-slate-400 rounded hover:text-white">Cancel</button>
-                        </div>
+            <!-- OTHER STUDENTS TAB -->
+            <div id="tab-others" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="users" class="text-blue-500"></i> Non-NIFT / Guests</h2>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="exportAdminData('others')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                        <input type="text" id="search-others" placeholder="Search Guests..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
                     </div>
                 </div>
-                
-                <div class="card p-0 overflow-x-auto">
-                     <table class="w-full text-left text-xs">
-                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">ID</th><th class="p-4">Title</th><th class="p-4">Club</th><th class="p-4">Price</th><th class="p-4">Actions</th></tr></thead>
-                        <tbody id="events-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody>
-                    </table>
-                </div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>College</th><th>Pass & Squads</th><th>Status</th><th>Action</th></tr></thead><tbody id="others-table-body"></tbody></table></div>
             </div>
 
             <!-- Merch Tab -->
             <div id="tab-merch" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Merchandise Orders</h2>
-                    <button onclick="exportAdminData('merch')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                    <h2 class="text-2xl font-bold text-white">Merchandise Dashboard</h2>
+                    <div class="flex gap-2">
+                        <button onclick="switchToMerchScanner()" class="bg-purple-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-purple-500 flex items-center gap-2"><i data-lucide="scan" class="w-4"></i> LAUNCH DISTRIBUTOR MODE</button>
+                        <button onclick="exportAdminData('merch')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                    </div>
                 </div>
-                <div class="grid grid-cols-3 gap-6 mb-6">
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Revenue</span><h3 id="merch-total-rev" class="text-xl font-bold text-green-400">₹0</h3></div>
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Total Orders</span><h3 id="merch-total-count" class="text-xl font-bold text-white">0</h3></div>
-                    <div class="card bg-slate-900 p-4"><span class="text-xs text-slate-400 uppercase">Pending Delivery</span><h3 id="merch-pending-count" class="text-xl font-bold text-yellow-400">0</h3></div>
+                
+                <!-- NEW SIZE BREAKDOWN GRID BY ITEM -->
+                <h3 class="text-slate-400 text-xs font-bold uppercase mb-2">Inventory Counts (By Item)</h3>
+                <div id="merch-inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                     <!-- Populated by JS -->
+                     <div class="text-slate-500 text-sm">Loading inventory data...</div>
                 </div>
+
                 <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>Buyer</th><th>Item & Size</th><th>Price</th><th>Address</th><th>Status</th></tr></thead><tbody id="merch-table-body"></tbody></table></div>
             </div>
 
@@ -367,7 +332,20 @@
                     <div class="flex gap-2 items-end">
                         <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Username</label><input id="new-staff-user" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
                         <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Password</label><input id="new-staff-pass" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div class="flex-1"><label class="text-xs text-slate-500 mb-1 block">Role</label><select id="new-staff-role" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="admin">Admin</option><option value="gate">Gate</option><option value="culture">Culture</option><option value="sports">Sports</option></select></div>
+                        <div class="flex-1">
+                            <label class="text-xs text-slate-500 mb-1 block">Role</label>
+                            <select id="new-staff-role" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm">
+                                <option value="admin">Admin</option>
+                                <option value="gate">Gate</option>
+                                <option value="merch">Merch Distributor</option>
+                                <option value="entertainment">Entertainment (Flagship)</option>
+                                <option value="culture">Culture</option>
+                                <option value="sports">Sports</option>
+                                <option value="photo">Photography</option>
+                                <option value="lit">Literary</option>
+                                <option value="essc">ESSC</option>
+                            </select>
+                        </div>
                         <button onclick="createStaff()" class="bg-pink-600 text-white px-6 py-2 rounded text-sm font-bold hover:bg-pink-700 h-[38px]">ADD</button>
                     </div>
                 </div>
@@ -501,10 +479,34 @@
             <div id="club-scan-res" class="mt-4 text-center"></div>
         </div>
     </div>
+    
+    <!-- 7. MERCH SCANNER (NEW) -->
+    <div id="view-merch-scanner" class="view-section items-center justify-center bg-black">
+        <div class="w-full max-w-lg p-4 animate-in flex flex-col h-screen">
+             <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shopping-bag" class="text-purple-500"></i> MERCH DESK</h2>
+                <button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white">LOGOUT</button>
+             </div>
+             
+             <!-- Scanner Area -->
+             <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-2xl flex-shrink-0">
+                <div id="merch-reader" class="w-full h-48 bg-black border-2 border-dashed border-zinc-700 rounded mb-4 flex items-center justify-center text-gray-600"><div id="merch-qr-placeholder">CAMERA LOADING...</div></div>
+                <div class="flex gap-2">
+                    <input id="merch-input" type="text" placeholder="MANUAL ID (e.g. SPEC123)" class="flex-1 bg-black border border-slate-700 p-3 rounded text-white outline-none uppercase font-mono text-center">
+                    <button onclick="verifyMerch(document.getElementById('merch-input').value)" class="bg-purple-600 text-white px-4 rounded font-bold"><i data-lucide="search"></i></button>
+                </div>
+             </div>
+
+             <!-- Results Area -->
+             <div id="merch-result-container" class="flex-1 overflow-y-auto mt-4 space-y-3 pb-10">
+                 <div class="text-center text-slate-500 mt-10">Scan user QR to see orders</div>
+             </div>
+        </div>
+    </div>
 
     <script>
         let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; let selectedEventId = null;
-        let html5QrcodeScanner = null; let clubScanner = null; let pendingUsers = []; let activeVerifyKey = null;
+        let html5QrcodeScanner = null; let clubScanner = null; let merchScanner = null; let pendingUsers = []; let activeVerifyKey = null;
         let currentResults = {}; // Store results for editing
         let currentEventsList = []; // Store events from DB
 
@@ -524,6 +526,7 @@
                     document.getElementById('view-login').classList.remove('active');
                     if (data.role === 'admin' || data.club_code === 'all') { document.getElementById('view-admin').classList.add('active'); initAdminPanel(); } 
                     else if (data.role === 'gate') { document.getElementById('view-gate').classList.add('active'); initGateScanner(); } 
+                    else if (data.role === 'merch') { document.getElementById('view-merch-scanner').classList.add('active'); initMerchScanner(); }
                     else { document.getElementById('view-club').classList.add('active'); document.getElementById('club-display-name').innerText = u.toUpperCase(); initClubPanel(); }
                 } else alert("Invalid Credentials");
             });
@@ -537,6 +540,9 @@
                 allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; 
                 let rev = 0; let merchRev = 0; let passRev = 0;
                 
+                // NEW: Inventory Map grouped by Item
+                let inventoryMap = {}; // { "Item Name": { S:0, M:0, L:0, XL:0, XXL:0, OTHER:0, TOTAL:0 } }
+
                 Object.keys(data).forEach(key => {
                     const u = data[key]; u.key = key; 
                     allUsers.push(u); 
@@ -553,6 +559,28 @@
                             allMerch.push({ ...order, userName: u.name, userEmail: u.email, dbPath: `users/${key}/merch_orders/${mKey}` }); 
                             merchRev += parseInt(order.price || 0);
                             allTransactions.push({ timestamp: order.timestamp || 0, dateStr: new Date(order.timestamp).toLocaleString(), user: u.name, email: u.email, type: `Merch (${order.item})`, utr: '-', amount: order.price, status: order.status }); 
+                            
+                            // INVENTORY COUNTING LOGIC
+                            let itemTitle = order.item ? order.item.trim() : "Unknown Item";
+                            let size = order.size ? order.size.toString().toUpperCase().trim() : 'N/A';
+                            
+                            // Normalize size inputs
+                            if(size === 'SMALL') size = 'S';
+                            if(size === 'MEDIUM') size = 'M';
+                            if(size === 'LARGE') size = 'L';
+                            if(size === 'EXTRA LARGE') size = 'XL';
+                            if(size === 'DBL XL' || size === 'DOUBLE XL') size = 'XXL';
+
+                            if(!inventoryMap[itemTitle]) {
+                                inventoryMap[itemTitle] = { S:0, M:0, L:0, XL:0, XXL:0, OTHER:0, TOTAL:0 };
+                            }
+
+                            if(['S','M','L','XL','XXL'].includes(size)) {
+                                inventoryMap[itemTitle][size]++;
+                            } else {
+                                inventoryMap[itemTitle].OTHER++;
+                            }
+                            inventoryMap[itemTitle].TOTAL++;
                         }); 
                     }
                 });
@@ -567,43 +595,37 @@
                 document.getElementById('rev-merch').innerText = "₹" + merchRev.toLocaleString();
                 document.getElementById('rev-avg').innerText = "₹" + (allUsers.length ? Math.round((rev+merchRev)/allUsers.length) : 0);
 
-                // Merch Stats
-                document.getElementById('merch-total-rev').innerText = "₹" + merchRev.toLocaleString();
-                document.getElementById('merch-total-count').innerText = allMerch.length;
-                document.getElementById('merch-pending-count').innerText = allMerch.filter(m=>m.status==='Ordered').length;
+                // RENDER INVENTORY GRID
+                const invContainer = document.getElementById('merch-inventory-grid');
+                invContainer.innerHTML = "";
+                
+                if(Object.keys(inventoryMap).length === 0) {
+                    invContainer.innerHTML = `<div class="col-span-full text-center text-slate-500 text-sm py-4">No merchandise orders found.</div>`;
+                } else {
+                    Object.keys(inventoryMap).forEach(itm => {
+                        const counts = inventoryMap[itm];
+                        invContainer.innerHTML += `
+                        <div class="card bg-slate-900 border-slate-700 p-4">
+                            <h4 class="text-white font-bold text-sm mb-3 border-b border-slate-800 pb-2 flex justify-between">
+                                ${itm} 
+                                <span class="text-xs text-slate-400 font-mono">Total: ${counts.TOTAL}</span>
+                            </h4>
+                            <div class="grid grid-cols-6 gap-2 text-center">
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">S</div><div class="text-white font-bold">${counts.S}</div></div>
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">M</div><div class="text-white font-bold">${counts.M}</div></div>
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">L</div><div class="text-white font-bold">${counts.L}</div></div>
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">XL</div><div class="text-white font-bold">${counts.XL}</div></div>
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">XXL</div><div class="text-white font-bold">${counts.XXL}</div></div>
+                                <div class="bg-black/40 rounded p-1"><div class="text-[10px] text-slate-500">?</div><div class="text-white font-bold">${counts.OTHER}</div></div>
+                            </div>
+                        </div>`;
+                    });
+                }
 
                 renderUsers(); 
                 renderMerchTable(); 
                 renderFinanceTable();
                 renderPendingQueue();
-            });
-
-            // EVENTS LISTENER (NEW)
-            db.ref('events_config').on('value', snap => {
-                const events = snap.val();
-                const container = document.getElementById('events-table-body');
-                container.innerHTML = "";
-                currentEventsList = [];
-                if(events) {
-                    Object.entries(events).forEach(([key, e]) => {
-                        currentEventsList.push({...e, key});
-                        container.innerHTML += `
-                        <tr class="group hover:bg-slate-900/50">
-                            <td class="p-4 text-white font-mono">${e.id}</td>
-                            <td class="p-4 font-bold text-white">${e.title}</td>
-                            <td class="p-4 text-slate-400 uppercase text-xs">${e.club}</td>
-                            <td class="p-4 text-green-400 font-mono">₹${e.price}</td>
-                            <td class="p-4 flex gap-2">
-                                <button onclick="populateEventEdit('${key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>
-                                <button onclick="deleteEvent('${key}')" class="text-red-500 hover:text-white"><i data-lucide="trash-2" class="w-4"></i></button>
-                            </td>
-                        </tr>`;
-                    });
-                } else {
-                     // Init default events if empty
-                     initDefaultEvents();
-                }
-                lucide.createIcons();
             });
 
             // RESULTS LISTENER (NEW)
@@ -688,16 +710,30 @@
 
         function resetVerifyView() { activeVerifyKey = null; document.getElementById('verify-placeholder').classList.remove('hidden'); document.getElementById('verify-detail').classList.add('hidden'); }
 
-        // --- RENDER TABLES ---
+        // --- RENDER TABLES (MODIFIED FOR SEPARATE TABS) ---
         function renderUsers() {
-            const tbody = document.getElementById('user-table-body'); tbody.innerHTML = "";
-            const search = document.getElementById('search-user').value.toLowerCase();
-            const filtered = allUsers.filter(u => (u.name.toLowerCase().includes(search) || u.spectrumId?.toLowerCase().includes(search) || u.utr?.includes(search)));
-            filtered.sort((a,b) => (a.paymentStatus === 'Pending' ? -1 : 1)).forEach(u => {
+            // RENDER NIFT STUDENTS
+            const tbodyNift = document.getElementById('nift-table-body'); 
+            tbodyNift.innerHTML = "";
+            const searchNift = document.getElementById('search-nift').value.toLowerCase();
+            
+            // RENDER OTHER STUDENTS
+            const tbodyOther = document.getElementById('others-table-body');
+            tbodyOther.innerHTML = "";
+            const searchOther = document.getElementById('search-others').value.toLowerCase();
+
+            allUsers.forEach(u => {
+                const college = u.collegeName ? u.collegeName.toUpperCase() : "";
+                const email = u.email ? u.email.toLowerCase() : "";
+                const isNift = email.endsWith("@nift.ac.in");
+                
+                // Search filter logic based on active tab concept (simplified here)
+                const search = isNift ? searchNift : searchOther;
+                if(!u.name.toLowerCase().includes(search) && !u.spectrumId?.toLowerCase().includes(search)) return;
+
                 const status = u.paymentStatus;
                 let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
                 
-                // Fix for Unknown Pass logic + Squads
                 let passDisplay = u.order?.pass;
                 if(!passDisplay || passDisplay === "Unknown") { passDisplay = u.verificationReason || "No Pass"; }
                 
@@ -707,24 +743,18 @@
                 }
                 
                 let verifiedBadge = '';
-                // Since this uses firebase auth, emailVerified is not directly on the DB user object unless synced.
-                // Assuming it's synced or we check a property. If not, this is a placeholder for future sync logic.
-                // For now, let's assume 'emailVerified' field exists in DB user object if we synced it.
-                if(u.emailVerified) {
-                    verifiedBadge = `<i data-lucide="check-circle" class="w-3 h-3 text-blue-400 ml-1 inline"></i>`;
-                }
+                if(u.emailVerified) verifiedBadge = `<i data-lucide="check-circle" class="w-3 h-3 text-blue-400 ml-1 inline"></i>`;
 
-                let proof = u.utr || '-';
-                tbody.innerHTML += `
+                const rowHtml = `
                 <tr>
                     <td>
                         <div class="font-bold text-white flex items-center">${u.name} ${verifiedBadge}</div>
                         <div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div>
                         <div class="text-[10px] text-slate-500">${u.email}</div>
                     </td>
+                    ${!isNift ? `<td class="text-xs text-slate-300 max-w-[100px] truncate">${u.collegeName || 'Unknown'}</td>` : ''}
                     <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span>${squadBtn}</div></td>
                     <td><span class="badge ${u.checkedIn ? 'badge-green' : 'badge-none'}">${u.checkedIn ? 'IN' : 'OUT'}</span></td>
-                    <td><span class="text-xs text-slate-400">${status}</span><br><span class="text-yellow-500 font-mono text-xs">${proof}</span></td>
                     <td class="flex gap-2 items-center">
                         ${btn}
                         <button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-cyan-300"><i data-lucide="info" class="w-4"></i></button>
@@ -732,6 +762,9 @@
                         <button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button>
                     </td>
                 </tr>`;
+
+                if(isNift) tbodyNift.innerHTML += rowHtml;
+                else tbodyOther.innerHTML += rowHtml;
             });
             lucide.createIcons();
         }
@@ -806,99 +839,23 @@
             });
         }
 
-        // --- EVENTS MANAGER FUNCTIONS ---
-        function initDefaultEvents() {
-            const defaults = [
-                { id: 101, club: 'entertainment', title: 'EDM Night (Add-on)', price: 200, isPremium: true, members: '1' }, 
-                { id: 102, club: 'entertainment', title: 'Fashion Show (Main)', price: 2000, isPremium: true, members: '8-12' },
-                { id: 1, club: 'culture', title: 'Street Battle', price: 50, members: 'Solo/Duo' },
-                // ... Add other default events from main js ...
-                { id: 2, club: 'culture', title: 'Solo Singing', price: 50, members: 'Solo' },
-                { id: 6, club: 'sports', title: 'Valorant', price: 50, members: '5' }
-            ];
-            // Push to DB
-            defaults.forEach(e => db.ref(`events_config/${e.id}`).set(e));
-        }
-
-        function saveEvent() {
-            const id = document.getElementById('evt-id').value;
-            const title = document.getElementById('evt-title').value;
-            const club = document.getElementById('evt-club').value;
-            const price = document.getElementById('evt-price').value;
-            const members = document.getElementById('evt-members').value;
-            const isPremium = document.getElementById('evt-premium').checked;
-            
-            // New Fields
-            const img = document.getElementById('evt-img').value;
-            const rules = document.getElementById('evt-rules').value;
-            const desc = document.getElementById('evt-desc').value;
-            const prize = document.getElementById('evt-prize').value;
-
-            if(!id || !title || !club) return alert("ID, Title and Club are required");
-
-            db.ref(`events_config/${id}`).set({
-                id: parseInt(id), title, club, price: parseInt(price||0), members, isPremium,
-                img, rules, desc, prize
-            }).then(() => {
-                alert("Event Saved!");
-                clearEventForm();
-            });
-        }
-
-        function deleteEvent(key) {
-            if(confirm("Delete this event?")) {
-                db.ref(`events_config/${key}`).remove();
-            }
-        }
-
-        function populateEventEdit(key) {
-            const e = currentEventsList.find(ev => ev.key === key);
-            if(!e) return;
-            document.getElementById('evt-id').value = e.id;
-            document.getElementById('evt-title').value = e.title;
-            document.getElementById('evt-club').value = e.club;
-            document.getElementById('evt-price').value = e.price;
-            document.getElementById('evt-members').value = e.members;
-            document.getElementById('evt-premium').checked = e.isPremium;
-            
-            // Populate New Fields
-            document.getElementById('evt-img').value = e.img || '';
-            document.getElementById('evt-rules').value = e.rules || '';
-            document.getElementById('evt-desc').value = e.desc || '';
-            document.getElementById('evt-prize').value = e.prize || '';
-
-            // Scroll to top
-            document.getElementById('tab-events').scrollIntoView();
-        }
-
-        function clearEventForm() {
-            document.getElementById('evt-id').value = '';
-            document.getElementById('evt-title').value = '';
-            document.getElementById('evt-club').value = 'entertainment'; // Reset to default
-            document.getElementById('evt-price').value = '';
-            document.getElementById('evt-members').value = '';
-            document.getElementById('evt-premium').checked = false;
-            
-            document.getElementById('evt-img').value = '';
-            document.getElementById('evt-rules').value = '';
-            document.getElementById('evt-desc').value = '';
-            document.getElementById('evt-prize').value = '';
-        }
-
         // --- NEW EXPORT FUNCTION ---
         function exportAdminData(type) {
             let csv = "";
             let filename = "";
 
-            if (type === 'users') {
+            if (type === 'users' || type === 'nift' || type === 'others') {
                 csv = "Name,Spectrum ID,Email,Phone,College,Pass,Payment Status,Checked In\n";
                 allUsers.forEach(u => {
+                    const isNift = u.email && u.email.toLowerCase().endsWith('@nift.ac.in');
+                    if (type === 'nift' && !isNift) return;
+                    if (type === 'others' && isNift) return;
+
                     const pass = u.order?.pass || u.verificationReason || "None";
-                    // Handle commas in names/emails
                     const safe = (val) => `"${val ? val.toString().replace(/"/g, '""') : ''}"`;
                     csv += `${safe(u.name)},${safe(u.spectrumId)},${safe(u.email)},${safe(u.phone)},${safe(u.collegeName)},${safe(pass)},${u.paymentStatus},${u.checkedIn?'YES':'NO'}\n`;
                 });
-                filename = "Spectrum_Users.csv";
+                filename = type === 'nift' ? "Spectrum_NIFT_Students.csv" : (type === 'others' ? "Spectrum_Guest_Students.csv" : "Spectrum_All_Users.csv");
             } else if (type === 'merch') {
                 csv = "Buyer,Email,Item,Size,Price,Address,Status,Date\n";
                 allMerch.forEach(m => {
@@ -1053,15 +1010,103 @@
         function delStaff(u){ if(u!=='C H'&&confirm("Delete?")) db.ref('club_auth/'+u).remove(); }
         function createPromo(){ const c=document.getElementById('p-code').value.toUpperCase(),v=document.getElementById('p-val').value,t=document.getElementById('p-type').value,l=document.getElementById('p-limit').value; if(c) db.ref('promos/'+c).set({discount:v,type:t,limit:l,used:0}).then(()=>alert("Created")); }
         function pushUpdate(){ const m=document.getElementById('update-msg').value; if(m) db.ref('updates').push({message:m, timestamp:Date.now()}).then(()=>alert("Sent")); }
-        function showAdminTab(id) { ['dashboard','users','promos','staff','updates','merch','payment','finance','verification','results','events'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function showAdminTab(id) { ['dashboard','nift','others','promos','staff','updates','merch','payment','finance','verification','results'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
         
-        document.getElementById('search-user').addEventListener('input', renderUsers);
+        document.getElementById('search-nift').addEventListener('input', renderUsers);
+        document.getElementById('search-others').addEventListener('input', renderUsers);
         function initGateScanner() { if(!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }); html5QrcodeScanner.render(onScanSuccess); document.getElementById('qr-reader-placeholder').style.display = 'none'; } }
         function onScanSuccess(decodedText) { gateVerify(decodedText); }
         function gateVerify(id) { id = id.toUpperCase().trim(); const res = document.getElementById('gate-result'); db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s => { if(!s.exists()) { res.innerHTML = `<h1 class="text-red-500 font-bold text-3xl">INVALID</h1>`; res.className="p-6 border-2 border-red-600 bg-red-900/50 rounded mt-4 text-center"; return; } const u = Object.values(s.val())[0]; const k = Object.keys(s.val())[0]; if(u.paymentStatus === 'Verified') { if(!u.checkedIn) { db.ref('users/'+k).update({checkedIn:true}); res.innerHTML = `<h1 class="text-green-400 font-bold text-3xl">WELCOME</h1><p class="text-white text-xl mt-2">${u.name}</p><p class="text-gray-400 text-sm font-mono">${u.spectrumId}</p>`; res.className = "p-6 border-2 border-green-600 bg-green-900/50 rounded mt-4 text-center"; } else { res.innerHTML = `<h1 class="text-blue-400 font-bold text-3xl">ALREADY IN</h1><p class="text-white mt-2">${u.name}</p>`; res.className = "p-6 border-2 border-blue-600 bg-blue-900/50 rounded mt-4 text-center"; } } else { res.innerHTML = `<h1 class="text-yellow-500 font-bold text-3xl">PENDING</h1><p class="text-white mt-2">Payment not verified</p>`; res.className = "p-6 border-2 border-yellow-600 bg-yellow-900/50 rounded mt-4 text-center"; } res.classList.remove('hidden'); }); }
         function initClubPanel() { const container = document.getElementById('club-events-container'); const events = [{id:1,club:'culture',title:'Street Battle'},{id:2,club:'culture',title:'Solo Singing'},{id:3,club:'culture',title:'Runway Rivals'},{id:4,club:'entertainment',title:'Battle of Bands'},{id:5,club:'entertainment',title:'EDM Night'},{id:6,club:'sports',title:'Valorant'},{id:7,club:'sports',title:'FIFA 26'},{id:8,club:'sports',title:'Box Cricket'},{id:9,club:'photo',title:'Photo Walk'},{id:10,club:'photo',title:'Treasure Hunt'},{id:11,club:'lit',title:'Debate War'},{id:12,club:'lit',title:'Open Mic'},{id:13,club:'essc',title:'Eco Drive'},{id:101,club:'entertainment',title:'EDM Add-on'},{id:102,club:'entertainment',title:'Fashion Add-on'}]; const myEvents = events.filter(e => e.club === currentClubCode); container.innerHTML = ""; myEvents.forEach(e => { db.ref('events_status/'+e.id).on('value', s => { const st = s.val()?.status || 'upcoming'; let btn = `<button onclick="reqStart(${e.id})" class="bg-pink-600 text-white px-4 py-2 rounded text-xs font-bold">REQUEST START</button>`; if(st==='live') btn = `<div class="flex gap-2"><button onclick="openClubScanner(${e.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Scan</button><button onclick="endEvent(${e.id})" class="bg-red-600 text-white px-3 py-1 rounded text-xs">End</button></div>`; if(st==='ended') btn = `<span class="text-gray-500 text-xs font-bold">ENDED</span>`; if(st==='pending_approval') btn = `<span class="text-yellow-500 text-xs font-bold">Waiting...</span>`; container.innerHTML += `<div class="card flex justify-between items-center"><div><h3 class="text-white font-bold">${e.title}</h3><span class="text-[10px] text-gray-400 font-mono">ID: ${e.id} | ${st.toUpperCase()}</span></div><div class="flex flex-col gap-2 items-end">${btn}</div></div>`; }); }); }
         function openClubScanner(id) { selectedEventId=id; document.getElementById('club-scan-modal').classList.remove('hidden'); if(!clubScanner){clubScanner=new Html5QrcodeScanner("club-reader",{fps:10,qrbox:200});clubScanner.render(verifyEventAccess);} }
         function verifyEventAccess(sid) { sid = sid.toUpperCase().trim(); const res = document.getElementById('club-scan-res'); db.ref('users').orderByChild('spectrumId').equalTo(sid).once('value').then(s => { if(!s.exists()){ res.innerHTML="<span class='text-red-500'>INVALID</span>"; return; } const u=Object.values(s.val())[0]; let access=false; if(u.order.pass==="Standard" && selectedEventId<100) access=true; if(u.order.events && u.order.events.some(ev=>ev.id==selectedEventId)) access=true; if(u.order.pass==="Neon Pulse" && selectedEventId==5) access=true; if(u.order.pass==="Vogue Gala" && selectedEventId==102) access=true; if(access) res.innerHTML=`<div class="bg-green-600 text-white p-2 rounded mt-2 font-bold">ALLOWED: ${u.name}</div>`; else res.innerHTML=`<div class="bg-red-600 text-white p-2 rounded mt-2 font-bold">DENIED</div>`; }); }
+
+        // --- MERCH SCANNER FUNCTIONS ---
+        function switchToMerchScanner() {
+             document.getElementById('view-admin').classList.remove('active');
+             document.getElementById('view-merch-scanner').classList.add('active');
+             initMerchScanner();
+        }
+
+        function initMerchScanner() {
+            if(!merchScanner) {
+                merchScanner = new Html5QrcodeScanner("merch-reader", { fps: 10, qrbox: 250 });
+                merchScanner.render(verifyMerch);
+                document.getElementById('merch-qr-placeholder').style.display = 'none';
+            }
+        }
+
+        function verifyMerch(id) {
+            id = id.toUpperCase().trim();
+            const container = document.getElementById('merch-result-container');
+            container.innerHTML = `<div class="text-center text-slate-500"><i data-lucide="loader-2" class="animate-spin w-8 h-8 mx-auto mb-2"></i>Fetching Data...</div>`;
+            lucide.createIcons();
+            
+            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(s => {
+                if(!s.exists()) {
+                    container.innerHTML = `<div class="bg-red-900/50 border border-red-600 p-4 rounded text-center"><h3 class="text-red-500 font-bold text-2xl">INVALID ID</h3></div>`;
+                    return;
+                }
+                const u = Object.values(s.val())[0];
+                const key = Object.keys(s.val())[0];
+                
+                let html = `
+                <div class="bg-slate-900 border border-slate-700 p-4 rounded-lg">
+                    <h3 class="text-white font-bold text-xl">${u.name}</h3>
+                    <p class="text-slate-400 font-mono text-sm">${u.spectrumId}</p>
+                </div>
+                <h4 class="text-slate-400 text-xs font-bold uppercase mt-4 mb-2 pl-1">Purchased Items</h4>
+                `;
+                
+                if(!u.merch_orders) {
+                    html += `<div class="bg-zinc-900 p-4 rounded text-center text-slate-500 italic">No Merchandise Purchased</div>`;
+                } else {
+                    Object.entries(u.merch_orders).forEach(([orderKey, order]) => {
+                        let statusColor = 'bg-yellow-600';
+                        let action = '';
+                        
+                        if (order.status === 'Delivered') {
+                            statusColor = 'bg-green-600';
+                            action = `<span class="bg-green-900 text-green-400 px-3 py-1 rounded text-xs font-bold border border-green-700">DELIVERED</span>`;
+                        } else if (order.status === 'Payment Pending') {
+                            statusColor = 'bg-red-600';
+                            action = `<span class="text-red-400 text-xs font-bold">PAYMENT PENDING</span>`;
+                        } else {
+                            // Ordered / Contacted
+                            statusColor = 'bg-blue-600';
+                            action = `<button onclick="deliverMerch('${key}', '${orderKey}')" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold text-sm shadow-lg shadow-green-900/50 transition-all">MARK DELIVERED</button>`;
+                        }
+
+                        html += `
+                        <div class="bg-black border border-slate-800 p-4 rounded flex justify-between items-center">
+                            <div>
+                                <div class="text-white font-bold text-lg">${order.item}</div>
+                                <div class="text-4xl font-bold text-white mt-1 font-mono">${order.size}</div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                ${action}
+                                <div class="text-[10px] text-slate-500 font-mono">${orderKey.substring(1,6)}</div>
+                            </div>
+                        </div>`;
+                    });
+                }
+                container.innerHTML = html;
+            });
+        }
+
+        function deliverMerch(userKey, orderKey) {
+            if(confirm("Mark this item as DELIVERED?")) {
+                db.ref(`users/${userKey}/merch_orders/${orderKey}`).update({
+                    status: 'Delivered',
+                    deliveredAt: Date.now()
+                }).then(() => {
+                    // Refresh view by fetching user again
+                    db.ref(`users/${userKey}`).once('value', s => {
+                        if(s.exists()) verifyMerch(s.val().spectrumId);
+                    });
+                });
+            }
+        }
     </script>
 </body>
 </html>
