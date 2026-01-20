@@ -29,7 +29,11 @@
         const db = firebase.database();
 
         // CONFIGURATION
-        const REQUIRED_DOMAIN = "@nift.ac.in"; // Set to "" to allow all emails for testing
+        const REQUIRED_DOMAIN = "@nift.ac.in"; 
+        
+        // --- MASTER ADMIN EMAIL ---
+        // This email will bypass approval checks and get instant Admin access.
+        const MASTER_ADMIN_EMAIL = "yasar.h@nift.ac.in"; 
     </script>
 
     <style>
@@ -150,7 +154,10 @@
                     <p class="text-xs text-slate-400 mt-2">Your ID: <span id="pending-key" class="font-mono text-white bg-slate-800 px-1 rounded select-all">---</span></p>
                     <p class="text-[10px] text-slate-500 mt-2">Copy this ID and add to 'staff_access' in Firebase to self-approve.</p>
                 </div>
-                <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout & Refresh</button>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="checkStatus()" class="text-xs bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500 font-bold">Check Status</button>
+                    <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout</button>
+                </div>
             </div>
 
             <p id="auth-msg" class="text-center text-xs text-red-400 mt-4 font-mono h-4"></p>
@@ -232,6 +239,13 @@
         });
 
         function verifyAccess(email) {
+            // --- MASTER OVERRIDE FOR INITIAL SETUP ---
+            if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
+                showPortal({ email: email, role: 'admin', club_code: 'all' });
+                return;
+            }
+            // -----------------------------------------
+
             const safeEmail = email.replace(/\./g, ',');
             
             // 1. Check Approved Staff
@@ -252,6 +266,12 @@
                     });
                 }
             });
+        }
+
+        function checkStatus() {
+            if (auth.currentUser) {
+                verifyAccess(auth.currentUser.email);
+            }
         }
 
         function showApplyFormForUser(email) {
