@@ -3,13 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPECTRUM OPS HUB</title>
+    <title>SPECTRUM OPS HUB | SECURE LOGIN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+    </script>
+
     <style>
-        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
         .font-mono { font-family: 'Space Mono', monospace; }
         
         .portal-card {
@@ -29,91 +50,268 @@
                               linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
             mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6 relative">
+<body class="min-h-screen flex items-center justify-center p-6 relative">
 
     <div class="absolute inset-0 bg-grid pointer-events-none"></div>
 
-    <div class="max-w-4xl w-full relative z-10">
-        <div class="text-center mb-12">
-            <h1 class="text-5xl font-black text-white tracking-tighter mb-2">COMMAND HUB</h1>
-            <p class="text-slate-500 font-mono text-sm tracking-widest uppercase">Spectrum '26 Operational Control</p>
+    <!-- AUTH SECTION (Visible Initially) -->
+    <div id="auth-container" class="w-full max-w-md relative z-20">
+        <div class="glass p-8 rounded-2xl shadow-2xl border border-slate-700">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black text-white tracking-tighter mb-1">OPS HUB</h1>
+                <p class="text-slate-500 font-mono text-xs tracking-widest uppercase">Secure Staff Access</p>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div id="form-login" class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Official Email</label>
+                    <input id="login-email" type="email" placeholder="name@nift.ac.in" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none transition-colors">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Password</label>
+                    <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none transition-colors">
+                </div>
+                
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-blue-900/20 mt-2">AUTHENTICATE</button>
+                
+                <div class="flex justify-between items-center mt-4">
+                    <button onclick="toggleForms('forgot')" class="text-xs text-slate-500 hover:text-white transition-colors">Forgot Password?</button>
+                    <button onclick="toggleForms('register')" class="text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors">Apply for Access</button>
+                </div>
+            </div>
+
+            <!-- REGISTER FORM (Hidden) -->
+            <div id="form-register" class="space-y-3 hidden">
+                <div class="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg mb-2">
+                    <p class="text-[10px] text-yellow-500 leading-tight">⚠️ Registration requires Admin Approval. Use your NIFT email.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input id="reg-name" type="text" placeholder="Full Name" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
+                    <input id="reg-email" type="email" placeholder="@nift.ac.in Email" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
+                </div>
+                <input id="reg-pass" type="password" placeholder="Set Password" class="w-full bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="reg-role" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500" onchange="toggleClubSelect()">
+                        <option value="">Select Role...</option>
+                        <option value="admin">Admin</option>
+                        <option value="club">Club Head</option>
+                        <option value="gate">Gate Security</option>
+                        <option value="merch">Merch Distributor</option>
+                        <option value="results">Result Manager</option>
+                    </select>
+                    <select id="reg-club" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500 disabled:opacity-50" disabled>
+                        <option value="all">N/A (Global)</option>
+                        <option value="culture">Cultural</option>
+                        <option value="sports">Sports</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="lit">Literary</option>
+                        <option value="adventure">Adventure</option>
+                        <option value="environment">Environment</option>
+                        <option value="essc">ESSC</option>
+                    </select>
+                </div>
+
+                <button onclick="handleRegister()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all mt-2">SUBMIT REQUEST</button>
+                <button onclick="toggleForms('login')" class="w-full text-xs text-slate-500 hover:text-white py-2">Back to Login</button>
+            </div>
+
+            <!-- FORGOT PASSWORD FORM (Hidden) -->
+            <div id="form-forgot" class="space-y-4 hidden">
+                <p class="text-xs text-slate-400 text-center mb-2">Enter your email to receive a reset link.</p>
+                <input id="forgot-email" type="email" placeholder="name@nift.ac.in" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none">
+                <button onclick="handleForgot()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all">SEND LINK</button>
+                <button onclick="toggleForms('login')" class="w-full text-xs text-slate-500 hover:text-white py-2">Back to Login</button>
+            </div>
+
+            <p id="auth-msg" class="text-center text-xs text-red-400 mt-4 font-mono h-4"></p>
+        </div>
+    </div>
+
+    <!-- PORTAL GRID (Hidden until logged in & approved) -->
+    <div id="portal-view" class="max-w-4xl w-full relative z-10 hidden opacity-0 transition-opacity duration-500">
+        <div class="text-center mb-12 flex justify-between items-end">
+            <div class="text-left">
+                <h1 class="text-4xl font-black text-white tracking-tighter">COMMAND HUB</h1>
+                <p class="text-slate-500 font-mono text-xs uppercase tracking-widest">Logged in as: <span id="user-display" class="text-blue-400">---</span></p>
+            </div>
+            <button onclick="logout()" class="border border-red-900 text-red-500 px-4 py-2 rounded text-xs font-bold hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- 1. ADMIN CONSOLE -->
-            <a href="admin.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:border-pink-500/50">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-pink-900/30 p-3 rounded-lg text-pink-500 group-hover:bg-pink-600 group-hover:text-white transition-colors">
-                        <i data-lucide="shield-alert" class="w-8 h-8"></i>
-                    </div>
-                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Master Admin</h2>
-                <p class="text-sm text-slate-400">Manage users, payments, staff access, and global configurations.</p>
-            </a>
-
-            <!-- 2. CLUB OPS -->
-            <a href="club.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:border-blue-500/50">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-blue-900/30 p-3 rounded-lg text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <i data-lucide="zap" class="w-8 h-8"></i>
-                    </div>
-                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Club Ops</h2>
-                <p class="text-sm text-slate-400">Manage specific events, take attendance, and declare winners.</p>
-            </a>
-
-            <!-- 3. GATE CONTROL -->
-            <a href="gate.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:border-green-500/50">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-green-900/30 p-3 rounded-lg text-green-500 group-hover:bg-green-600 group-hover:text-white transition-colors">
-                        <i data-lucide="scan-line" class="w-8 h-8"></i>
-                    </div>
-                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Gate Control</h2>
-                <p class="text-sm text-slate-400">Security checkpoint for verifying passes and managing entry flow.</p>
-            </a>
-
-            <!-- 4. RESULTS DASHBOARD -->
-            <a href="results.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:border-yellow-500/50">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-yellow-900/30 p-3 rounded-lg text-yellow-500 group-hover:bg-yellow-600 group-hover:text-white transition-colors">
-                        <i data-lucide="trophy" class="w-8 h-8"></i>
-                    </div>
-                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Results & Data</h2>
-                <p class="text-sm text-slate-400">View declared winners and export result data to Excel.</p>
-            </a>
-
-            <!-- 5. MERCH DISTRIBUTOR (NEW) -->
-            <a href="MerchDistributor.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:border-purple-500/50 md:col-span-2 lg:col-span-1 lg:col-start-2">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-purple-900/30 p-3 rounded-lg text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                        <i data-lucide="shirt" class="w-8 h-8"></i>
-                    </div>
-                    <i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Merch Distributor</h2>
-                <p class="text-sm text-slate-400">Scanner for distribution desk. Verify orders and mark items delivered.</p>
-            </a>
-
-        </div>
-
-        <div class="mt-12 text-center">
-            <a href="index.html" class="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-widest border-b border-transparent hover:border-white pb-1">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Main Site
-            </a>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="portal-grid">
+            <!-- Cards injected by JS based on role -->
         </div>
     </div>
 
     <script>
         lucide.createIcons();
+
+        // UI TOGGLES
+        function toggleForms(view) {
+            ['form-login', 'form-register', 'form-forgot'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(`form-${view}`).classList.remove('hidden');
+            document.getElementById('auth-msg').innerText = "";
+        }
+
+        function toggleClubSelect() {
+            const role = document.getElementById('reg-role').value;
+            const clubSelect = document.getElementById('reg-club');
+            if (role === 'club') {
+                clubSelect.disabled = false;
+                clubSelect.value = "culture";
+            } else {
+                clubSelect.disabled = true;
+                clubSelect.value = "all";
+            }
+        }
+
+        function showMsg(msg, isError = true) {
+            const el = document.getElementById('auth-msg');
+            el.innerText = msg;
+            el.className = `text-center text-xs mt-4 font-mono h-4 ${isError ? 'text-red-400' : 'text-green-400'}`;
+        }
+
+        // AUTH LOGIC
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                verifyAccess(user.email);
+            } else {
+                document.getElementById('auth-container').classList.remove('hidden');
+                document.getElementById('portal-view').classList.add('hidden');
+                document.getElementById('portal-view').classList.remove('opacity-100');
+            }
+        });
+
+        function verifyAccess(email) {
+            const safeEmail = email.replace(/\./g, ',');
+            
+            // Check Staff Access Table (Approved Users)
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+                if (snap.exists()) {
+                    const data = snap.val();
+                    showPortal(data);
+                } else {
+                    // Check Requests Table (Pending Users)
+                    db.ref('staff_requests/' + safeEmail).once('value').then(reqSnap => {
+                        if (reqSnap.exists()) {
+                            alert("Your account is pending Admin approval.");
+                            auth.signOut();
+                        } else {
+                            alert("Access Denied. No staff record found.");
+                            auth.signOut();
+                        }
+                    });
+                }
+            });
+        }
+
+        function showPortal(userData) {
+            document.getElementById('auth-container').classList.add('hidden');
+            const portal = document.getElementById('portal-view');
+            portal.classList.remove('hidden');
+            setTimeout(() => portal.classList.add('opacity-100'), 50); // Fade in
+            
+            document.getElementById('user-display').innerText = userData.email;
+
+            // Direct Redirect Logic (Optional: remove this block if you want them to always see the hub first)
+            // if (userData.role === 'merch') window.location.href = 'MerchDistributor.html';
+            // if (userData.role === 'club') window.location.href = 'club.html';
+
+            // Generate Cards based on Role
+            const grid = document.getElementById('portal-grid');
+            grid.innerHTML = ""; // Clear existing
+
+            // DEFINITIONS
+            const cards = {
+                admin: `<a href="admin.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:border-pink-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-pink-900/30 p-3 rounded-lg text-pink-500 group-hover:bg-pink-600 group-hover:text-white transition-colors"><i data-lucide="shield-alert" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Master Admin</h2><p class="text-sm text-slate-400">Manage users, payments, staff access, and global configurations.</p></a>`,
+                club: `<a href="club.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:border-blue-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-blue-900/30 p-3 rounded-lg text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i data-lucide="zap" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Club Ops</h2><p class="text-sm text-slate-400">Manage specific events, take attendance, and declare winners.</p></a>`,
+                gate: `<a href="gate.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:border-green-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-green-900/30 p-3 rounded-lg text-green-500 group-hover:bg-green-600 group-hover:text-white transition-colors"><i data-lucide="scan-line" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Gate Control</h2><p class="text-sm text-slate-400">Security checkpoint for verifying passes and managing entry flow.</p></a>`,
+                results: `<a href="results.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:border-yellow-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-yellow-900/30 p-3 rounded-lg text-yellow-500 group-hover:bg-yellow-600 group-hover:text-white transition-colors"><i data-lucide="trophy" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Results & Data</h2><p class="text-sm text-slate-400">View declared winners and export result data to Excel.</p></a>`,
+                merch: `<a href="MerchDistributor.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:border-purple-500/50 md:col-span-2 lg:col-span-1 lg:col-start-2"><div class="flex justify-between items-start mb-4"><div class="bg-purple-900/30 p-3 rounded-lg text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-colors"><i data-lucide="shirt" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Merch Distributor</h2><p class="text-sm text-slate-400">Scanner for distribution desk. Verify orders and mark items delivered.</p></a>`
+            };
+
+            // RENDER LOGIC
+            if (userData.role === 'admin') {
+                // Admin sees everything
+                Object.values(cards).forEach(c => grid.innerHTML += c);
+            } else if (userData.role === 'club') {
+                grid.innerHTML += cards.club;
+            } else if (userData.role === 'gate') {
+                grid.innerHTML += cards.gate;
+            } else if (userData.role === 'merch') {
+                grid.innerHTML += cards.merch;
+            } else if (userData.role === 'results') {
+                grid.innerHTML += cards.results;
+            }
+
+            lucide.createIcons();
+        }
+
+        // ACTIONS
+        function handleLogin() {
+            const e = document.getElementById('login-email').value;
+            const p = document.getElementById('login-pass').value;
+            if(!e || !p) return showMsg("Credentials required");
+            
+            showMsg("Verifying Identity...", false);
+            auth.signInWithEmailAndPassword(e, p).catch(err => showMsg(err.message));
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+            const role = document.getElementById('reg-role').value;
+            const club = document.getElementById('reg-club').value;
+
+            if(!name || !email || !pass || !role) return showMsg("All fields required");
+            if(!email.endsWith("@nift.ac.in")) return showMsg("Access Restricted: @nift.ac.in only");
+
+            showMsg("Processing Registration...", false);
+
+            auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
+                const safeEmail = email.replace(/\./g, ',');
+                
+                // Write to REQUESTS table, NOT Access table
+                db.ref('staff_requests/' + safeEmail).set({
+                    name: name,
+                    email: email,
+                    role: role,
+                    club_code: club,
+                    uid: cred.user.uid,
+                    status: 'pending',
+                    timestamp: Date.now()
+                }).then(() => {
+                    cred.user.sendEmailVerification();
+                    alert("Application Sent! \n1. Verify your email.\n2. Wait for Admin approval.");
+                    auth.signOut();
+                    toggleForms('login');
+                });
+            }).catch(err => showMsg(err.message));
+        }
+
+        function handleForgot() {
+            const email = document.getElementById('forgot-email').value;
+            if(!email) return showMsg("Enter email address");
+            auth.sendPasswordResetEmail(email)
+                .then(() => { alert("Reset link sent to your email."); toggleForms('login'); })
+                .catch(err => showMsg(err.message));
+        }
+
+        function logout() {
+            auth.signOut().then(() => location.reload());
+        }
     </script>
 </body>
 </html>
