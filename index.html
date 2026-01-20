@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPECTRUM OPS HUB | SECURE LOGIN</title>
+    <title>SPECTRUM ADMIN | ACCESS CONTROL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
     
-    <!-- FIREBASE SDK -->
+    <!-- FIREBASE SDK (Must match Login Page versions) -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
@@ -27,369 +27,220 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
-
-        // CONFIGURATION
-        const REQUIRED_DOMAIN = "@nift.ac.in"; 
-        
-        // --- MASTER ADMIN EMAIL ---
-        // This email will bypass approval checks and get instant Admin access.
-        const MASTER_ADMIN_EMAIL = "yasar.h@nift.ac.in"; 
     </script>
 
     <style>
-        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow: hidden; }
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
         
-        .portal-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
+        /* Glassmorphism */
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .portal-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-        
-        /* Grid Background Pattern */
+
         .bg-grid {
             background-size: 40px 40px;
             background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
                               linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
             mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
-
-        /* Glassmorphism */
-        .glass {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6 relative">
+<body class="min-h-screen relative p-6">
+    <div class="fixed inset-0 bg-grid pointer-events-none -z-10"></div>
 
-    <div class="absolute inset-0 bg-grid pointer-events-none"></div>
-
-    <!-- AUTH SECTION (Visible Initially) -->
-    <div id="auth-container" class="w-full max-w-md relative z-20">
-        <div class="glass p-8 rounded-2xl shadow-2xl border border-slate-700">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-black text-white tracking-tighter mb-1">OPS HUB</h1>
-                <p class="text-slate-500 font-mono text-xs tracking-widest uppercase">Secure Staff Access</p>
-            </div>
-
-            <!-- LOGIN FORM -->
-            <div id="form-login" class="space-y-4">
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Official Email</label>
-                    <input id="login-email" type="email" placeholder="name@nift.ac.in" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none transition-colors">
-                </div>
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Password</label>
-                    <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none transition-colors">
-                </div>
-                
-                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-blue-900/20 mt-2">AUTHENTICATE</button>
-                
-                <div class="flex justify-between items-center mt-4">
-                    <button onclick="toggleForms('forgot')" class="text-xs text-slate-500 hover:text-white transition-colors">Forgot Password?</button>
-                    <button onclick="openRegister(false)" class="text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors">Apply for Access</button>
-                </div>
-            </div>
-
-            <!-- REGISTER FORM (Hidden) -->
-            <div id="form-register" class="space-y-3 hidden">
-                <div class="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg mb-2">
-                    <p class="text-[10px] text-yellow-500 leading-tight">⚠️ <span id="reg-status-text">Registration requires Admin Approval.</span></p>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <input id="reg-name" type="text" placeholder="Full Name" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
-                    <input id="reg-email" type="email" placeholder="@nift.ac.in Email" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
-                </div>
-                
-                <!-- Password Field (Hidden for upgrades) -->
-                <input id="reg-pass" type="password" placeholder="Set Password" class="w-full bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500">
-                
-                <div class="grid grid-cols-2 gap-2">
-                    <select id="reg-role" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500" onchange="toggleClubSelect()">
-                        <option value="">Select Role...</option>
-                        <option value="admin">Admin</option>
-                        <option value="club">Club Head</option>
-                        <option value="gate">Gate Security</option>
-                        <option value="merch">Merch Distributor</option>
-                        <option value="results">Result Manager</option>
-                    </select>
-                    <select id="reg-club" class="bg-slate-900/50 border border-slate-700 rounded p-2 text-white text-xs outline-none focus:border-blue-500 disabled:opacity-50" disabled>
-                        <option value="all">N/A (Global)</option>
-                        <option value="culture">Cultural</option>
-                        <option value="sports">Sports</option>
-                        <option value="entertainment">Entertainment</option>
-                        <option value="lit">Literary</option>
-                        <option value="adventure">Adventure</option>
-                        <option value="environment">Environment</option>
-                        <option value="essc">ESSC</option>
-                    </select>
-                </div>
-
-                <button onclick="handleRegister()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all mt-2">SUBMIT REQUEST</button>
-                <button onclick="logout()" id="btn-back-login" class="w-full text-xs text-slate-500 hover:text-white py-2">Cancel / Logout</button>
-            </div>
-
-            <!-- FORGOT PASSWORD FORM (Hidden) -->
-            <div id="form-forgot" class="space-y-4 hidden">
-                <p class="text-xs text-slate-400 text-center mb-2">Enter your email to receive a reset link.</p>
-                <input id="forgot-email" type="email" placeholder="name@nift.ac.in" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white text-sm focus:border-blue-500 outline-none">
-                <button onclick="handleForgot()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all">SEND LINK</button>
-                <button onclick="toggleForms('login')" class="w-full text-xs text-slate-500 hover:text-white py-2">Back to Login</button>
-            </div>
-            
-            <!-- PENDING APPROVAL SCREEN (Hidden) -->
-            <div id="form-pending" class="text-center hidden space-y-4">
-                <div class="w-16 h-16 bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto text-yellow-500">
-                    <i data-lucide="clock" class="w-8 h-8"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white">Approval Pending</h2>
-                    <p class="text-xs text-slate-400 mt-2">Your ID: <span id="pending-key" class="font-mono text-white bg-slate-800 px-1 rounded select-all">---</span></p>
-                    <p class="text-[10px] text-slate-500 mt-2">Copy this ID and add to 'staff_access' in Firebase to self-approve.</p>
-                </div>
-                <div class="flex gap-2 justify-center">
-                    <button onclick="checkStatus()" class="text-xs bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500 font-bold">Check Status</button>
-                    <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-4 py-2 rounded hover:bg-slate-800">Logout</button>
-                </div>
-            </div>
-
-            <p id="auth-msg" class="text-center text-xs text-red-400 mt-4 font-mono h-4"></p>
+    <!-- HEADER -->
+    <header class="max-w-6xl mx-auto flex justify-between items-center mb-10">
+        <div>
+            <h1 class="text-3xl font-black text-white tracking-tighter">ADMIN CONSOLE</h1>
+            <p class="text-slate-500 font-mono text-xs uppercase tracking-widest">Access Verification Node</p>
         </div>
-    </div>
+        <div class="flex gap-4">
+            <a href="index.html" class="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> BACK TO HUB
+            </a>
+        </div>
+    </header>
 
-    <!-- PORTAL GRID (Hidden until logged in & approved) -->
-    <div id="portal-view" class="max-w-4xl w-full relative z-10 hidden opacity-0 transition-opacity duration-500">
-        <div class="text-center mb-12 flex justify-between items-end">
-            <div class="text-left">
-                <h1 class="text-4xl font-black text-white tracking-tighter">COMMAND HUB</h1>
-                <p class="text-slate-500 font-mono text-xs uppercase tracking-widest">Logged in as: <span id="user-display" class="text-blue-400">---</span></p>
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- PENDING REQUESTS COLUMN -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-3 h-3 rounded-full bg-yellow-500 animate-pulse"></div>
+                <h2 class="text-xl font-bold text-white">Pending Requests</h2>
+                <span id="pending-count" class="bg-slate-800 text-slate-300 text-[10px] px-2 py-1 rounded-full">0</span>
             </div>
-            <button onclick="logout()" class="border border-red-900 text-red-500 px-4 py-2 rounded text-xs font-bold hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
+
+            <div id="pending-list" class="space-y-4">
+                <!-- Pending Cards injected here -->
+                <div class="text-center p-12 text-slate-600 font-mono text-xs border border-dashed border-slate-800 rounded-xl">
+                    Scanning for incoming signals...
+                </div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="portal-grid">
-            <!-- Cards injected by JS based on role -->
+        <!-- ACTIVE STAFF COLUMN -->
+        <div class="space-y-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                <h2 class="text-xl font-bold text-white">Active Staff</h2>
+                <span id="active-count" class="bg-slate-800 text-slate-300 text-[10px] px-2 py-1 rounded-full">0</span>
+            </div>
+
+            <div class="glass rounded-xl overflow-hidden">
+                <div class="overflow-y-auto max-h-[600px] p-4 space-y-2" id="active-list">
+                    <!-- Active List Items injected here -->
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script>
         lucide.createIcons();
 
-        // UI TOGGLES
-        function toggleForms(view) {
-            ['form-login', 'form-register', 'form-forgot', 'form-pending'].forEach(id => document.getElementById(id).classList.add('hidden'));
-            document.getElementById(`form-${view}`).classList.remove('hidden');
-            document.getElementById('auth-msg').innerText = "";
-        }
-
-        // Handle Register Mode (New User vs Upgrade)
-        function openRegister(isUpgrade = false) {
-            toggleForms('register');
-            const passInput = document.getElementById('reg-pass');
-            
-            if (isUpgrade) {
-                // Hiding password field for upgrades to avoid "Parent Element" display bug
-                passInput.classList.add('hidden');
-            } else {
-                // Showing password field for new users
-                passInput.classList.remove('hidden');
-                
-                // Reset fields
-                document.getElementById('reg-email').value = '';
-                document.getElementById('reg-email').disabled = false;
-                document.getElementById('reg-status-text').innerText = "Registration requires Admin Approval.";
-            }
-        }
-
-        function toggleClubSelect() {
-            const role = document.getElementById('reg-role').value;
-            const clubSelect = document.getElementById('reg-club');
-            if (role === 'club') {
-                clubSelect.disabled = false;
-                clubSelect.value = "culture";
-            } else {
-                clubSelect.disabled = true;
-                clubSelect.value = "all";
-            }
-        }
-
-        function showMsg(msg, isError = true) {
-            const el = document.getElementById('auth-msg');
-            el.innerText = msg;
-            el.className = `text-center text-xs mt-4 font-mono h-4 ${isError ? 'text-red-400' : 'text-green-400'}`;
-        }
-
-        // AUTH LOGIC
+        // 1. SECURITY CHECK
         auth.onAuthStateChanged(user => {
-            if (user) {
-                verifyAccess(user.email);
+            if (!user) {
+                // Ideally redirect, but we might be in a preview where redirect loop is possible
+                // if index.html isn't served on the same origin perfectly.
+                // console.log("No user found");
+                // window.location.href = "index.html"; 
             } else {
-                document.getElementById('auth-container').classList.remove('hidden');
-                document.getElementById('portal-view').classList.add('hidden');
-                document.getElementById('portal-view').classList.remove('opacity-100');
-                toggleForms('login');
+                console.log("Admin Logged In:", user.email);
             }
         });
 
-        function verifyAccess(email) {
-            // --- MASTER OVERRIDE FOR INITIAL SETUP ---
-            if (email.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase()) {
-                showPortal({ email: email, role: 'admin', club_code: 'all' });
+        // 2. FETCH PENDING REQUESTS
+        db.ref('staff_requests').on('value', snap => {
+            const list = document.getElementById('pending-list');
+            list.innerHTML = '';
+            let count = 0;
+
+            if (snap.exists()) {
+                const data = snap.val();
+                Object.keys(data).forEach(key => {
+                    const req = data[key];
+                    count++;
+                    list.innerHTML += createPendingCard(key, req);
+                });
+            } else {
+                list.innerHTML = `<div class="text-center p-12 text-slate-600 font-mono text-xs border border-dashed border-slate-800 rounded-xl">No pending requests found.</div>`;
+            }
+            document.getElementById('pending-count').innerText = count;
+            lucide.createIcons();
+        });
+
+        // 3. FETCH ACTIVE STAFF
+        db.ref('staff_access').on('value', snap => {
+            const list = document.getElementById('active-list');
+            list.innerHTML = '';
+            let count = 0;
+
+            if (snap.exists()) {
+                const data = snap.val();
+                Object.keys(data).forEach(key => {
+                    const staff = data[key];
+                    count++;
+                    list.innerHTML += createActiveRow(key, staff);
+                });
+            }
+            document.getElementById('active-count').innerText = count;
+        });
+
+        // --- TEMPLATES ---
+
+        function createPendingCard(key, req) {
+            const safeKey = key.replace(/,/g, '.'); // Display formatting
+            const time = new Date(req.timestamp).toLocaleDateString();
+            
+            return `
+            <div class="glass p-6 rounded-xl border-l-4 border-l-yellow-500 relative group animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded uppercase">${req.role}</span>
+                            ${req.club_code !== 'all' ? `<span class="text-xs font-bold bg-blue-900/30 text-blue-400 px-2 py-0.5 rounded uppercase">${req.club_code}</span>` : ''}
+                        </div>
+                        <h3 class="text-lg font-bold text-white">${req.name}</h3>
+                        <p class="text-sm text-slate-400 font-mono">${req.email}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-600 font-mono">${time}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex gap-3 border-t border-slate-700/50 pt-4">
+                    <button onclick="approveUser('${key}')" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-xs font-bold flex justify-center items-center gap-2 transition-all">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> APPROVE
+                    </button>
+                    <button onclick="rejectUser('${key}')" class="px-4 border border-red-900/50 text-red-500 hover:bg-red-900/20 hover:text-red-400 rounded-lg text-xs font-bold transition-all">
+                        REJECT
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        function createActiveRow(key, staff) {
+            return `
+            <div class="p-3 rounded-lg hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-700">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-white">${staff.name}</span>
+                    <span class="text-[10px] bg-slate-800 px-1.5 rounded text-slate-400 uppercase">${staff.role}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-500 font-mono truncate max-w-[150px]">${staff.email}</span>
+                    <button onclick="revokeAccess('${key}')" class="text-[10px] text-red-500 hover:text-red-400 hover:underline">Revoke</button>
+                </div>
+            </div>`;
+        }
+
+        // --- ACTIONS ---
+
+        // MOVE from staff_requests -> staff_access
+        window.approveUser = function(key) {
+            // FIX: Ensure user is logged in before accessing email properties
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                alert("Session expired or user not logged in. Please refresh or login again.");
                 return;
             }
-            // -----------------------------------------
 
-            const safeEmail = email.replace(/\./g, ',');
-            
-            // 1. Check Approved Staff
-            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+            db.ref('staff_requests/' + key).once('value').then(snap => {
                 if (snap.exists()) {
                     const data = snap.val();
-                    showPortal(data);
-                } else {
-                    // 2. Check Pending Requests
-                    db.ref('staff_requests/' + safeEmail).once('value').then(reqSnap => {
-                        if (reqSnap.exists()) {
-                            document.getElementById('pending-key').innerText = safeEmail;
-                            toggleForms('pending');
-                        } else {
-                            // 3. Not Staff, Not Pending -> Show Apply Form
-                            showApplyFormForUser(email);
-                        }
+                    data.status = 'approved';
+                    data.approvedBy = currentUser.email;
+                    data.approvedAt = Date.now();
+
+                    // 1. Add to Access List
+                    db.ref('staff_access/' + key).set(data).then(() => {
+                        // 2. Remove from Request List
+                        db.ref('staff_requests/' + key).remove();
+                        // Optional: Notify
+                        console.log("Approved", data.email);
                     });
                 }
             });
         }
 
-        function checkStatus() {
-            if (auth.currentUser) {
-                verifyAccess(auth.currentUser.email);
+        // DELETE from staff_requests
+        window.rejectUser = function(key) {
+            if(confirm('Are you sure you want to reject this request?')) {
+                db.ref('staff_requests/' + key).remove();
             }
         }
 
-        function showApplyFormForUser(email) {
-            openRegister(true); // Open in "Upgrade" mode
-            document.getElementById('reg-email').value = email;
-            document.getElementById('reg-email').disabled = true; // Lock email
-            document.getElementById('reg-status-text').innerText = "Logged in as Student. Apply for Staff Access below.";
-            document.getElementById('reg-name').focus();
-        }
-
-        function showPortal(userData) {
-            document.getElementById('auth-container').classList.add('hidden');
-            const portal = document.getElementById('portal-view');
-            portal.classList.remove('hidden');
-            setTimeout(() => portal.classList.add('opacity-100'), 50); 
-            
-            document.getElementById('user-display').innerText = userData.email;
-
-            const grid = document.getElementById('portal-grid');
-            grid.innerHTML = ""; 
-
-            // DEFINITIONS
-            const cards = {
-                admin: `<a href="admin.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(236,72,153,0.3)] hover:border-pink-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-pink-900/30 p-3 rounded-lg text-pink-500 group-hover:bg-pink-600 group-hover:text-white transition-colors"><i data-lucide="shield-alert" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Master Admin</h2><p class="text-sm text-slate-400">Manage users, payments, staff access, and global configurations.</p></a>`,
-                club: `<a href="club.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:border-blue-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-blue-900/30 p-3 rounded-lg text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i data-lucide="zap" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Club Ops</h2><p class="text-sm text-slate-400">Manage specific events, take attendance, and declare winners.</p></a>`,
-                gate: `<a href="gate.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:border-green-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-green-900/30 p-3 rounded-lg text-green-500 group-hover:bg-green-600 group-hover:text-white transition-colors"><i data-lucide="scan-line" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Gate Control</h2><p class="text-sm text-slate-400">Security checkpoint for verifying passes and managing entry flow.</p></a>`,
-                results: `<a href="results.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(234,179,8,0.3)] hover:border-yellow-500/50"><div class="flex justify-between items-start mb-4"><div class="bg-yellow-900/30 p-3 rounded-lg text-yellow-500 group-hover:bg-yellow-600 group-hover:text-white transition-colors"><i data-lucide="trophy" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Results & Data</h2><p class="text-sm text-slate-400">View declared winners and export result data to Excel.</p></a>`,
-                merch: `<a href="MerchDistributor.html" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(168,85,247,0.3)] hover:border-purple-500/50 md:col-span-2 lg:col-span-1 lg:col-start-2"><div class="flex justify-between items-start mb-4"><div class="bg-purple-900/30 p-3 rounded-lg text-purple-500 group-hover:bg-purple-600 group-hover:text-white transition-colors"><i data-lucide="shirt" class="w-8 h-8"></i></div><i data-lucide="arrow-up-right" class="text-slate-600 group-hover:text-white transition-colors"></i></div><h2 class="text-2xl font-bold text-white mb-2">Merch Distributor</h2><p class="text-sm text-slate-400">Scanner for distribution desk. Verify orders and mark items delivered.</p></a>`
-            };
-
-            if (userData.role === 'admin') {
-                Object.values(cards).forEach(c => grid.innerHTML += c);
-            } else if (userData.role === 'club') {
-                grid.innerHTML += cards.club;
-            } else if (userData.role === 'gate') {
-                grid.innerHTML += cards.gate;
-            } else if (userData.role === 'merch') {
-                grid.innerHTML += cards.merch;
-            } else if (userData.role === 'results') {
-                grid.innerHTML += cards.results;
+        // DELETE from staff_access
+        window.revokeAccess = function(key) {
+            if(confirm('Revoke access for this user? They will not be able to login.')) {
+                db.ref('staff_access/' + key).remove();
             }
-
-            lucide.createIcons();
         }
 
-        // ACTIONS
-        function handleLogin() {
-            const e = document.getElementById('login-email').value;
-            const p = document.getElementById('login-pass').value;
-            if(!e || !p) return showMsg("Credentials required");
-            
-            showMsg("Verifying Identity...", false);
-            auth.signInWithEmailAndPassword(e, p).catch(err => showMsg(err.message));
-        }
-
-        function handleRegister() {
-            const name = document.getElementById('reg-name').value;
-            const email = document.getElementById('reg-email').value;
-            const pass = document.getElementById('reg-pass').value;
-            const role = document.getElementById('reg-role').value;
-            const club = document.getElementById('reg-club').value;
-
-            if(!name || !email || !role) return showMsg("Name, Email, Role required");
-            
-            if(REQUIRED_DOMAIN && !email.endsWith(REQUIRED_DOMAIN)) {
-                return showMsg(`Access Restricted: ${REQUIRED_DOMAIN} only`);
-            }
-
-            if (auth.currentUser) {
-                submitRequest(auth.currentUser.uid, email, name, role, club);
-                return;
-            }
-
-            if (!pass) return showMsg("Password required for new account");
-
-            showMsg("Processing Registration...", false);
-
-            auth.createUserWithEmailAndPassword(email, pass).then((cred) => {
-                cred.user.sendEmailVerification();
-                submitRequest(cred.user.uid, email, name, role, club);
-            }).catch(err => {
-                if (err.code === 'auth/email-already-in-use') {
-                    alert("Account exists! Please Login first, then apply.");
-                    toggleForms('login');
-                    document.getElementById('login-email').value = email;
-                } else {
-                    showMsg(err.message);
-                }
-            });
-        }
-
-        function submitRequest(uid, email, name, role, club) {
-            const safeEmail = email.replace(/\./g, ',');
-            db.ref('staff_requests/' + safeEmail).set({
-                name: name,
-                email: email,
-                role: role,
-                club_code: club,
-                uid: uid,
-                status: 'pending',
-                timestamp: Date.now()
-            }).then(() => {
-                alert("Application Sent! \nWait for Admin approval.");
-                location.reload();
-            });
-        }
-
-        function handleForgot() {
-            const email = document.getElementById('forgot-email').value;
-            if(!email) return showMsg("Enter email address");
-            auth.sendPasswordResetEmail(email)
-                .then(() => { alert("Reset link sent to your email."); toggleForms('login'); })
-                .catch(err => showMsg(err.message));
-        }
-
-        function logout() {
-            auth.signOut().then(() => location.reload());
-        }
     </script>
 </body>
 </html>
