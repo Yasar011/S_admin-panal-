@@ -36,7 +36,6 @@
             if (user) {
                 console.log("Auth State Changed: User Logged In", user.email);
                 currentUser = user;
-                // Update UI to show we are checking DB
                 const btn = document.getElementById('btn-login');
                 if(btn) btn.innerText = "Verifying Role...";
                 checkDatabaseRole(user.email);
@@ -69,11 +68,9 @@
         }
 
         function checkDatabaseRole(email) {
-            // FIX: Force lowercase to match DB keys
             const safeEmail = email.toLowerCase().replace(/\./g, ',');
             console.log("Checking DB for key:", safeEmail);
             
-            // Safety timeout
             const timeout = setTimeout(() => {
                 alert("Database Connection Timeout.\n\nPossible causes:\n1. Slow Internet\n2. Firewall blocking Firebase\n3. Database URL incorrect");
                 auth.signOut();
@@ -102,21 +99,17 @@
 
         function showDashboard() {
             console.log("Switching to Dashboard View...");
-            
-            // 1. Force Hide Login
             const loginView = document.getElementById('view-login');
-            loginView.classList.remove('active'); // Remove flex
-            loginView.classList.add('hidden');    // Add display:none
+            loginView.classList.remove('active'); 
+            loginView.classList.add('hidden');    
             
-            // 2. Force Show Admin
             const adminView = document.getElementById('view-admin');
-            adminView.classList.remove('hidden'); // Remove display:none
-            adminView.classList.add('active');    // Add flex
+            adminView.classList.remove('hidden'); 
+            adminView.classList.add('active');    
             
-            // 3. Initialize & Force Tab Render
             try {
                 initAdminPanel();
-                showAdminTab('dashboard'); // Force first tab to show
+                showAdminTab('dashboard'); 
             } catch(e) {
                 console.error("Dashboard Init Error:", e);
                 alert("Dashboard loaded with errors. Check console.");
@@ -180,9 +173,113 @@
         .bg-success { background-color: #22c55e; }
         .bg-error { background-color: #ef4444; }
         .bg-loading { background-color: #eab308; }
+        
+        /* Edit Modal */
+        #edit-modal, #info-modal { backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.7); }
     </style>
 </head>
 <body onload="initSystem()">
+
+    <!-- EDIT USER MODAL -->
+    <div id="edit-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md p-6 rounded-2xl shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="edit-3" class="text-blue-500"></i> Edit User
+            </h3>
+            <div class="space-y-3">
+                <input type="hidden" id="edit-key">
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-bold">Full Name</label>
+                    <input id="edit-name" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-bold">Spectrum ID</label>
+                    <input id="edit-id" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm font-mono uppercase">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-bold">College / Institution</label>
+                    <input id="edit-college" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-bold">Email</label>
+                    <input id="edit-email" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm" disabled>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 uppercase font-bold">Phone</label>
+                    <input id="edit-phone" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeEditModal()" class="flex-1 border border-slate-700 text-slate-300 py-2 rounded text-sm hover:bg-slate-800">Cancel</button>
+                <button onclick="saveUserEdit()" class="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-bold hover:bg-blue-500">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL INFO MODAL -->
+    <div id="info-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 rounded-2xl shadow-2xl relative">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span id="info-name">User Name</span>
+                        <span id="info-verified" class="hidden"><i data-lucide="check-circle" class="w-5 h-5 text-blue-400"></i></span>
+                    </h3>
+                    <p class="text-slate-400 font-mono text-sm" id="info-id">SPEC-ID</p>
+                </div>
+                <button onclick="closeInfoModal()" class="text-slate-500 hover:text-white p-2 bg-slate-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Profile -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Profile Details</h4>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Email:</span> <span id="info-email" class="text-white">...</span></p>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Phone:</span> <span id="info-phone" class="text-white">...</span></p>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">College:</span> <span id="info-college" class="text-white">...</span></p>
+                </div>
+                <!-- Status -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Current Status</h4>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Pass:</span> <span id="info-pass" class="text-pink-400 font-bold">...</span></p>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Check-In:</span> <span id="info-checkin" class="badge">...</span></p>
+                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Payment:</span> <span id="info-payment" class="badge">...</span></p>
+                </div>
+            </div>
+
+            <!-- Events/Squads -->
+            <div class="mb-6">
+                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Registered Events (Squads)</h4>
+                <div id="info-squads" class="grid grid-cols-2 gap-2 text-sm text-slate-300">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Merch -->
+            <div class="mb-6">
+                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Merchandise Orders</h4>
+                <div class="overflow-x-auto border border-slate-800 rounded">
+                    <table class="w-full text-left text-xs text-slate-400">
+                        <thead class="bg-slate-800 text-slate-300"><tr><th class="p-2">Item</th><th class="p-2">Size</th><th class="p-2">Price</th><th class="p-2">Status</th></tr></thead>
+                        <tbody id="info-merch-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Financials -->
+            <div class="bg-slate-950 p-4 rounded border border-slate-800">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Total Value (Pass + Merch)</span>
+                    <span id="info-total" class="text-xl font-bold text-green-400">₹0</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                    <span class="text-xs text-slate-500">Pending Amount</span>
+                    <span id="info-pending" class="text-sm font-bold text-red-400">₹0</span>
+                </div>
+                <div class="text-[10px] text-slate-600 mt-2 font-mono">Last UTR Ref: <span id="info-utr" class="select-all text-slate-400">---</span></div>
+            </div>
+        </div>
+    </div>
 
     <!-- 1. ADMIN LOGIN SCREEN -->
     <div id="view-login" class="view-section active items-center justify-center bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
@@ -273,8 +370,163 @@
                 </div>
             </div>
 
-            <!-- ... existing code for other tabs ... -->
+            <!-- STAFF MANAGER TAB -->
+            <div id="tab-staff" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Staff Access & Approvals</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card border-yellow-600/30 bg-yellow-900/10">
+                        <h3 class="font-bold text-yellow-500 mb-2 flex items-center gap-2"><i data-lucide="clock" class="w-4"></i> Pending Requests</h3>
+                        <div class="overflow-y-auto max-h-[300px] space-y-2" id="staff-requests-list">
+                            <p class="text-slate-500 text-xs italic">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="card border-green-600/30 bg-green-900/10">
+                        <h3 class="font-bold text-green-500 mb-2 flex items-center gap-2"><i data-lucide="shield-check" class="w-4"></i> Active Staff</h3>
+                        <div class="overflow-y-auto max-h-[300px] space-y-2" id="staff-access-list"></div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- VERIFICATION DESK -->
+            <div id="tab-verification" class="hidden animate-in h-full">
+                <h2 class="text-2xl font-bold text-white mb-6">Payment Verification Desk</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
+                    <div class="card lg:col-span-1 p-0 flex flex-col overflow-hidden">
+                        <div class="p-4 border-b border-slate-700 bg-slate-800/50"><h3 class="font-bold text-white">Pending Requests</h3></div>
+                        <div id="pending-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                    </div>
+                    <div class="card lg:col-span-2 p-0 flex flex-col bg-slate-900 overflow-hidden relative">
+                        <div id="verify-placeholder" class="flex flex-col items-center justify-center h-full text-slate-600">
+                            <i data-lucide="search" class="w-12 h-12 mb-4"></i>
+                            <p>Select a transaction to verify</p>
+                        </div>
+                        <div id="verify-detail" class="hidden flex-1 flex flex-col h-full">
+                            <div class="p-6 border-b border-slate-700 flex justify-between items-start bg-slate-800/30">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-white" id="v-name">User Name</h2>
+                                    <p class="text-sm text-slate-400 font-mono" id="v-id">SPEC-------</p>
+                                    <p class="text-xs text-blue-400 mt-1 uppercase font-bold" id="v-reason">Reason: Pass Purchase</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-3xl font-bold text-green-400" id="v-amount">₹0</p>
+                                    <p class="text-xs text-slate-500 font-mono mt-1">UTR: <span id="v-utr" class="text-white select-all">---</span></p>
+                                </div>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-6 flex justify-center bg-black/50">
+                                <img id="v-img" src="" class="max-h-full object-contain border border-slate-700 rounded" alt="Payment Screenshot">
+                                <p id="v-no-img" class="hidden text-slate-500 self-center">No Screenshot Uploaded</p>
+                            </div>
+                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex gap-4">
+                                <button onclick="processVerification(false)" class="flex-1 border border-red-900 text-red-500 hover:bg-red-900 hover:text-white py-3 rounded font-bold transition-colors">REJECT</button>
+                                <button onclick="processVerification(true)" class="flex-1 bg-green-600 text-white hover:bg-green-500 py-3 rounded font-bold transition-colors shadow-lg shadow-green-900/20">APPROVE & VERIFY</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Finance Tab -->
+            <div id="tab-finance" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Transaction History</h2>
+                    <button onclick="exportAdminData('finance')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                </div>
+                <div class="card p-0 overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">Date</th><th class="p-4">User</th><th class="p-4">Type</th><th class="p-4">Ref/UTR</th><th class="p-4 text-right">Amount</th><th class="p-4 text-right">Status</th></tr></thead>
+                        <tbody id="finance-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- NIFT STUDENTS TAB -->
+            <div id="tab-nift" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="graduation-cap" class="text-pink-500"></i> NIFT Students</h2>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="exportAdminData('nift')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                        <input type="text" id="search-nift" onkeyup="renderUsers()" placeholder="Search..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                    </div>
+                </div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>Pass & Squads</th><th>Entry Status</th><th>Action</th></tr></thead><tbody id="nift-table-body"></tbody></table></div>
+            </div>
+
+            <!-- OTHER STUDENTS TAB -->
+            <div id="tab-others" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="users" class="text-blue-500"></i> Non-NIFT / Guests</h2>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="exportAdminData('others')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                        <input type="text" id="search-others" onkeyup="renderUsers()" placeholder="Search..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                    </div>
+                </div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>User Info</th><th>College</th><th>Pass & Squads</th><th>Entry</th><th>Action</th></tr></thead><tbody id="others-table-body"></tbody></table></div>
+            </div>
+
+            <!-- Merch Tab -->
+            <div id="tab-merch" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Merchandise Dashboard</h2>
+                    <button onclick="exportAdminData('merch')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase mb-2">Inventory Counts</h3>
+                <div id="merch-inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full"><thead><tr><th>Buyer</th><th>Item & Size</th><th>Price</th><th>Address</th><th>Status</th><th>Action</th></tr></thead><tbody id="merch-table-body"></tbody></table></div>
+            </div>
+
+            <!-- RESULTS MANAGER TAB -->
+            <div id="tab-results" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Manage Results</h2>
+                <div class="card p-6 bg-slate-900 border-yellow-500/20 mb-6">
+                    <div class="grid grid-cols-5 gap-4 items-end">
+                        <div><label class="text-xs text-slate-500 block mb-1">Event ID</label><input id="res-event-id" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="e.g. 102"></div>
+                        <div><label class="text-xs text-slate-500 block mb-1">Winner</label><input id="res-winner" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Name"></div>
+                        <div><label class="text-xs text-slate-500 block mb-1">Runner Up</label><input id="res-runner" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Name"></div>
+                        <div><label class="text-xs text-slate-500 block mb-1">Third</label><input id="res-third" class="w-full bg-black border border-slate-700 p-2 rounded text-white text-sm" placeholder="Name"></div>
+                        <button onclick="adminDeclareResult()" class="bg-yellow-600 text-black font-bold px-4 py-2 rounded text-sm hover:bg-yellow-500">PUBLISH</button>
+                    </div>
+                </div>
+                <div class="card p-0 overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-zinc-950 text-gray-500 uppercase font-mono"><tr><th class="p-4">Event ID</th><th class="p-4">Winner</th><th class="p-4">Runner Up</th><th class="p-4">Third</th><th class="p-4">Action</th></tr></thead><tbody id="results-table-body" class="divide-y divide-zinc-800 text-gray-300 font-mono"></tbody></table></div>
+            </div>
+
+            <!-- Payment Settings Tab -->
+            <div id="tab-payment" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Payment Configuration</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card">
+                        <h3 class="font-bold text-white mb-2">UPI ID Configuration</h3>
+                        <div class="space-y-3 mb-4">
+                            <div><label class="text-[10px] text-slate-500 uppercase">Primary UPI</label><input id="upi-1" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                            <div><label class="text-[10px] text-slate-500 uppercase">Secondary UPI</label><input id="upi-2" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                            <div><label class="text-[10px] text-slate-500 uppercase">Tertiary UPI</label><input id="upi-3" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm font-mono"></div>
+                        </div>
+                        <button onclick="updatePaymentConfig('upi')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold w-full">Save UPI Config</button>
+                    </div>
+                    <div class="card">
+                        <h3 class="font-bold text-white mb-4">Backup Payment URL</h3>
+                        <input id="admin-backup" type="text" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm mb-4" placeholder="https://razorpay.me/...">
+                        <button onclick="updatePaymentConfig('backup')" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold">Update Backup</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promos Tab -->
+            <div id="tab-promos" class="hidden animate-in">
+                <h2 class="text-2xl font-bold text-white mb-6">Promo Codes</h2>
+                <div class="card mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <div><label class="text-xs text-slate-400 block mb-1">Code</label><input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase"></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Discount</label><input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Type</label><select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
+                        <div><label class="text-xs text-slate-400 block mb-1">Limit</label><input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
+                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold">Create</button>
+                    </div>
+                </div>
+                <div class="card p-0"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
+            </div>
+
+            <!-- Updates -->
+            <div id="tab-updates" class="hidden animate-in"><h2 class="text-2xl font-bold text-white mb-6">Live Announcements</h2><div class="card"><textarea id="update-msg" class="w-full bg-slate-900 border border-slate-700 p-4 rounded text-white mb-4" placeholder="Message..."></textarea><button onclick="pushUpdate()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold w-full">Broadcast</button></div></div>
         </main>
     </div>
 
@@ -466,13 +718,138 @@
                 const status = u.paymentStatus;
                 let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
                 let passDisplay = u.order?.pass || u.verificationReason || "No Pass";
-                let squadBtn = u.squads ? `<button onclick="viewSquads('${u.key}')" class="ml-2 text-purple-400 hover:text-white"><i data-lucide="users" class="w-4"></i></button>` : '';
                 
-                const row = `<tr><td><div class="font-bold text-white">${u.name}</div><div class="text-xs text-slate-400 font-mono">${u.spectrumId||'-'}</div><div class="text-[10px] text-slate-500">${u.email}</div></td>${!isNift?`<td class="text-xs text-slate-300 max-w-[100px] truncate">${u.collegeName||'Unknown'}</td>`:''}<td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span>${squadBtn}</div></td><td><span class="badge ${u.checkedIn?'badge-green':'badge-none'}">${u.checkedIn?'IN':'OUT'}</span></td><td class="flex gap-2 items-center">${btn}<button onclick="delUser('${u.key}')" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`;
+                // --- NEW BUTTONS ---
+                const infoBtn = `<button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-white"><i data-lucide="info" class="w-4"></i></button>`;
+                const editBtn = `<button onclick="openEditUser('${u.key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>`;
+                const delBtn = `<button onclick="delUser('${u.key}')" class="text-red-500 hover:text-red-300"><i data-lucide="trash-2" class="w-4"></i></button>`;
+
+                const row = `<tr>
+                    <td>
+                        <div class="font-bold text-white">${u.name}</div>
+                        <div class="text-xs text-blue-400 font-mono font-bold tracking-wide">${u.spectrumId||'NO ID'}</div>
+                        <div class="text-[10px] text-slate-500">${u.email}</div>
+                    </td>
+                    ${!isNift?`<td class="text-xs text-slate-300 max-w-[100px] truncate">${u.collegeName||'Unknown'}</td>`:''}
+                    <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span></div></td>
+                    <td><span class="badge ${u.checkedIn?'badge-green':'badge-none'}">${u.checkedIn?'IN':'OUT'}</span></td>
+                    <td class="flex gap-3 items-center">
+                        ${btn}
+                        ${infoBtn}
+                        ${editBtn}
+                        ${delBtn}
+                    </td>
+                </tr>`;
                 
                 if(isNift) tbodyNift.innerHTML += row; else tbodyOther.innerHTML += row;
             });
             lucide.createIcons();
+        }
+
+        // --- NEW: SHOW USER DETAILS ---
+        function showUserDetails(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+
+            // Populate Profile
+            document.getElementById('info-name').innerText = u.name;
+            document.getElementById('info-id').innerText = u.spectrumId || 'NOT GENERATED';
+            document.getElementById('info-email').innerText = u.email;
+            document.getElementById('info-phone').innerText = u.phone || 'N/A';
+            document.getElementById('info-college').innerText = u.collegeName || 'N/A';
+            
+            if(u.emailVerified) document.getElementById('info-verified').classList.remove('hidden');
+            else document.getElementById('info-verified').classList.add('hidden');
+
+            // Populate Status
+            document.getElementById('info-pass').innerText = u.order?.pass || 'None';
+            document.getElementById('info-checkin').innerText = u.checkedIn ? 'CHECKED IN' : 'NOT ARRIVED';
+            document.getElementById('info-checkin').className = `badge ${u.checkedIn ? 'badge-green' : 'badge-none'}`;
+            document.getElementById('info-payment').innerText = u.paymentStatus || 'None';
+            document.getElementById('info-payment').className = `badge ${u.paymentStatus==='Verified' ? 'badge-green' : 'badge-loading'}`;
+
+            // Populate Squads
+            const squadContainer = document.getElementById('info-squads');
+            squadContainer.innerHTML = "";
+            if(u.squads) {
+                Object.entries(u.squads).forEach(([evtCode, teamName]) => {
+                    squadContainer.innerHTML += `<div class="bg-slate-800 p-2 rounded border border-slate-700">
+                        <div class="font-bold text-white text-xs">${evtCode.toUpperCase()}</div>
+                        <div class="text-[10px] text-slate-400">Team: ${teamName}</div>
+                    </div>`;
+                });
+            } else {
+                squadContainer.innerHTML = '<span class="text-slate-500 italic col-span-2">No events registered.</span>';
+            }
+
+            // Populate Merch
+            const merchBody = document.getElementById('info-merch-body');
+            merchBody.innerHTML = "";
+            if(u.merch_orders) {
+                Object.values(u.merch_orders).forEach(m => {
+                    merchBody.innerHTML += `<tr class="border-b border-slate-700/50">
+                        <td class="p-2 text-white">${m.item}</td>
+                        <td class="p-2"><span class="bg-slate-700 text-white px-1 rounded text-[10px]">${m.size}</span></td>
+                        <td class="p-2">₹${m.price}</td>
+                        <td class="p-2 text-[10px] ${m.status==='Delivered'?'text-green-400':'text-yellow-400'}">${m.status}</td>
+                    </tr>`;
+                });
+            } else {
+                merchBody.innerHTML = '<tr><td colspan="4" class="p-2 text-center text-slate-500 italic">No orders.</td></tr>';
+            }
+
+            // Populate Financials
+            let total = 0;
+            if(u.order?.total) total += parseInt(u.order.total);
+            if(u.merch_orders) Object.values(u.merch_orders).forEach(m => total += parseInt(m.price || 0));
+            
+            document.getElementById('info-total').innerText = "₹" + total;
+            document.getElementById('info-pending').innerText = "₹" + (u.pendingAmount || 0);
+            document.getElementById('info-utr').innerText = u.utr || 'N/A';
+
+            // Show Modal
+            document.getElementById('info-modal').classList.remove('hidden');
+        }
+
+        function closeInfoModal() {
+            document.getElementById('info-modal').classList.add('hidden');
+        }
+
+        // --- EDIT USER LOGIC ---
+        function openEditUser(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+            document.getElementById('edit-key').value = key;
+            document.getElementById('edit-name').value = u.name || '';
+            document.getElementById('edit-id').value = u.spectrumId || '';
+            document.getElementById('edit-college').value = u.collegeName || ''; // Added College
+            document.getElementById('edit-email').value = u.email || '';
+            document.getElementById('edit-phone').value = u.phone || '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function saveUserEdit() {
+            const key = document.getElementById('edit-key').value;
+            const name = document.getElementById('edit-name').value;
+            const id = document.getElementById('edit-id').value.toUpperCase();
+            const college = document.getElementById('edit-college').value;
+            const phone = document.getElementById('edit-phone').value;
+
+            if(!key || !name) return alert("Name required");
+
+            db.ref('users/' + key).update({
+                name: name,
+                spectrumId: id,
+                collegeName: college,
+                phone: phone
+            }).then(() => {
+                alert("User Updated!");
+                closeEditModal();
+            }).catch(e => alert("Error: " + e.message));
         }
 
         // --- ACTIONS ---
@@ -497,7 +874,13 @@
             db.ref('updates').push({ message: msg, timestamp: Date.now(), by: auth.currentUser.email }).then(() => { alert("Broadcast Sent"); document.getElementById('update-msg').value = ""; });
         }
 
-        function delUser(key) { if(prompt("Type DELETE to confirm wiping this user.") === "DELETE") db.ref('users/' + key).remove(); }
+        function delUser(key) { 
+            if(confirm("DANGER: This will permanently delete this user and all their orders.\n\nAre you sure?")) {
+                db.ref('users/' + key).remove()
+                    .then(() => alert("User Deleted"))
+                    .catch(e => alert("Delete failed: " + e.message));
+            }
+        }
         
         function viewSquads(key) {
             const u = allUsers.find(x => x.key === key);
