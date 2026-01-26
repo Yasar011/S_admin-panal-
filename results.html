@@ -11,6 +11,7 @@
 
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
     <script>
@@ -25,6 +26,7 @@
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
     </script>
 
@@ -54,8 +56,11 @@
             <h1 class="text-3xl font-bold text-white tracking-widest mb-2">RESULTS CORE</h1>
             <p class="text-xs text-slate-500 font-mono mb-8">SECURE DATA ACCESS</p>
             
-            <input id="access-pass" type="password" placeholder="ENTER ACCESS KEY" class="w-full bg-slate-900 border border-slate-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.2em] outline-none focus:border-yellow-500 transition-colors mb-4">
-            <button onclick="authenticate()" class="w-full bg-yellow-600 text-black font-bold py-4 rounded-lg hover:bg-yellow-500 transition-colors">UNLOCK DATABASE</button>
+            <div class="space-y-4">
+                <input id="login-user" type="email" placeholder="official@nift.ac.in" class="w-full bg-slate-900 border border-slate-800 p-4 text-center text-white rounded-lg text-sm tracking-widest outline-none focus:border-yellow-500 transition-colors">
+                <input id="login-pass" type="password" placeholder="PASSWORD" class="w-full bg-slate-900 border border-slate-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.2em] outline-none focus:border-yellow-500 transition-colors">
+                <button onclick="handleLogin()" id="btn-auth" class="w-full bg-yellow-600 text-black font-bold py-4 rounded-lg hover:bg-yellow-500 transition-colors">UNLOCK DATABASE</button>
+            </div>
             <p id="error-msg" class="text-red-500 text-xs mt-4 font-mono h-4"></p>
         </div>
     </div>
@@ -77,7 +82,7 @@
                     <button onclick="exportToExcel()" class="bg-green-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-2">
                         <i data-lucide="sheet"></i> EXPORT EXCEL
                     </button>
-                    <button onclick="location.reload()" class="bg-slate-800 text-slate-300 px-4 py-2 rounded text-xs font-bold hover:bg-slate-700">LOGOUT</button>
+                    <button onclick="doLogout()" class="bg-slate-800 text-slate-300 px-4 py-2 rounded text-xs font-bold hover:bg-slate-700">LOGOUT</button>
                 </div>
             </div>
         </header>
@@ -152,16 +157,48 @@
 
         let resultsData = [];
 
-        function authenticate() {
-            const pass = document.getElementById('access-pass').value;
-            // Hardcoded password as requested
-            if(pass === 'SPECTRUM' || pass === 'admin') {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                initResults();
-            } else {
-                document.getElementById('error-msg').innerText = "ACCESS DENIED";
-            }
+        // --- AUTHENTICATION ---
+        function handleLogin() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            const btn = document.getElementById('btn-auth');
+            const msg = document.getElementById('error-msg');
+
+            if(!u || !p) { msg.innerText = "Credentials Required"; return; }
+            
+            btn.innerText = "VERIFYING...";
+            btn.disabled = true;
+            
+            auth.signInWithEmailAndPassword(u, p)
+                .then(cred => {
+                    checkAccess(cred.user.email);
+                })
+                .catch(err => {
+                    msg.innerText = "Access Denied: " + err.message;
+                    btn.innerText = "UNLOCK DATABASE";
+                    btn.disabled = false;
+                });
+        }
+
+        function checkAccess(email) {
+            const safeEmail = email.toLowerCase().replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+                const data = snap.val();
+                if (data && (data.role === 'admin' || data.role === 'results')) {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    initResults();
+                } else {
+                    alert("Access Denied: Results/Admin Role Required.");
+                    auth.signOut();
+                    document.getElementById('btn-auth').innerText = "UNLOCK DATABASE";
+                    document.getElementById('btn-auth').disabled = false;
+                }
+            });
+        }
+
+        function doLogout() {
+            auth.signOut().then(() => location.reload());
         }
 
         function initResults() {
@@ -255,6 +292,11 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // Init icons on load
+        lucide.createIcons();
+        // Check session if already logged in
+        auth.onAuthStateChanged(user => { if(user) checkAccess(user.email); });
     </script>
 </body>
 </html>
