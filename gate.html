@@ -26,7 +26,8 @@
             measurementId: "G-SK3RN0FDZK",
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
     </script>
 
@@ -61,9 +62,9 @@
             <p class="text-xs text-gray-500 font-mono mb-8">AUTHORIZED PERSONNEL ONLY</p>
             
             <div class="space-y-4">
-                <input id="gate-user" type="text" placeholder="OPERATOR ID" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-sm tracking-widest outline-none focus:border-blue-500 transition-colors uppercase">
-                <input id="gate-pass" type="password" placeholder="ACCESS KEY" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.5em] outline-none focus:border-blue-500 transition-colors">
-                <button onclick="authenticate()" id="btn-auth" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors">INITIALIZE SYSTEM</button>
+                <input id="gate-user" type="email" placeholder="security@nift.ac.in" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-sm tracking-widest outline-none focus:border-blue-500 transition-colors">
+                <input id="gate-pass" type="password" placeholder="PASSWORD" class="w-full bg-zinc-900 border border-zinc-800 p-4 text-center text-white rounded-lg text-lg tracking-[0.5em] outline-none focus:border-blue-500 transition-colors">
+                <button onclick="handleLogin()" id="btn-auth" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors">INITIALIZE SYSTEM</button>
             </div>
             <p id="login-msg" class="text-red-500 text-xs mt-4 h-4 font-mono"></p>
         </div>
@@ -130,6 +131,9 @@
             <button onclick="stopScanner()" id="btn-stop" class="hidden flex-1 bg-red-900/50 text-red-400 font-bold py-3 rounded-lg flex items-center justify-center gap-2 border border-red-900 hover:bg-red-900 hover:text-white">
                 <i data-lucide="stop-circle"></i> STOP
             </button>
+            <button onclick="doLogout()" class="bg-zinc-800 text-red-400 px-4 rounded-lg font-bold border border-zinc-700">
+                <i data-lucide="log-out"></i>
+            </button>
         </div>
 
     </div>
@@ -153,6 +157,11 @@
                         <h3 class="text-lg font-bold text-white leading-tight" id="user-name">Loading...</h3>
                         <p class="text-xs text-blue-400 font-mono" id="user-id">SPEC------</p>
                     </div>
+                </div>
+
+                <div class="bg-zinc-800/50 p-3 rounded border border-zinc-700 flex justify-between items-center">
+                    <span class="text-[10px] text-gray-400 uppercase">COLLEGE ID</span>
+                    <span class="text-sm font-bold text-white font-mono" id="user-college-id">---</span>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -188,10 +197,11 @@
         // UTILS
         function getTodayKey() {
             const d = new Date();
-            return `${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`; // e.g., "27-2-2026"
+            return `${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`; 
         }
 
-        function authenticate() {
+        // --- AUTHENTICATION ---
+        function handleLogin() {
             const u = document.getElementById('gate-user').value.trim();
             const p = document.getElementById('gate-pass').value.trim();
             const btn = document.getElementById('btn-auth');
@@ -200,23 +210,39 @@
             if(!u || !p) { msg.innerText = "Credentials Required"; return; }
             
             btn.innerText = "VERIFYING...";
+            btn.disabled = true;
             
-            // Check Database for Gate/Admin user
-            db.ref('club_auth/' + u).once('value').then(snap => {
+            auth.signInWithEmailAndPassword(u, p)
+                .then(cred => {
+                    checkAccess(cred.user.email);
+                })
+                .catch(err => {
+                    msg.innerText = "Access Denied: " + err.message;
+                    btn.innerText = "INITIALIZE SYSTEM";
+                    btn.disabled = false;
+                });
+        }
+
+        function checkAccess(email) {
+            const safeEmail = email.toLowerCase().replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
                 const data = snap.val();
-                if(data && data.password === p && (data.role === 'gate' || data.role === 'admin')) {
+                if (data && (data.role === 'gate' || data.role === 'admin')) {
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('main-interface').classList.remove('hidden');
                     document.getElementById('current-date-disp').innerText = getTodayKey();
                     initGate();
                 } else {
-                    msg.innerText = "ACCESS DENIED: Invalid or Unauthorized";
-                    btn.innerText = "INITIALIZE SYSTEM";
+                    alert("Access Denied: Gate Role Required.");
+                    auth.signOut();
+                    document.getElementById('btn-auth').innerText = "INITIALIZE SYSTEM";
+                    document.getElementById('btn-auth').disabled = false;
                 }
-            }).catch(err => {
-                msg.innerText = "Network Error";
-                btn.innerText = "INITIALIZE SYSTEM";
             });
+        }
+
+        function doLogout() {
+            auth.signOut().then(() => location.reload());
         }
 
         function initGate() {
@@ -236,7 +262,7 @@
                     count = users.filter(u => u.checkIns && u.checkIns[todayKey]).length;
                     document.getElementById('total-count').innerText = count;
 
-                    // Recent Logs (Filter for today's checkins and show recent)
+                    // Recent Logs
                     const recentEntries = users
                         .filter(u => u.checkIns && u.checkIns[todayKey])
                         .sort((a,b) => (b.lastCheckInTime || 0) - (a.lastCheckInTime || 0))
@@ -270,7 +296,7 @@
             html5QrcodeScanner.start(
                 { facingMode: "environment" }, 
                 { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
+                (decodedText) => { processID(decodedText); },
                 (errorMessage) => { /* ignore */ }
             ).catch(err => {
                 alert("Camera Error: " + err);
@@ -287,13 +313,8 @@
                     document.getElementById('btn-stop').classList.add('hidden');
                     document.getElementById('scan-overlay').classList.add('hidden');
                     document.getElementById('camera-placeholder').classList.remove('hidden');
-                });
+                }).catch(err => console.error("Failed to stop scanner", err));
             }
-        }
-
-        function onScanSuccess(decodedText) {
-            // Pause scanning logic handled by UI modal blocking view
-            processID(decodedText);
         }
 
         function processID(id) {
@@ -317,7 +338,6 @@
                 if(user.paymentStatus !== 'Verified') {
                     showModal('pending', user, id);
                 } else if (user.checkIns && user.checkIns[todayKey]) {
-                    // Check if checked in TODAY
                     showModal('duplicate', user, id);
                 } else {
                     showModal('success', user, id);
@@ -341,8 +361,9 @@
             // Set Data
             document.getElementById('user-name').innerText = user ? user.name : "Unknown User";
             document.getElementById('user-id').innerText = id;
+            document.getElementById('user-college-id').innerText = user?.collegeId || "N/A"; // ADDED COLLEGE ID
             
-            // Smart Pass Logic from Admin (reused here)
+            // Smart Pass Logic
             let displayPass = "---";
             if(user) {
                 if(user.order && user.order.pass && user.order.pass !== "Unknown") {
@@ -380,7 +401,7 @@
 
                 btn.innerText = "RE-ADMIT (OVERRIDE)";
                 btn.className = "bg-yellow-600 text-white w-full py-3 rounded font-bold hover:bg-yellow-500";
-                btn.onclick = () => grantAccess(currentKey); // Allows re-entry if guard permits
+                btn.onclick = () => grantAccess(currentKey);
 
             } else if (type === 'pending') {
                 header.classList.add('status-error');
@@ -393,7 +414,6 @@
                 btn.onclick = closeModal;
 
             } else {
-                // Invalid ID
                 header.classList.add('status-error');
                 icon.innerHTML = '<i data-lucide="help-circle" class="text-red-500"></i>';
                 title.innerText = "INVALID ID";
@@ -417,10 +437,9 @@
         function grantAccess(key) {
             const todayKey = getTodayKey();
             
-            // Set date-specific check-in AND global checkedIn for backward compatibility/easy querying
             const updates = {};
             updates['checkIns/' + todayKey] = true;
-            updates['checkedIn'] = true; // Overall status
+            updates['checkedIn'] = true; 
             updates['lastCheckInTime'] = firebase.database.ServerValue.TIMESTAMP;
 
             db.ref('users/' + key).update(updates).then(() => {
@@ -430,6 +449,8 @@
 
         // Init Lucide on load
         lucide.createIcons();
+        // Check session if already logged in
+        auth.onAuthStateChanged(user => { if(user) checkAccess(user.email); });
     </script>
 </body>
 </html>
