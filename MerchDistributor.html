@@ -12,6 +12,7 @@
 
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
     <script>
@@ -25,7 +26,8 @@
             measurementId: "G-SK3RN0FDZK",
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
     </script>
 
@@ -52,9 +54,9 @@
                 <p class="text-slate-500 text-xs uppercase tracking-widest mt-1">Staff Access Only</p>
             </div>
             <div class="space-y-4">
-                <input id="login-user" type="text" placeholder="Username" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-purple-500 transition-all">
+                <input id="login-user" type="email" placeholder="staff@nift.ac.in" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-purple-500 transition-all">
                 <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-purple-500 transition-all">
-                <button onclick="handleLogin()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-lg transition-all">ENTER DESK</button>
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-lg transition-all">ENTER DESK</button>
             </div>
             <p id="login-msg" class="text-red-500 text-xs text-center mt-4 h-4"></p>
         </div>
@@ -69,7 +71,7 @@
                 <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                 <span class="font-bold text-white tracking-wide">DISTRIBUTOR</span>
             </div>
-            <button onclick="location.reload()" class="text-xs text-red-500 font-bold border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
+            <button onclick="doLogout()" class="text-xs text-red-500 font-bold border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
         </header>
 
         <!-- Scanner Section -->
@@ -100,36 +102,63 @@
 
         function init() {
             lucide.createIcons();
+            
+            // Check if already logged in
+            auth.onAuthStateChanged(user => {
+                if(user) {
+                    checkAccess(user.email);
+                }
+            });
         }
 
-        // --- AUTH SYSTEM ---
+        // --- AUTH SYSTEM (FIXED) ---
         function handleLogin() {
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
             const msg = document.getElementById('login-msg');
+            const btn = document.getElementById('btn-login');
 
             if(!u || !p) { msg.innerText = "Please enter credentials"; return; }
 
-            msg.innerText = "Verifying...";
+            msg.innerText = "";
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
             
-            db.ref('club_auth/' + u).once('value').then(snap => {
+            // 1. Firebase Authentication
+            auth.signInWithEmailAndPassword(u, p)
+                .then((cred) => {
+                    // 2. Check Database Role
+                    checkAccess(cred.user.email);
+                })
+                .catch(err => {
+                    msg.innerText = "Login Failed: " + err.message;
+                    btn.innerText = "ENTER DESK";
+                    btn.disabled = false;
+                });
+        }
+
+        function checkAccess(email) {
+            const safeEmail = email.toLowerCase().replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
                 const data = snap.val();
-                if(data && data.password === p) {
-                    if(data.role === 'admin' || data.role === 'merch' || data.club_code === 'all') {
-                        document.getElementById('login-screen').classList.add('hidden');
-                        document.getElementById('app-screen').classList.remove('hidden');
-                        document.getElementById('app-screen').classList.add('flex');
-                        startScanner();
-                    } else {
-                        msg.innerText = "Access Denied: Merch Role Required";
-                    }
+                if (data && (data.role === 'admin' || data.role === 'merch')) {
+                    // Access Granted
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('hidden');
+                    document.getElementById('app-screen').classList.add('flex');
+                    startScanner();
                 } else {
-                    msg.innerText = "Invalid Username or Password";
+                    // Access Denied
+                    alert("Access Denied: You do not have the 'Merch' role.");
+                    auth.signOut();
+                    document.getElementById('btn-login').innerText = "ENTER DESK";
+                    document.getElementById('btn-login').disabled = false;
                 }
-            }).catch(err => {
-                msg.innerText = "Network Error";
-                console.error(err);
             });
+        }
+
+        function doLogout() {
+            auth.signOut().then(() => location.reload());
         }
 
         // --- SCANNER SYSTEM ---
@@ -141,19 +170,14 @@
         }
 
         function onScanSuccess(decodedText) {
-            // Stop scanning temporarily to prevent double fetches
             if(isScanning) return;
             isScanning = true;
-            
-            // Play a beep sound (optional logic here)
             fetchUser(decodedText);
-            
-            // Cooldown
-            setTimeout(() => { isScanning = false; }, 2000);
+            setTimeout(() => { isScanning = false; }, 2000); // 2s cooldown
         }
 
         function onScanFailure(error) {
-            // handle scan failure, usually better to ignore logged errors for cleaner console
+            // Ignore scan errors for cleaner UI
         }
 
         // --- CORE LOGIC ---
@@ -187,7 +211,7 @@
                 ordersHtml = `<div class="text-center p-8 border-2 border-dashed border-zinc-800 rounded-xl text-slate-500">No Merchandise Purchased</div>`;
             } else {
                 Object.entries(user.merch_orders).forEach(([orderId, order]) => {
-                    // Logic for card styling based on status
+                    // Logic for card styling
                     let statusClass = 'status-ready';
                     let statusText = 'READY TO COLLECT';
                     let actionBtn = `<button onclick="markDelivered('${key}', '${orderId}')" class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-lg shadow-lg shadow-green-900/30 flex items-center justify-center gap-2 mt-3">HAND OVER <i data-lucide="package-check"></i></button>`;
@@ -219,16 +243,22 @@
                 });
             }
 
+            // ADDED COLLEGE ID & COLLEGE NAME DISPLAY
             container.innerHTML = `
                 <div class="animate-in pb-10">
                     <div class="flex items-center gap-4 mb-6 pb-6 border-b border-zinc-800">
                         <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
                             ${user.name.substring(0,2).toUpperCase()}
                         </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white leading-none">${user.name}</h2>
+                        <div class="overflow-hidden">
+                            <h2 class="text-2xl font-bold text-white leading-none truncate">${user.name}</h2>
                             <p class="text-purple-400 font-mono text-sm mt-1">${user.spectrumId}</p>
-                            <p class="text-slate-500 text-xs mt-1 truncate max-w-[200px]">${user.email}</p>
+                            <div class="flex gap-2 mt-2">
+                                <span class="text-[10px] bg-zinc-800 text-slate-300 px-2 py-1 rounded border border-zinc-700">
+                                    ID: <span class="font-mono text-white font-bold">${user.collegeId || 'N/A'}</span>
+                                </span>
+                            </div>
+                            <p class="text-slate-500 text-xs mt-1 truncate">${user.collegeName || 'Unknown College'}</p>
                         </div>
                     </div>
                     
@@ -245,7 +275,7 @@
                     status: 'Delivered',
                     deliveredAt: Date.now()
                 }).then(() => {
-                    // Refresh the view
+                    // Refresh
                     db.ref(`users/${userKey}`).once('value', snap => {
                         renderProfile(userKey, snap.val());
                     });
