@@ -27,6 +27,7 @@
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
     </script>
 
@@ -59,9 +60,9 @@
                 <p class="text-xs text-slate-500 font-mono">EVENT MANAGEMENT CONSOLE</p>
             </div>
             <div class="space-y-4">
-                <input id="club-user" type="text" placeholder="Club Handle" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center uppercase font-mono">
-                <input id="club-pass" type="password" placeholder="Access Code" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center">
-                <button onclick="clubLogin()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">ACCESS DASHBOARD</button>
+                <input id="club-user" type="email" placeholder="clubhead@nift.ac.in" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center font-mono">
+                <input id="club-pass" type="password" placeholder="Password" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center">
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">ACCESS DASHBOARD</button>
             </div>
             <p id="login-error" class="text-center text-xs text-red-500 mt-4 h-4 font-mono"></p>
         </div>
@@ -73,10 +74,10 @@
         <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
             <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
                 <div>
-                    <h2 class="text-white font-bold text-lg" id="dash-club-name">CLUB NAME</h2>
+                    <h2 class="text-white font-bold text-lg" id="dash-club-name">LOADING...</h2>
                     <p class="text-[10px] text-slate-400 font-mono" id="dash-club-code">CODE: ---</p>
                 </div>
-                <button onclick="location.reload()" class="text-xs text-red-400 border border-red-900/50 px-3 py-1.5 rounded hover:bg-red-900/20">LOGOUT</button>
+                <button onclick="doLogout()" class="text-xs text-red-400 border border-red-900/50 px-3 py-1.5 rounded hover:bg-red-900/20">LOGOUT</button>
             </div>
         </header>
 
@@ -257,29 +258,72 @@
         window.allUsers = [];
         window.allStatuses = {};
 
+        function init() {
+            lucide.createIcons();
+            
+            // Check if already logged in
+            auth.onAuthStateChanged(user => {
+                if(user) {
+                    checkAccess(user.email);
+                } else {
+                    document.getElementById('login-view').classList.remove('hidden');
+                    document.getElementById('dashboard-view').classList.add('hidden');
+                }
+            });
+        }
+
         // --- AUTHENTICATION ---
-        function clubLogin() {
+        function handleLogin() {
             const u = document.getElementById('club-user').value.trim();
             const p = document.getElementById('club-pass').value.trim();
             const err = document.getElementById('login-error');
+            const btn = document.getElementById('btn-login');
 
             if(!u || !p) { err.innerText = "Enter credentials"; return; }
 
-            db.ref('club_auth/' + u).once('value').then(snap => {
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+
+            auth.signInWithEmailAndPassword(u, p)
+                .then(cred => {
+                    checkAccess(cred.user.email);
+                })
+                .catch(e => {
+                    err.innerText = "Login Failed: " + e.message;
+                    btn.innerText = "ACCESS DASHBOARD";
+                    btn.disabled = false;
+                });
+        }
+
+        function checkAccess(email) {
+            const safeEmail = email.toLowerCase().replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
                 const data = snap.val();
-                if(data && data.password === p) {
+                if (data && (data.role === 'club' || data.role === 'admin')) {
                     currentClubCode = data.club_code; 
+                    
+                    document.getElementById('dash-club-name').innerText = data.name ? data.name.toUpperCase() : "CLUB OPS";
+                    document.getElementById('dash-club-code').innerText = `CODE: ${currentClubCode.toUpperCase()}`;
+                    
                     document.getElementById('login-view').classList.add('hidden');
                     document.getElementById('dashboard-view').classList.remove('hidden');
                     
-                    document.getElementById('dash-club-name').innerText = u.toUpperCase();
-                    document.getElementById('dash-club-code').innerText = `CODE: ${currentClubCode.toUpperCase()}`;
-                    
                     initDashboard();
                 } else {
-                    err.innerText = "Invalid Credentials";
+                    alert("Access Denied: Not a Club Lead.");
+                    auth.signOut();
+                    document.getElementById('btn-login').innerText = "ACCESS DASHBOARD";
+                    document.getElementById('btn-login').disabled = false;
                 }
-            }).catch(e => err.innerText = "Network Error");
+            }).catch(e => {
+                console.error(e);
+                alert("Database Connection Error");
+                auth.signOut();
+            });
+        }
+
+        function doLogout() {
+            auth.signOut().then(() => location.reload());
         }
 
         // --- DASHBOARD LOGIC (FIXED) ---
@@ -287,9 +331,14 @@
             const container = document.getElementById('events-list');
             container.innerHTML = '<div class="text-center col-span-full py-10 text-slate-500"><div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>Fetching Data...</div>';
 
-            // 1. Listen for User Changes
+            // 1. Listen for User Changes (Preserving Keys)
             db.ref('users').on('value', snap => {
-                window.allUsers = snap.val() ? Object.values(snap.val()) : [];
+                const val = snap.val();
+                if (val) {
+                    window.allUsers = Object.entries(val).map(([k, v]) => ({...v, key: k}));
+                } else {
+                    window.allUsers = [];
+                }
                 renderIfReady();
             });
 
@@ -301,9 +350,8 @@
         }
 
         function renderIfReady() {
-            // Render only if user data is loaded (statuses can be empty initially)
             if (window.allUsers) {
-                const myEvents = currentClubCode === 'all' || currentClubCode === 'admin' 
+                const myEvents = (currentClubCode === 'all' || currentClubCode === 'admin') 
                     ? eventsData 
                     : eventsData.filter(e => e.club === currentClubCode);
                 
@@ -404,7 +452,6 @@
         }
 
         function switchTab(tab) {
-            // Auto stop scanner if leaving scan tab to prevent crashes
             if (tab !== 'scan') stopScanner();
 
             ['scan', 'list', 'winners'].forEach(t => {
@@ -426,7 +473,6 @@
             if(confirm(`Change event status to ${newStatus.toUpperCase()}?`)) {
                 db.ref(`events_status/${activeEventId}`).update({ status: newStatus });
                 
-                // Push to live updates on main site if going live
                 if(newStatus === 'live') {
                     const title = document.getElementById('em-title').innerText;
                     db.ref('updates').push({
@@ -434,7 +480,7 @@
                         timestamp: Date.now()
                     });
                 }
-                closeEventModal(); // Force refresh by closing to update UI
+                closeEventModal(); 
             }
         }
 
@@ -454,7 +500,6 @@
 
         // --- SCANNER & VERIFICATION ---
         function startScanner() {
-            // Check if event is ended
             const currentStatus = window.allStatuses[activeEventId]?.status;
             if(currentStatus === 'ended') {
                 alert("Event has ENDED. Cannot scan attendees.");
@@ -492,7 +537,6 @@
         }
 
         function verifyUser(id) {
-            // FIX: Don't verify if modal closed or event ended
             if(!activeEventId) return;
             const currentStatus = window.allStatuses[activeEventId]?.status;
             if(currentStatus === 'ended') {
@@ -530,7 +574,7 @@
                         db.ref(`users/${key}/attendedEvents/${activeEventId}`).set(true).then(() => {
                             showScanResult(true, `Verified: ${u.name}<br><span class="text-xs font-normal text-slate-400">${reason}</span>`);
                             if(u.squads && u.squads[activeEventId]) {
-                                alert(`Squad Found: ${u.squads[activeEventId].join(', ')}`);
+                                alert(`Squad Found: ${u.squads[activeEventId]}`); // Fixed joining
                             }
                             refreshAttendees();
                         });
@@ -583,53 +627,39 @@
 
         // --- ATTENDEE & WINNER LOGIC ---
         function refreshAttendees() {
-            // No need to fetch DB, we have window.allUsers
             const container = document.getElementById('attendees-container');
             currentAttendees = [];
             
             if (!window.allUsers) return;
 
             // Filter attendees for THIS event
-            // Note: window.allUsers is an array of user objects. We need keys to update.
-            // Since window.allUsers came from Object.values(), we lost the keys? 
-            // WAIT. The original init logic: const users = usersSnap.val() ? Object.values(usersSnap.val()) : [];
-            // This strips keys. We need keys for updates.
+            currentAttendees = window.allUsers.filter(u => u.attendedEvents && u.attendedEvents[activeEventId]);
             
-            // Re-fetch to be safe and get keys or fix initDashboard.
-            // Let's fix initDashboard to keep keys.
-            // Actually, let's just do a quick fetch here to ensure data integrity for the list.
-            
-            db.ref('users').once('value').then(snap => {
-                if(!snap.val()) return;
-                const all = Object.entries(snap.val());
-                currentAttendees = all.filter(([k, u]) => u.attendedEvents && u.attendedEvents[activeEventId]).map(([k, u]) => ({...u, key: k}));
+            document.getElementById('em-count').innerText = currentAttendees.length;
+            container.innerHTML = "";
+
+            if(currentAttendees.length === 0) {
+                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No attendees yet.</div>';
+                return;
+            }
+
+            currentAttendees.forEach(u => {
+                const isQualified = u.qualifications && u.qualifications[activeEventId];
+                const starClass = isQualified ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-yellow-400';
                 
-                document.getElementById('em-count').innerText = currentAttendees.length;
-                container.innerHTML = "";
-
-                if(currentAttendees.length === 0) {
-                    container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No attendees yet.</div>';
-                    return;
-                }
-
-                currentAttendees.forEach(u => {
-                    const isQualified = u.qualifications && u.qualifications[activeEventId];
-                    const starClass = isQualified ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-yellow-400';
-                    
-                    container.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
-                        <div>
-                            <p class="text-white text-sm font-bold">${u.name}</p>
-                            <p class="text-[10px] text-slate-500 font-mono">${u.spectrumId}</p>
-                        </div>
-                        <div class="flex gap-3">
-                            <button onclick="toggleQualification('${u.key}')" class="${starClass} transition-colors"><i data-lucide="star" class="w-4 h-4"></i></button>
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                        </div>
-                    </div>`;
-                });
-                lucide.createIcons();
+                container.innerHTML += `
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
+                    <div>
+                        <p class="text-white text-sm font-bold">${u.name}</p>
+                        <p class="text-[10px] text-slate-500 font-mono">${u.spectrumId}</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="toggleQualification('${u.key}')" class="${starClass} transition-colors"><i data-lucide="star" class="w-4 h-4"></i></button>
+                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                    </div>
+                </div>`;
             });
+            lucide.createIcons();
         }
 
         function toggleQualification(key) {
@@ -686,7 +716,7 @@
             }
         }
 
-        lucide.createIcons();
+        window.onload = init;
     </script>
 </body>
 </html>
