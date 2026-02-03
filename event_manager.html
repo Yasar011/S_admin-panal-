@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVENT MANAGER | SPECTRUM '26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+    </script>
+
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
+        .font-mono { font-family: 'Space Mono', monospace; }
+        
+        /* Form Elements */
+        input, select, textarea { 
+            background-color: #1e293b; 
+            border: 1px solid #334155; 
+            color: white; 
+            padding: 0.75rem; 
+            border-radius: 0.5rem; 
+            width: 100%; 
+            outline: none; 
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
+        input:disabled { opacity: 0.5; cursor: not-allowed; background-color: #0f172a; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem; }
+        
+        /* Checkbox Override */
+        input[type="checkbox"] { width: auto; margin-right: 0.5rem; accent-color: #3b82f6; cursor: pointer; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-6">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center">
+            <i data-lucide="calendar-plus" class="w-12 h-12 text-blue-500 mx-auto mb-4"></i>
+            <h1 class="text-2xl font-bold text-white mb-1">EVENT MANAGER</h1>
+            <p class="text-xs text-slate-500 font-mono mb-6">ADMIN ACCESS REQUIRED</p>
+            
+            <div class="space-y-4">
+                <input id="login-user" type="email" placeholder="admin@nift.ac.in">
+                <input id="login-pass" type="password" placeholder="Password">
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all">AUTHENTICATE</button>
+            </div>
+            <p id="login-msg" class="text-red-500 text-xs mt-4 h-4 font-mono"></p>
+        </div>
+    </div>
+
+    <!-- MAIN INTERFACE -->
+    <div id="app-screen" class="hidden flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-900/30 p-2 rounded-lg text-blue-400"><i data-lucide="calendar-days"></i></div>
+                    <div>
+                        <h1 class="font-bold text-white leading-none">EVENT MANAGER</h1>
+                        <p class="text-[10px] text-slate-400 font-mono">CREATE & EDIT METADATA</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="text-xs border border-slate-700 text-slate-300 px-3 py-1.5 rounded hover:bg-slate-800">LOGOUT</button>
+            </div>
+        </header>
+
+        <div class="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 gap-6">
+            
+            <!-- FORM SECTION (Left) -->
+            <div class="w-full lg:w-1/3 space-y-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg sticky top-24">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold text-white" id="form-title">Add New Event</h2>
+                        <button onclick="resetForm()" class="text-xs text-slate-500 hover:text-white flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3"></i> Reset</button>
+                    </div>
+
+                    <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label>Event ID (Unique)</label>
+                                <input id="ev-id" type="text" placeholder="e.g. 101" class="font-mono">
+                            </div>
+                            <div>
+                                <label>Club</label>
+                                <select id="ev-club">
+                                    <option value="culture">Cultural</option>
+                                    <option value="sports">Sports</option>
+                                    <option value="entertainment">Entertainment</option>
+                                    <option value="lit">Literary</option>
+                                    <option value="adventure">Adventure</option>
+                                    <option value="environment">Environment</option>
+                                    <option value="essc">ESSC</option>
+                                    <option value="tech">Technical</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label>Event Name</label>
+                            <input id="ev-name" type="text" placeholder="e.g. Battle of Bands">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label>Participation</label>
+                                <input id="ev-parts" type="text" placeholder="e.g. Solo or 2-4">
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="mb-0">Booking Limit</label>
+                                    <div class="flex items-center gap-1">
+                                        <input type="checkbox" id="ev-limit-toggle" onchange="toggleLimitInput()" class="w-4 h-4 rounded border-gray-600">
+                                        <span class="text-[10px] text-slate-400">Enable</span>
+                                    </div>
+                                </div>
+                                <input id="ev-limit" type="number" placeholder="Max Groups" disabled>
+                            </div>
+                        </div>
+
+                        <!-- Schedule & Venue -->
+                        <div class="grid grid-cols-3 gap-3 bg-slate-950 p-3 rounded border border-slate-800">
+                            <div class="col-span-1">
+                                <label>Day</label>
+                                <select id="ev-day" class="text-xs">
+                                    <option value="Day 1">Day 1</option>
+                                    <option value="Day 2">Day 2</option>
+                                    <option value="Day 3">Day 3</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label>Time</label>
+                                <input id="ev-time" type="text" placeholder="e.g. 10:00 AM" class="text-xs">
+                            </div>
+                            <div class="col-span-3">
+                                <label>Venue</label>
+                                <input id="ev-venue" type="text" placeholder="e.g. Auditorium" class="text-xs">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label>Entry Fee (₹)</label>
+                                <input id="ev-fee" type="number" placeholder="0">
+                            </div>
+                            <div>
+                                <label>Prize Pool (₹)</label>
+                                <input id="ev-prize" type="number" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label>Short Description</label>
+                            <textarea id="ev-desc" rows="3" placeholder="Brief details for the website card..."></textarea>
+                        </div>
+
+                        <div>
+                            <label>Image URL (Banner)</label>
+                            <input id="ev-img" type="text" placeholder="https://...">
+                        </div>
+
+                        <div>
+                            <label>Rulebook URL</label>
+                            <input id="ev-rules" type="text" placeholder="https://drive.google.com/...">
+                        </div>
+
+                        <div class="bg-slate-950 p-3 rounded border border-slate-800">
+                            <label class="text-blue-400 mb-2">Judges Panel (Internal Record)</label>
+                            <div class="space-y-2">
+                                <input id="ev-judge1" type="text" placeholder="Judge 1 Name" class="text-xs">
+                                <input id="ev-judge2" type="text" placeholder="Judge 2 Name" class="text-xs">
+                                <input id="ev-judge3" type="text" placeholder="Judge 3 Name" class="text-xs">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-slate-950 p-3 rounded border border-slate-800">
+                            <label class="mb-0 text-white">Booking Status</label>
+                            <select id="ev-status" class="w-32 bg-slate-900 text-xs py-1">
+                                <option value="open">OPEN ✅</option>
+                                <option value="closed">CLOSED ❌</option>
+                                <option value="filling">FILLING FAST ⚠️</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 mt-4 border-t border-slate-800 flex gap-3">
+                        <button onclick="deleteEvent()" id="btn-delete" class="hidden bg-red-900/50 text-red-500 p-3 rounded hover:bg-red-900 hover:text-white"><i data-lucide="trash-2"></i></button>
+                        <button onclick="saveEvent()" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-500 transition-colors">SAVE EVENT</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIST SECTION (Right) -->
+            <div class="w-full lg:w-2/3">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                        <h3 class="font-bold text-slate-300">Existing Events Database</h3>
+                        <div class="bg-slate-900 border border-slate-700 rounded flex items-center px-2">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                            <input id="search-bar" onkeyup="filterEvents()" type="text" placeholder="Search..." class="bg-transparent border-none text-xs w-40 focus:ring-0">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-950 text-slate-500 uppercase text-[10px]">
+                                <tr>
+                                    <th class="p-4">ID</th>
+                                    <th class="p-4">Event & Limits</th>
+                                    <th class="p-4">Schedule</th>
+                                    <th class="p-4">Fee / Prize</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="events-table-body" class="divide-y divide-slate-800">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="loading-spinner" class="p-8 text-center text-slate-500 text-xs">Loading database...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allEvents = [];
+        let isEditing = false;
+
+        function init() {
+            lucide.createIcons();
+            auth.onAuthStateChanged(user => {
+                if(user) {
+                    checkAdmin(user.email);
+                } else {
+                    showLogin();
+                }
+            });
+        }
+
+        // --- AUTH ---
+        function handleLogin() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            const msg = document.getElementById('login-msg');
+            const btn = document.getElementById('btn-login');
+
+            if(!u || !p) return msg.innerText = "Enter details";
+            
+            btn.innerText = "Checking...";
+            btn.disabled = true;
+
+            auth.signInWithEmailAndPassword(u, p).then(() => {
+                // onAuthStateChanged will handle the rest
+            }).catch(e => {
+                msg.innerText = e.message;
+                btn.innerText = "AUTHENTICATE";
+                btn.disabled = false;
+            });
+        }
+
+        function checkAdmin(email) {
+            const safeEmail = email.toLowerCase().replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+                const data = snap.val();
+                if(data && data.role === 'admin') {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('hidden');
+                    loadEvents();
+                } else {
+                    alert("Access Denied: Admins Only");
+                    auth.signOut();
+                }
+            });
+        }
+
+        function showLogin() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('hidden');
+        }
+
+        function logout() { auth.signOut().then(() => location.reload()); }
+
+        // --- UI LOGIC ---
+        function toggleLimitInput() {
+            const isChecked = document.getElementById('ev-limit-toggle').checked;
+            const input = document.getElementById('ev-limit');
+            input.disabled = !isChecked;
+            if(!isChecked) input.value = '';
+        }
+
+        // --- CRUD LOGIC ---
+        function loadEvents() {
+            db.ref('events_data').on('value', snap => {
+                document.getElementById('loading-spinner').classList.add('hidden');
+                const data = snap.val();
+                allEvents = data ? Object.values(data) : [];
+                renderTable(allEvents);
+            });
+        }
+
+        function renderTable(events) {
+            const tbody = document.getElementById('events-table-body');
+            tbody.innerHTML = "";
+            
+            if(events.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">No events found. Create one!</td></tr>`;
+                return;
+            }
+
+            events.forEach(e => {
+                const statusColor = e.status === 'open' ? 'text-green-400' : (e.status === 'filling' ? 'text-yellow-400' : 'text-red-400');
+                const limitText = e.limit && e.limit > 0 ? `<span class="text-orange-400 font-mono">Max: ${e.limit}</span>` : '<span class="text-slate-600 text-[10px]">Unlimited</span>';
+                
+                tbody.innerHTML += `
+                <tr class="hover:bg-slate-900/50 transition-colors">
+                    <td class="p-4 font-mono text-xs text-slate-400">${e.id}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-white">${e.title}</div>
+                        <div class="text-xs text-slate-500 mb-1">${e.club.toUpperCase()} • ${e.members}</div>
+                        ${limitText}
+                    </td>
+                    <td class="p-4 text-xs text-slate-400">
+                        <div>${e.day || '-'}</div>
+                        <div class="font-mono text-[10px] text-slate-500">${e.time || '-'}</div>
+                        <div class="truncate w-24 text-[10px] text-blue-400">${e.venue || '-'}</div>
+                    </td>
+                    <td class="p-4 text-xs">
+                        <div class="text-slate-300">Fee: ₹${e.fee}</div>
+                        <div class="text-yellow-600">Prize: ₹${e.prize || 0}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="text-xs font-bold uppercase ${statusColor} border border-slate-700 px-2 py-1 rounded">${e.status}</span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="editEvent('${e.id}')" class="bg-slate-800 p-2 rounded text-blue-400 hover:text-white hover:bg-blue-600 transition-colors">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            lucide.createIcons();
+        }
+
+        function saveEvent() {
+            const id = document.getElementById('ev-id').value.trim();
+            if(!id) return alert("Event ID is required");
+
+            const limitEnabled = document.getElementById('ev-limit-toggle').checked;
+            const limitVal = limitEnabled ? (parseInt(document.getElementById('ev-limit').value) || 0) : 0;
+
+            const eventData = {
+                id: id,
+                club: document.getElementById('ev-club').value,
+                title: document.getElementById('ev-name').value,
+                members: document.getElementById('ev-parts').value,
+                limit: limitVal,
+                day: document.getElementById('ev-day').value,
+                time: document.getElementById('ev-time').value,
+                venue: document.getElementById('ev-venue').value,
+                fee: document.getElementById('ev-fee').value,
+                prize: document.getElementById('ev-prize').value,
+                desc: document.getElementById('ev-desc').value,
+                img: document.getElementById('ev-img').value,
+                rules: document.getElementById('ev-rules').value,
+                status: document.getElementById('ev-status').value,
+                judges: [
+                    document.getElementById('ev-judge1').value,
+                    document.getElementById('ev-judge2').value,
+                    document.getElementById('ev-judge3').value
+                ]
+            };
+
+            db.ref('events_data/' + id).set(eventData).then(() => {
+                alert("Event Saved Successfully!");
+                if(!isEditing) resetForm();
+            }).catch(e => alert("Error: " + e.message));
+        }
+
+        function editEvent(id) {
+            const e = allEvents.find(ev => ev.id == id);
+            if(!e) return;
+
+            isEditing = true;
+            document.getElementById('form-title').innerText = `Edit Event: ${id}`;
+            document.getElementById('btn-delete').classList.remove('hidden');
+            
+            document.getElementById('ev-id').value = e.id;
+            document.getElementById('ev-id').disabled = true; // Lock ID
+            document.getElementById('ev-club').value = e.club;
+            document.getElementById('ev-name').value = e.title;
+            document.getElementById('ev-parts').value = e.members;
+            
+            // Limit Logic
+            const hasLimit = e.limit && e.limit > 0;
+            document.getElementById('ev-limit-toggle').checked = hasLimit;
+            document.getElementById('ev-limit').disabled = !hasLimit;
+            document.getElementById('ev-limit').value = hasLimit ? e.limit : '';
+
+            document.getElementById('ev-day').value = e.day || 'Day 1';
+            document.getElementById('ev-time').value = e.time || '';
+            document.getElementById('ev-venue').value = e.venue || '';
+            document.getElementById('ev-fee').value = e.fee;
+            document.getElementById('ev-prize').value = e.prize;
+            document.getElementById('ev-desc').value = e.desc;
+            document.getElementById('ev-img').value = e.img;
+            document.getElementById('ev-rules').value = e.rules;
+            document.getElementById('ev-status').value = e.status;
+            
+            if(e.judges) {
+                document.getElementById('ev-judge1').value = e.judges[0] || '';
+                document.getElementById('ev-judge2').value = e.judges[1] || '';
+                document.getElementById('ev-judge3').value = e.judges[2] || '';
+            }
+        }
+
+        function deleteEvent() {
+            const id = document.getElementById('ev-id').value;
+            if(confirm(`Are you sure you want to delete Event ${id}? This cannot be undone.`)) {
+                db.ref('events_data/' + id).remove().then(() => {
+                    alert("Event Deleted");
+                    resetForm();
+                });
+            }
+        }
+
+        function resetForm() {
+            isEditing = false;
+            document.getElementById('form-title').innerText = "Add New Event";
+            document.getElementById('btn-delete').classList.add('hidden');
+            document.getElementById('ev-id').disabled = false;
+            document.getElementById('ev-limit-toggle').checked = false;
+            document.getElementById('ev-limit').disabled = true;
+            
+            const inputs = document.querySelectorAll('input, textarea');
+            inputs.forEach(i => i.value = '');
+            document.getElementById('ev-club').value = 'culture';
+            document.getElementById('ev-day').value = 'Day 1';
+            document.getElementById('ev-status').value = 'open';
+        }
+
+        function filterEvents() {
+            const q = document.getElementById('search-bar').value.toLowerCase();
+            const filtered = allEvents.filter(e => e.title.toLowerCase().includes(q) || e.id.toString().includes(q) || e.club.includes(q));
+            renderTable(filtered);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
