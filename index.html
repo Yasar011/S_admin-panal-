@@ -421,12 +421,13 @@
                 gate: createCard("Gate Control", "Security checkpoint for verifying passes.", "scan-line", "green", "gate"),
                 results: createCard("Results & Data", "View winners and export result data.", "trophy", "yellow", "results"),
                 merch: createCard("Merch Distributor", "Scanner for distribution desk.", "shirt", "purple", "merch", "md:col-span-2 lg:col-span-1 lg:col-start-2"),
-                // NEW CARD
-                eventEditor: createLinkCard("Event Editor", "Manual tool to add/remove events for users.", "edit", "indigo", "event_editor.html")
+                // NEW CARDS
+                eventEditor: createLinkCard("Event Editor", "Manual tool to add/remove events for users.", "edit", "indigo", "event_editor.html"),
+                eventManager: createLinkCard("Event Manager", "Create & Edit Event Metadata (Fees, Prizes).", "calendar-plus", "orange", "event_manager.html")
             };
 
             if (userData.role === 'admin') {
-                grid.innerHTML = cards.admin + cards.club + cards.gate + cards.results + cards.merch + cards.eventEditor;
+                grid.innerHTML = cards.admin + cards.club + cards.gate + cards.results + cards.merch + cards.eventEditor + cards.eventManager;
             } else if (userData.role === 'club') {
                 grid.innerHTML = cards.club + cards.eventEditor;
             } else if (userData.role === 'gate') {
