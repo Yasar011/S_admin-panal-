@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vogue Gala | Command Center</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Italiana&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        } catch (e) {
+            console.error("Firebase Init Error", e);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.database();
+        let globalUsers = {}; 
+        let globalVolunteers = {};
+
+        // --- AUTH & INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    const safeEmail = user.email.replace(/\./g, ',');
+                    db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+                        const data = snap.val();
+                        if (data && (data.role === 'admin' || data.club_code === 'fashion')) {
+                            document.getElementById('login-view').classList.add('hidden');
+                            document.getElementById('admin-view').classList.remove('hidden');
+                            initDashboard();
+                        } else {
+                            alert("Access Denied: You do not have Fashion Management permissions.");
+                            auth.signOut();
+                        }
+                    });
+                } else {
+                    document.getElementById('login-view').classList.remove('hidden');
+                    document.getElementById('admin-view').classList.add('hidden');
+                }
+            });
+        });
+
+        function handleLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            if(!e || !p) return alert("Enter credentials");
+            auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message));
+        }
+
+        function logout() { auth.signOut().then(() => location.reload()); }
+
+        // --- DATA LOGIC ---
+        function initDashboard() {
+            lucide.createIcons();
+            
+            // Fetch Volunteers First
+            db.ref('fashion_volunteers').on('value', snap => {
+                globalVolunteers = snap.val() || {};
+                renderVolunteersList(globalVolunteers); // Update separate tab
+                if(Object.keys(globalUsers).length > 0) renderTeams(globalUsers); // Refresh teams to show vols
+            });
+
+            // Fetch Users
+            db.ref('users').on('value', snap => {
+                globalUsers = snap.val() || {}; 
+                renderTeams(globalUsers);
+            });
+        }
+
+        function renderTeams(users) {
+            const list = document.getElementById('team-list');
+            list.innerHTML = '';
+            let count = 0;
+
+            Object.entries(users).forEach(([key, u]) => {
+                // Check if registered for Fashion Show
+                const hasFashion = (u.order?.events?.some(e => e.id === 102)) || (u.order?.pass?.includes('Vogue'));
+                
+                if (hasFashion) {
+                    count++;
+                    const squad = u.squads ? (u.squads['102'] || []) : [];
+                    const squadList = squad.length > 0 ? squad.join(', ') : '<span class="text-red-400">No members added</span>';
+                    const payStatusClass = u.paymentStatus === 'Verified' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400';
+                    const phone = u.phone ? u.phone.replace(/\D/g,'') : '';
+                    const waLink = phone ? `https://wa.me/91${phone}` : '#';
+
+                    // Find Team Volunteers
+                    const teamVols = Object.values(globalVolunteers).filter(v => v.teamId === key);
+                    let volHtml = '<span class="text-gray-500 italic">None</span>';
+                    if(teamVols.length > 0) {
+                        volHtml = teamVols.map(v => `<span class="bg-purple-900 text-purple-200 px-1.5 rounded text-[10px] mr-1">${v.name}</span>`).join('');
+                    }
+
+                    // SECURITY CODE LOGIC
+                    const accessCode = u.fashion_pass ? `<span class="text-green-400 font-mono text-sm tracking-widest border border-green-500/30 px-2 rounded bg-green-900/20">${u.fashion_pass}</span>` : `<button onclick="generateCode('${key}')" class="text-[10px] bg-red-600 text-white px-2 py-1 rounded hover:bg-red-500">Generate Code</button>`;
+
+                    const inviteBtn = u.fashion_pass ? `<button onclick="copyInvite('${key}', '${u.fashion_pass}')" class="text-xs bg-blue-600 text-white hover:bg-blue-500 px-3 py-1 rounded font-bold flex items-center gap-1"><i data-lucide="share-2" class="w-3 h-3"></i> Send Invite</button>` : `<span class="text-[10px] text-gray-500">Generate Code First</span>`;
+
+                    list.innerHTML += `
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-lg hover:border-purple-500 transition-colors group relative">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="text-white font-bold text-lg">${u.name}</h4>
+                                <p class="text-xs text-purple-400 font-mono">${u.spectrumId || 'NO ID'}</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="${payStatusClass} text-[10px] px-2 py-1 rounded uppercase font-bold">${u.paymentStatus}</span>
+                                <button onclick="copyPortalLink('${key}')" class="text-xs text-green-400 hover:text-white flex items-center gap-1 border border-green-500/30 px-2 py-0.5 rounded bg-green-500/10 hover:bg-green-500/20"><i data-lucide="link" class="w-3 h-3"></i> Copy Link</button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-3">
+                            <div class="bg-black/30 p-2 rounded">
+                                <div class="flex justify-between items-center mb-1">
+                                    <p class="text-gray-500 uppercase text-[9px] font-bold">Roster</p>
+                                    <button onclick="openEditModal('${key}')" class="text-[9px] text-blue-400 hover:text-white uppercase font-bold">Edit</button>
+                                </div>
+                                <p class="text-gray-300 font-mono text-xs break-all leading-tight">${squadList}</p>
+                            </div>
+                            <div class="bg-black/30 p-2 rounded">
+                                <p class="text-gray-500 uppercase text-[9px] font-bold mb-1">Volunteers</p>
+                                <div class="flex flex-wrap gap-1">${volHtml}</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-purple-900/10 border border-purple-500/20 p-3 rounded mb-3 flex justify-between items-center">
+                            <div>
+                                <p class="text-[9px] text-purple-400 uppercase font-bold mb-1">Team Portal Access</p>
+                                ${accessCode}
+                            </div>
+                            ${inviteBtn}
+                        </div>
+
+                        <div class="flex gap-2 border-t border-white/10 pt-3">
+                            <button onclick="generatePDF('${key}')" class="flex-1 bg-white text-black py-2 rounded text-xs font-bold hover:bg-gray-200">Ticket PDF</button>
+                            <button onclick="window.open('${waLink}')" class="flex-1 bg-green-600/20 text-green-400 py-2 rounded text-xs font-bold hover:bg-green-600/30 flex justify-center gap-1"><i data-lucide="message-circle" class="w-3 h-3 mt-0.5"></i> Chat</button>
+                        </div>
+                    </div>`;
+                }
+            });
+            document.getElementById('count-teams').innerText = count;
+            lucide.createIcons();
+        }
+
+        function renderVolunteersList(vols) {
+            const list = document.getElementById('volunteer-list');
+            list.innerHTML = '';
+            Object.entries(vols).forEach(([key, v]) => {
+                const teamName = v.teamId && globalUsers[v.teamId] ? globalUsers[v.teamId].name : 'General Staff';
+                list.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-white/5 rounded border border-white/10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-purple-900/50 flex items-center justify-center text-purple-400 font-bold text-xs">${v.name.charAt(0)}</div>
+                        <div>
+                            <p class="text-sm text-white font-bold">${v.name}</p>
+                            <p class="text-[10px] text-gray-500 uppercase">${v.role} • <span class="text-blue-400">${teamName}</span></p>
+                        </div>
+                    </div>
+                    <button onclick="db.ref('fashion_volunteers/${key}').remove()" class="text-red-500 hover:text-white"><i data-lucide="trash-2" class="w-4"></i></button>
+                </div>`;
+            });
+            document.getElementById('count-vols').innerText = Object.keys(vols).length;
+            lucide.createIcons();
+        }
+
+        // --- EXPORT CSV ---
+        function exportTeamCSV() {
+            let csv = "Team Leader,Spectrum ID,Email,Phone,Payment Status,Roster Members,Volunteers\n";
+            
+            Object.entries(globalUsers).forEach(([key, u]) => {
+                const hasFashion = (u.order?.events?.some(e => e.id === 102)) || (u.order?.pass?.includes('Vogue'));
+                
+                if (hasFashion) {
+                    const squad = u.squads ? (u.squads['102'] || []) : [];
+                    const rosterStr = squad.join('; ');
+                    
+                    const teamVols = Object.values(globalVolunteers).filter(v => v.teamId === key);
+                    const volStr = teamVols.map(v => `${v.name} (${v.role})`).join('; ');
+
+                    csv += `"${u.name || ''}","${u.spectrumId || ''}","${u.email || ''}","${u.phone || ''}","${u.paymentStatus || ''}","${rosterStr}","${volStr}"\n`;
+                }
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Fashion_Teams_Roster.csv";
+            link.click();
+        }
+
+        // --- PORTAL SECURITY ---
+        function generateCode(userId) {
+            const code = Math.floor(1000 + Math.random() * 9000); // 4 Digit Code
+            db.ref(`users/${userId}/fashion_pass`).set(code.toString());
+        }
+
+        function copyInvite(userId, code) {
+            const link = `${window.location.origin}/team_portal.html?tid=${userId}`;
+            const msg = `*VOGUE GALA TEAM PORTAL*\n\nAccess Link: ${link}\nLogin Code: *${code}*\n\nUse this portal to add/remove your volunteers.`;
+            
+            // Safe copy method
+            const textarea = document.createElement("textarea");
+            textarea.value = msg;
+            textarea.style.position = "fixed"; 
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    alert("Invite Copied to Clipboard!");
+                } else {
+                    console.error('Copy command failed.');
+                    alert("Failed to copy invite. Please copy manually from console or retry.");
+                    console.log(msg);
+                }
+            } catch (err) {
+                console.error('Oops, unable to copy', err);
+                alert("Failed to copy invite.");
+            }
+
+            document.body.removeChild(textarea);
+        }
+
+        function copyPortalLink(teamId) {
+            const url = `${window.location.origin}/team_portal.html?tid=${teamId}`;
+            const textarea = document.createElement("textarea");
+            textarea.value = url;
+            textarea.style.position = "fixed";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                alert("Link Copied!");
+            } catch (err) {
+                alert("Copy failed");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- EDIT MODAL LOGIC (Existing) ---
+        let editingUserKey = null;
+        function openEditModal(key) {
+            editingUserKey = key;
+            const u = globalUsers[key];
+            const squad = u.squads ? (u.squads['102'] || []) : [];
+            const container = document.getElementById('modal-roster-list');
+            document.getElementById('edit-team-name').innerText = u.name + "'s Team";
+            container.innerHTML = '';
+            squad.forEach((memberId, index) => {
+                container.innerHTML += `<div class="flex justify-between items-center bg-white/5 p-2 rounded mb-2"><span class="text-white font-mono text-sm">${memberId}</span><button onclick="removeMember(${index})" class="text-red-500 text-xs hover:text-white">Remove</button></div>`;
+            });
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); editingUserKey = null; }
+        function addMember() {
+            const newId = document.getElementById('new-member-id').value.toUpperCase().trim();
+            if(!newId) return alert("Enter ID");
+            const u = globalUsers[editingUserKey];
+            const currentSquad = u.squads ? (u.squads['102'] || []) : [];
+            const newSquad = [...currentSquad, newId];
+            db.ref(`users/${editingUserKey}/squads/102`).set(newSquad).then(() => { document.getElementById('new-member-id').value = ''; openEditModal(editingUserKey); });
+        }
+        function removeMember(index) {
+            const u = globalUsers[editingUserKey];
+            const currentSquad = u.squads ? (u.squads['102'] || []) : [];
+            currentSquad.splice(index, 1);
+            db.ref(`users/${editingUserKey}/squads/102`).set(currentSquad).then(() => openEditModal(editingUserKey));
+        }
+
+        // --- PDF & BROADCAST ---
+        function generatePDF(key) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const u = globalUsers[key];
+            if(!u) return;
+            const squad = u.squads ? (u.squads['102'] || []) : [];
+            const teamVols = Object.values(globalVolunteers).filter(v => v.teamId === key);
+
+            doc.setFillColor(10, 10, 10); doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.text("VOGUE GALA | TEAM PASS", 105, 20, null, null, 'center');
+            
+            doc.setTextColor(0, 0, 0); doc.setFontSize(14);
+            doc.text(`Team Leader: ${u.name}`, 20, 60);
+            doc.text(`ID: ${u.spectrumId}`, 20, 70);
+            
+            doc.setFontSize(14); doc.text("Roster:", 20, 90);
+            let y = 100;
+            squad.forEach((id, i) => { doc.setFontSize(12); doc.text(`${i+1}. ${id}`, 30, y); y += 8; });
+            
+            y += 10;
+            doc.setFontSize(14); doc.text("Volunteers:", 20, y);
+            y += 10;
+            teamVols.forEach((v, i) => { doc.setFontSize(12); doc.text(`${i+1}. ${v.name} (${v.role}) - ${v.specId}`, 30, y); y += 8; });
+
+            doc.save(`Vogue_${u.spectrumId}.pdf`);
+        }
+
+        function addVolunteerById() {
+            const specId = prompt("Enter Volunteer's Spectrum ID:").toUpperCase();
+            if (!specId) return;
+            const user = Object.values(globalUsers).find(u => u.spectrumId === specId);
+            if (user) {
+                db.ref('fashion_volunteers').push({ name: user.name, specId: specId, role: "General Staff", teamId: null, timestamp: Date.now() });
+            } else { alert("ID not found"); }
+        }
+
+        function broadcastUpdate() {
+            const msg = document.getElementById('broadcast-msg').value;
+            if(!msg.trim()) return;
+            if(confirm("Send Broadcast?")) db.ref('updates').push({ message: `[Vogue Gala] ${msg}`, timestamp: Date.now(), category: 'fashion' }).then(() => { alert("Sent"); document.getElementById('broadcast-msg').value = ''; });
+        }
+        function switchTab(t) { document.querySelectorAll('.tab-content').forEach(e=>e.classList.add('hidden')); document.getElementById(t).classList.remove('hidden'); lucide.createIcons(); }
+    </script>
+</head>
+<body class="bg-[#050505] text-white font-family-manrope overflow-hidden h-screen">
+
+    <!-- EDIT MODAL -->
+    <div id="edit-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-zinc-900 border border-purple-500/30 w-full max-w-md p-6 rounded-xl shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-1">Manage Squad</h3>
+            <p id="edit-team-name" class="text-purple-400 text-xs font-mono mb-4 uppercase">Team Name</p>
+            <div id="modal-roster-list" class="max-h-48 overflow-y-auto mb-4 border-t border-b border-white/10 py-2"></div>
+            <div class="flex gap-2"><input id="new-member-id" type="text" placeholder="Enter Spectrum ID" class="flex-1 bg-black border border-white/20 p-2 rounded text-sm text-white uppercase outline-none focus:border-purple-500"><button onclick="addMember()" class="bg-purple-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-purple-500">Add</button></div>
+            <button onclick="closeEditModal()" class="mt-4 w-full border border-white/10 text-gray-400 py-2 rounded text-xs hover:bg-white/5">Close Panel</button>
+        </div>
+    </div>
+
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="flex flex-col items-center justify-center h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')]">
+        <div class="text-center mb-8">
+            <h1 class="font-display text-5xl mb-2">VOGUE GALA</h1>
+            <p class="text-purple-400 font-mono text-xs tracking-[0.5em]">MANAGEMENT CONSOLE</p>
+        </div>
+        <div class="w-full max-w-xs space-y-4">
+            <input id="email" type="email" placeholder="Access ID" class="w-full bg-white/5 border border-white/10 p-3 text-sm text-white outline-none focus:border-purple-500 rounded">
+            <input id="password" type="password" placeholder="Passcode" class="w-full bg-white/5 border border-white/10 p-3 text-sm text-white outline-none focus:border-purple-500 rounded">
+            <button onclick="handleLogin()" class="w-full bg-purple-600 text-white font-bold py-3 rounded text-sm hover:bg-purple-500 transition-colors">INITIALIZE</button>
+        </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="admin-view" class="hidden flex h-full">
+        <aside class="w-64 bg-[#0a0a0a] border-r border-white/10 p-6 flex flex-col">
+            <div class="mb-10"><h2 class="font-display text-2xl text-white">VOGUE</h2><p class="text-[10px] text-gray-500 font-mono">EVENT ID: 102</p></div>
+            <nav class="space-y-2 flex-1">
+                <button onclick="switchTab('teams')" class="w-full text-left p-3 rounded text-xs font-bold text-white flex items-center gap-3 bg-purple-600"><i data-lucide="users" class="w-4 h-4"></i> Teams</button>
+                <button onclick="switchTab('volunteers')" class="w-full text-left p-3 rounded text-xs font-bold text-gray-400 hover:text-white flex items-center gap-3"><i data-lucide="user-check" class="w-4 h-4"></i> Volunteers</button>
+                <button onclick="switchTab('comms')" class="w-full text-left p-3 rounded text-xs font-bold text-gray-400 hover:text-white flex items-center gap-3"><i data-lucide="radio" class="w-4 h-4"></i> Live Comms</button>
+            </nav>
+            <button onclick="logout()" class="text-xs text-red-500 font-bold hover:text-white flex items-center gap-2 mt-auto"><i data-lucide="log-out" class="w-4 h-4"></i> Terminate</button>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto bg-[#050505] relative">
+            <div class="grid grid-cols-3 gap-6 mb-8">
+                <div class="bg-white/5 border border-white/10 p-4 rounded-lg"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Registered Teams</p><h3 id="count-teams" class="text-3xl font-display text-white mt-1">0</h3></div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-lg"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Active Volunteers</p><h3 id="count-vols" class="text-3xl font-display text-purple-400 mt-1">0</h3></div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-lg"><p class="text-[10px] text-gray-500 uppercase tracking-widest">Event Status</p><h3 class="text-xl font-bold text-green-400 mt-2 flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> LIVE</h3></div>
+            </div>
+
+            <div id="teams" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Participant Roster</h2>
+                    <div class="flex gap-2">
+                         <input type="text" placeholder="Search ID/Name..." class="bg-white/5 border border-white/10 px-4 py-2 rounded text-xs text-white outline-none focus:border-purple-500">
+                         <button onclick="exportTeamCSV()" class="bg-white text-black px-4 py-2 rounded text-xs font-bold hover:bg-gray-200 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> Export CSV</button>
+                    </div>
+                </div>
+                <div id="team-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            
+            <div id="volunteers" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-white">Volunteer Force</h2><button onclick="addVolunteerById()" class="bg-purple-600 text-white px-4 py-2 rounded text-xs font-bold hover:bg-purple-500 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Add by ID</button></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="volunteer-list"></div>
+            </div>
+
+            <div id="comms" class="tab-content hidden">
+                <h2 class="text-xl font-bold text-white mb-6">Broadcast Center</h2>
+                <div class="bg-white/5 border border-white/10 p-6 rounded-lg max-w-2xl">
+                    <textarea id="broadcast-msg" rows="4" class="w-full bg-black/50 border border-white/10 p-4 rounded text-white text-sm outline-none mb-4" placeholder="Announcement..."></textarea>
+                    <button onclick="broadcastUpdate()" class="bg-red-600 text-white px-6 py-2 rounded text-xs font-bold hover:bg-red-500 flex items-center gap-2"><i data-lucide="radio" class="w-4 h-4"></i> BROADCAST</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
