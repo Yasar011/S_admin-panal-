@@ -25,25 +25,36 @@
             measurementId: "G-SK3RN0FDZK",
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
+        
+        // Initialize Firebase safely
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
+        
+        let auth, db;
+        try {
+            auth = firebase.auth();
+            db = firebase.database();
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            alert("Firebase failed to load. Check console.");
+        }
 
         // --- AUTH LOGIC ---
         let currentUser = null;
 
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                console.log("Auth State Changed: User Logged In", user.email);
-                currentUser = user;
-                const btn = document.getElementById('btn-login');
-                if(btn) btn.innerText = "Verifying Role...";
-                checkDatabaseRole(user.email);
-            } else {
-                console.log("Auth State Changed: No User");
-                showLogin();
-            }
-        });
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    console.log("Auth State Changed: User Logged In", user.email);
+                    currentUser = user;
+                    const btn = document.getElementById('btn-login');
+                    if(btn) btn.innerText = "Verifying Role...";
+                    checkDatabaseRole(user.email);
+                } else {
+                    console.log("Auth State Changed: No User");
+                    showLogin();
+                }
+            });
+        }
 
         function handleLogin() {
              const e = document.getElementById('login-user').value.trim();
@@ -52,18 +63,23 @@
              if(!e || !p) return alert("Please enter Email and Password");
 
              const btn = document.getElementById('btn-login');
+             const statusEl = document.getElementById('login-status');
+             
              btn.innerText = "Authenticating...";
              btn.disabled = true;
+             if(statusEl) statusEl.innerText = "Contacting Auth Server...";
 
              auth.signInWithEmailAndPassword(e, p)
                  .then(() => {
                      btn.innerText = "Auth Success...";
+                     if(statusEl) statusEl.innerText = "Checking permissions...";
                  })
                  .catch(err => {
                      console.error("Login Error:", err);
                      alert("Login Failed: " + err.message);
                      btn.innerText = "AUTHENTICATE";
                      btn.disabled = false;
+                     if(statusEl) statusEl.innerText = "Error: " + err.code;
                  });
         }
 
@@ -86,8 +102,9 @@
                     showDashboard();
                 } else {
                     console.warn("Access Denied. Data was:", data);
-                    alert("Access Denied: You are not listed as an Admin.\n\nChecked Key: " + safeEmail);
-                    auth.signOut();
+                    if (confirm("Access Denied: You are not listed as an Admin.\n\nChecked Key: " + safeEmail + "\n\nDo you want to logout?")) {
+                        auth.signOut();
+                    }
                 }
             }).catch(err => {
                 clearTimeout(timeout);
@@ -120,11 +137,14 @@
             const loginView = document.getElementById('view-login');
             const adminView = document.getElementById('view-admin');
             
-            loginView.classList.remove('hidden');
-            loginView.classList.add('active');
-            
-            adminView.classList.remove('active');
-            adminView.classList.add('hidden');
+            if(loginView) {
+                loginView.classList.remove('hidden');
+                loginView.classList.add('active');
+            }
+            if(adminView) {
+                adminView.classList.remove('active');
+                adminView.classList.add('hidden');
+            }
             
             const btn = document.getElementById('btn-login');
             if(btn) {
@@ -157,6 +177,8 @@
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .badge-green { background: #064e3b; color: #34d399; }
         .badge-none { background: #1f2937; color: #9ca3af; }
+        .badge-yellow { background: #422006; color: #facc15; }
+        .badge-loading { background: #172554; color: #60a5fa; }
 
         /* Animations */
         .animate-in { animation: fadeUp 0.5s ease-out forwards; }
@@ -175,10 +197,32 @@
         .bg-loading { background-color: #eab308; }
         
         /* Edit Modal */
-        #edit-modal, #info-modal { backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.7); }
+        #edit-modal, #info-modal, #nuke-modal { backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.7); }
     </style>
 </head>
 <body onload="initSystem()">
+
+    <!-- NUKE DATA SECURITY MODAL -->
+    <div id="nuke-modal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-950 border-2 border-red-600 w-full max-w-sm p-6 rounded-2xl shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse"></div>
+            <h3 class="text-2xl font-bold text-red-500 mb-2 flex items-center gap-2"><i data-lucide="alert-octagon"></i> SECURITY CHECK</h3>
+            <p class="text-slate-400 text-xs mb-6 leading-relaxed">
+                You are about to <span class="text-white font-bold">PERMANENTLY DELETE ALL STUDENT DATA</span> (Registrations, Payments, Orders).<br><br>
+                Please verify your identity to proceed.
+            </p>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-red-400 uppercase font-bold">Verify Password</label>
+                    <input id="nuke-pass" type="password" placeholder="Admin Password" class="w-full bg-black border border-red-900 p-3 rounded text-white text-sm outline-none focus:border-red-500">
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeNukeModal()" class="flex-1 border border-slate-700 text-slate-300 py-3 rounded text-xs font-bold hover:bg-slate-800">CANCEL</button>
+                    <button onclick="confirmNuke()" id="btn-nuke-confirm" class="flex-1 bg-red-600 text-white py-3 rounded text-xs font-bold hover:bg-red-700 shadow-lg shadow-red-900/30">CONFIRM DELETE</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- EDIT USER MODAL -->
     <div id="edit-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
@@ -298,6 +342,7 @@
                     <input id="login-pass" type="password" placeholder="••••••••" class="w-full bg-black border border-slate-700 p-3 rounded text-white outline-none focus:border-pink-500 transition-colors">
                 </div>
                 <button onclick="handleLogin()" id="btn-login" class="w-full bg-pink-600 text-white font-bold py-3 rounded hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">AUTHENTICATE</button>
+                <p id="login-status" class="text-[10px] text-center text-slate-500 font-mono"></p>
             </div>
         </div>
     </div>
@@ -328,7 +373,10 @@
                     <button onclick="runDiagnostics()" class="text-xs text-slate-500 hover:text-white flex items-center gap-2"><i data-lucide="activity" class="w-3 h-3"></i> System Check</button>
                 </div>
             </div>
-            <button onclick="logout()" class="mt-4 border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors w-full">LOGOUT</button>
+            
+            <div class="mt-auto space-y-2">
+                <button onclick="logout()" class="border border-slate-700 text-slate-400 p-2 rounded hover:bg-white hover:text-black text-xs font-bold transition-colors w-full">LOGOUT</button>
+            </div>
         </aside>
 
         <!-- Content -->
@@ -366,6 +414,18 @@
                     <div class="card bg-slate-900">
                         <div class="flex justify-between items-start mb-2"><span class="text-xs text-slate-400 font-bold uppercase">Avg Order</span><i data-lucide="trending-up" class="text-slate-500 w-4"></i></div>
                         <h4 class="text-2xl font-bold text-white" id="rev-avg">₹0</h4>
+                    </div>
+                </div>
+
+                <!-- DANGER ZONE -->
+                <div class="mt-8 border-t border-red-900/30 pt-8">
+                    <h2 class="text-xl font-bold text-red-500 mb-4 flex items-center gap-2"><i data-lucide="alert-octagon"></i> Danger Zone</h2>
+                    <div class="card border-red-900/50 bg-red-950/10 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-white">Reset Student Database</h3>
+                            <p class="text-xs text-red-400">Permanently delete all user registrations, orders, and payments. This cannot be undone.</p>
+                        </div>
+                        <button onclick="openNukeModal()" class="bg-red-600 text-white px-4 py-2 rounded font-bold hover:bg-red-700 text-xs shadow-lg shadow-red-900/30">DELETE ALL DATA</button>
                     </div>
                 </div>
             </div>
@@ -416,9 +476,16 @@
                                 <img id="v-img" src="" class="max-h-full object-contain border border-slate-700 rounded" alt="Payment Screenshot">
                                 <p id="v-no-img" class="hidden text-slate-500 self-center">No Screenshot Uploaded</p>
                             </div>
-                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex gap-4">
-                                <button onclick="processVerification(false)" class="flex-1 border border-red-900 text-red-500 hover:bg-red-900 hover:text-white py-3 rounded font-bold transition-colors">REJECT</button>
-                                <button onclick="processVerification(true)" class="flex-1 bg-green-600 text-white hover:bg-green-500 py-3 rounded font-bold transition-colors shadow-lg shadow-green-900/20">APPROVE & VERIFY</button>
+                            
+                            <!-- UPDATED ACTION PANEL -->
+                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex flex-col gap-3">
+                                <button onclick="requestWhatsApp()" class="w-full border border-green-600 text-green-500 hover:bg-green-900/30 py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                                    <i data-lucide="message-circle" class="w-4 h-4"></i> Request Screenshot (WhatsApp)
+                                </button>
+                                <div class="flex gap-4">
+                                    <button onclick="processVerification(false)" class="flex-1 border border-red-900 text-red-500 hover:bg-red-900 hover:text-white py-3 rounded font-bold transition-colors">REJECT</button>
+                                    <button onclick="processVerification(true)" class="flex-1 bg-green-600 text-white hover:bg-green-500 py-3 rounded font-bold transition-colors shadow-lg shadow-green-900/20">APPROVE & VERIFY</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -687,63 +754,90 @@
         // --- HELPER RENDERS ---
         function renderMerchTable() {
             const tbody = document.getElementById('merch-table-body');
+            if(!tbody) return;
             tbody.innerHTML = "";
             allMerch.sort((a,b) => b.timestamp - a.timestamp).forEach(m => {
                 let statusColor = m.status === 'Delivered' ? 'text-green-500' : 'text-yellow-500';
                 let actionBtn = m.status !== 'Delivered' ? `<button onclick="updateMerchStatus('${m.dbPath}', 'Delivered')" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">Mark Done</button>` : `<span class="text-slate-500 text-xs">Completed</span>`;
-                tbody.innerHTML += `<tr class="border-b border-slate-800"><td class="p-3"><div class="text-white text-sm font-bold">${m.userName}</div><div class="text-slate-500 text-xs">${m.userEmail}</div></td><td class="p-3 text-slate-300 text-sm">${m.item} <span class="bg-slate-700 text-white px-1 rounded text-xs">${m.size}</span></td><td class="p-3 text-white text-sm">₹${m.price}</td><td class="p-3 text-slate-400 text-xs max-w-[150px] truncate">${m.address}</td><td class="p-3 ${statusColor} text-xs font-bold">${m.status}</td><td class="p-3">${actionBtn}</td></tr>`;
+                
+                // Safe access to username/email
+                const mUser = m.userName || 'Unknown';
+                const mEmail = m.userEmail || 'No Email';
+                
+                tbody.innerHTML += `<tr class="border-b border-slate-800"><td class="p-3"><div class="text-white text-sm font-bold">${mUser}</div><div class="text-slate-500 text-xs">${mEmail}</div></td><td class="p-3 text-slate-300 text-sm">${m.item} <span class="bg-slate-700 text-white px-1 rounded text-xs">${m.size}</span></td><td class="p-3 text-white text-sm">₹${m.price}</td><td class="p-3 text-slate-400 text-xs max-w-[150px] truncate">${m.address}</td><td class="p-3 ${statusColor} text-xs font-bold">${m.status}</td><td class="p-3">${actionBtn}</td></tr>`;
             });
             lucide.createIcons();
         }
 
         function renderFinanceTable() {
             const tbody = document.getElementById('finance-table-body');
+            if(!tbody) return;
             tbody.innerHTML = "";
             allTransactions.sort((a,b) => b.timestamp - a.timestamp).forEach(t => {
-                tbody.innerHTML += `<tr><td class="p-4">${t.dateStr}</td><td class="p-4 text-white font-bold">${t.user}</td><td class="p-4 text-slate-400">${t.type}</td><td class="p-4 font-mono text-xs">${t.utr}</td><td class="p-4 text-right text-green-400 font-bold">₹${t.amount}</td><td class="p-4 text-right"><span class="badge ${t.status==='Verified'?'badge-green':'badge-yellow'}">${t.status}</span></td></tr>`;
+                const tUser = t.user || 'Unknown User';
+                tbody.innerHTML += `<tr><td class="p-4">${t.dateStr}</td><td class="p-4 text-white font-bold">${tUser}</td><td class="p-4 text-slate-400">${t.type}</td><td class="p-4 font-mono text-xs">${t.utr}</td><td class="p-4 text-right text-green-400 font-bold">₹${t.amount}</td><td class="p-4 text-right"><span class="badge ${t.status==='Verified'?'badge-green':'badge-yellow'}">${t.status}</span></td></tr>`;
             });
         }
 
         function renderUsers() {
-            const tbodyNift = document.getElementById('nift-table-body'); tbodyNift.innerHTML = "";
-            const tbodyOther = document.getElementById('others-table-body'); tbodyOther.innerHTML = "";
-            const searchNift = document.getElementById('search-nift').value.toLowerCase();
-            const searchOther = document.getElementById('search-others').value.toLowerCase();
-
-            allUsers.forEach(u => {
-                const isNift = u.email && u.email.toLowerCase().endsWith("@nift.ac.in");
-                const search = isNift ? searchNift : searchOther;
-                if(!u.name.toLowerCase().includes(search) && !u.spectrumId?.toLowerCase().includes(search)) return;
-
-                const status = u.paymentStatus;
-                let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
-                let passDisplay = u.order?.pass || u.verificationReason || "No Pass";
+            try {
+                const tbodyNift = document.getElementById('nift-table-body'); 
+                const tbodyOther = document.getElementById('others-table-body'); 
                 
-                // --- NEW BUTTONS ---
-                const infoBtn = `<button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-white"><i data-lucide="info" class="w-4"></i></button>`;
-                const editBtn = `<button onclick="openEditUser('${u.key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>`;
-                const delBtn = `<button onclick="delUser('${u.key}')" class="text-red-500 hover:text-red-300"><i data-lucide="trash-2" class="w-4"></i></button>`;
+                if (!tbodyNift || !tbodyOther) return; 
 
-                const row = `<tr>
-                    <td>
-                        <div class="font-bold text-white">${u.name}</div>
-                        <div class="text-xs text-blue-400 font-mono font-bold tracking-wide">${u.spectrumId||'NO ID'}</div>
-                        <div class="text-[10px] text-slate-500">${u.email}</div>
-                    </td>
-                    ${!isNift?`<td class="text-xs text-slate-300 max-w-[100px] truncate">${u.collegeName||'Unknown'}</td>`:''}
-                    <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span></div></td>
-                    <td><span class="badge ${u.checkedIn?'badge-green':'badge-none'}">${u.checkedIn?'IN':'OUT'}</span></td>
-                    <td class="flex gap-3 items-center">
-                        ${btn}
-                        ${infoBtn}
-                        ${editBtn}
-                        ${delBtn}
-                    </td>
-                </tr>`;
+                tbodyNift.innerHTML = "";
+                tbodyOther.innerHTML = "";
                 
-                if(isNift) tbodyNift.innerHTML += row; else tbodyOther.innerHTML += row;
-            });
-            lucide.createIcons();
+                // Safely get search values
+                const searchNiftEl = document.getElementById('search-nift');
+                const searchOtherEl = document.getElementById('search-others');
+                const searchNift = searchNiftEl ? searchNiftEl.value.toLowerCase() : "";
+                const searchOther = searchOtherEl ? searchOtherEl.value.toLowerCase() : "";
+
+                allUsers.forEach(u => {
+                    // Safety Logic: Handle missing names/emails gracefully
+                    const safeName = (u.name || "Unknown User").toLowerCase();
+                    const safeId = (u.spectrumId || "").toLowerCase();
+                    const safeEmail = (u.email || "").toLowerCase();
+                    const isNift = safeEmail.endsWith("@nift.ac.in");
+                    
+                    const search = isNift ? searchNift : searchOther;
+                    
+                    // Filter Logic
+                    if(!safeName.includes(search) && !safeId.includes(search)) return;
+
+                    const status = u.paymentStatus;
+                    let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
+                    let passDisplay = u.order?.pass || u.verificationReason || "No Pass";
+                    
+                    const infoBtn = `<button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-white"><i data-lucide="info" class="w-4"></i></button>`;
+                    const editBtn = `<button onclick="openEditUser('${u.key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>`;
+                    const delBtn = `<button onclick="delUser('${u.key}')" class="text-red-500 hover:text-red-300"><i data-lucide="trash-2" class="w-4"></i></button>`;
+
+                    const row = `<tr>
+                        <td>
+                            <div class="font-bold text-white">${u.name || "Unknown"}</div>
+                            <div class="text-xs text-blue-400 font-mono font-bold tracking-wide">${u.spectrumId||'NO ID'}</div>
+                            <div class="text-[10px] text-slate-500">${u.email || "No Email"}</div>
+                        </td>
+                        ${!isNift?`<td class="text-xs text-slate-300 max-w-[100px] truncate">${u.collegeName||'Unknown'}</td>`:''}
+                        <td><div class="flex items-center"><span class="text-pink-400 font-bold text-xs">${passDisplay}</span></div></td>
+                        <td><span class="badge ${u.checkedIn?'badge-green':'badge-none'}">${u.checkedIn?'IN':'OUT'}</span></td>
+                        <td class="flex gap-3 items-center">
+                            ${btn}
+                            ${infoBtn}
+                            ${editBtn}
+                            ${delBtn}
+                        </td>
+                    </tr>`;
+                    
+                    if(isNift) tbodyNift.innerHTML += row; else tbodyOther.innerHTML += row;
+                });
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Render Users Error:", e);
+            }
         }
 
         // --- NEW: SHOW USER DETAILS ---
@@ -890,7 +984,9 @@
 
         // --- VERIFICATION ---
         function renderPendingQueue() {
-            const container = document.getElementById('pending-list'); container.innerHTML = "";
+            const container = document.getElementById('pending-list'); 
+            if(!container) return;
+            container.innerHTML = "";
             if(pendingUsers.length === 0) { container.innerHTML = '<div class="text-center text-slate-500 text-xs mt-10">No pending payments</div>'; return; }
             pendingUsers.sort((a,b) => b.order?.timestamp - a.order?.timestamp).forEach(u => {
                 container.innerHTML += `<div onclick="selectForVerify('${u.key}')" class="bg-slate-900 border border-slate-800 p-3 rounded cursor-pointer hover:border-pink-500 transition-colors flex justify-between items-center group"><div><div class="font-bold text-white text-sm">${u.name}</div><div class="text-[10px] text-slate-400 font-mono">${u.verificationReason || 'Unknown Reason'}</div></div><div class="text-right"><div class="text-green-400 font-bold text-xs">₹${u.pendingAmount || u.order?.total || 0}</div><i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-white"></i></div></div>`;
@@ -906,6 +1002,23 @@
             const imgEl = document.getElementById('v-img'); const noImgEl = document.getElementById('v-no-img');
             if(u.paymentScreenshot) { imgEl.src = u.paymentScreenshot; imgEl.classList.remove('hidden'); noImgEl.classList.add('hidden'); } else { imgEl.classList.add('hidden'); noImgEl.classList.remove('hidden'); }
         }
+        
+        // --- WHATSAPP LOGIC ---
+        function requestWhatsApp() {
+            if(!activeVerifyKey) return;
+            const u = allUsers.find(x => x.key === activeVerifyKey);
+            if(!u || !u.phone) return alert("User phone number not found.");
+            
+            // Clean phone number (remove +91 if present to standardize, or just use as is if it's clean)
+            let phone = u.phone.replace(/\D/g, ''); // remove non-digits
+            if(phone.length === 10) phone = "91" + phone; // Add country code if missing
+            
+            const msg = `Hey ${u.name}, Thank you for your purchasing. Please share your payment screenshot here, as we are unable to process your verification without it.\n\n- Yasar CH, Tech Head`;
+            
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+
         function processVerification(approved) {
             if(!activeVerifyKey) return;
             if(approved) { if(confirm("Confirm PAYMENT RECEIVED?")) { db.ref('users/' + activeVerifyKey).update({ paymentStatus: 'Verified', pendingAmount: 0 }); resetVerifyView(); } } 
@@ -931,16 +1044,16 @@
                 allUsers.forEach(u => {
                     const isNift = u.email && u.email.endsWith('@nift.ac.in');
                     if (type === 'nift' && !isNift) return; if (type === 'others' && isNift) return;
-                    csv += `"${u.name}","${u.spectrumId}","${u.email}","${u.collegeName}","${u.order?.pass}","${u.paymentStatus}"\n`;
+                    csv += `"${u.name || ''}","${u.spectrumId || ''}","${u.email || ''}","${u.collegeName || ''}","${u.order?.pass || ''}","${u.paymentStatus || ''}"\n`;
                 });
                 filename = "Users.csv";
             } else if (type === 'merch') {
                 csv = "Buyer,Item,Size,Price,Status\n";
-                allMerch.forEach(m => csv += `"${m.userName}","${m.item}","${m.size}","${m.price}","${m.status}"\n`);
+                allMerch.forEach(m => csv += `"${m.userName || ''}","${m.item || ''}","${m.size || ''}","${m.price || ''}","${m.status || ''}"\n`);
                 filename = "Merch.csv";
             } else if (type === 'finance') {
                  csv = "Date,User,Type,Amount,Status\n";
-                 allTransactions.forEach(t => csv += `"${t.dateStr}","${t.user}","${t.type}","${t.amount}","${t.status}"\n`);
+                 allTransactions.forEach(t => csv += `"${t.dateStr}","${t.user || ''}","${t.type}","${t.amount}","${t.status}"\n`);
                  filename = "Finance.csv";
             }
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -953,6 +1066,42 @@
         }
         
         function logout() { auth.signOut().then(() => window.location.reload()); }
+
+        // --- NUKE LOGIC ---
+        function openNukeModal() { document.getElementById('nuke-modal').classList.remove('hidden'); }
+        function closeNukeModal() { document.getElementById('nuke-modal').classList.add('hidden'); document.getElementById('nuke-pass').value = ''; }
+        
+        async function confirmNuke() {
+            const pass = document.getElementById('nuke-pass').value;
+            if (!pass) return alert("Password required to authorize deletion.");
+
+            const btn = document.getElementById('btn-nuke-confirm');
+            const originalText = btn.innerText;
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+
+            try {
+                const user = auth.currentUser;
+                const cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
+                
+                await user.reauthenticateWithCredential(cred);
+                
+                if(confirm("FINAL WARNING: All student data will be wiped immediately. Proceed?")) {
+                    btn.innerText = "DELETING...";
+                    await db.ref('users').remove();
+                    alert("Database successfully reset.");
+                    window.location.reload();
+                } else {
+                     btn.innerText = originalText;
+                     btn.disabled = false;
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Authentication Failed: " + error.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
