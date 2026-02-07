@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Registry | Spectrum '26</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyATPWBVx5bqqIrbgaXm44KDAy29b4ru6NY",
+            authDomain: "spectram-234f7.firebaseapp.com",
+            projectId: "spectram-234f7",
+            storageBucket: "spectram-234f7.firebasestorage.app",
+            messagingSenderId: "192476382126",
+            appId: "1:192476382126:web:26422db3e948165933be3f",
+            measurementId: "G-SK3RN0FDZK",
+            databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const CLOUD_NAME = "diksl1q87"; 
+        const UPLOAD_PRESET = "spectrum_uploads"; 
+
+        // State
+        let activeCaptureType = null; // 'profile', 'front', 'back'
+        let capturedData = { profile: null, front: null, back: null };
+        let stream = null;
+
+        // --- AUTH ---
+        window.onload = () => {
+            lucide.createIcons();
+            auth.onAuthStateChanged(user => {
+                if(user) checkStaffAccess(user.email);
+                else document.getElementById('login-modal').classList.remove('hidden');
+            });
+        };
+
+        function checkStaffAccess(email) {
+            const safeEmail = email.replace(/\./g, ',');
+            db.ref('staff_access/' + safeEmail).once('value').then(snap => {
+                if(snap.exists()) {
+                    document.getElementById('login-modal').classList.add('hidden');
+                    loadWorkers();
+                } else {
+                    alert("Access Denied");
+                    auth.signOut();
+                }
+            });
+        }
+
+        // --- IMAGE HANDLING ---
+        function openCaptureModal(type) {
+            activeCaptureType = type;
+            document.getElementById('capture-modal').classList.remove('hidden');
+            startCamera();
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                document.getElementById('camera-feed').srcObject = stream;
+            } catch (err) {
+                console.error(err);
+                alert("Camera unavailable. Please use file upload.");
+            }
+        }
+
+        function stopCamera() {
+            if(stream) stream.getTracks().forEach(t => t.stop());
+            document.getElementById('capture-modal').classList.add('hidden');
+        }
+
+        function captureFromCamera() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            canvas.toBlob(blob => {
+                handleImageSelection(blob);
+            }, 'image/jpeg', 0.8);
+        }
+
+        function handleFileUpload(input) {
+            if(input.files && input.files[0]) {
+                handleImageSelection(input.files[0]);
+            }
+        }
+
+        function handleImageSelection(fileBlob) {
+            capturedData[activeCaptureType] = fileBlob;
+            
+            // Update Preview
+            const url = URL.createObjectURL(fileBlob);
+            const previewEl = document.getElementById(`preview-${activeCaptureType}`);
+            previewEl.src = url;
+            previewEl.classList.remove('hidden');
+            document.getElementById(`placeholder-${activeCaptureType}`).classList.add('hidden');
+            
+            // Visual feedback
+            const container = document.getElementById(`box-${activeCaptureType}`);
+            container.classList.add('border-green-500');
+            container.classList.remove('border-gray-700');
+
+            stopCamera();
+        }
+
+        // --- SUBMISSION ---
+        async function registerWorker() {
+            // Validation
+            const name = document.getElementById('w-name').value;
+            const org = document.getElementById('w-org').value;
+            const phone = document.getElementById('w-phone').value;
+            const area = document.getElementById('w-area').value;
+            const address = document.getElementById('w-address').value;
+
+            if(!name || !phone || !area || !capturedData.profile || !capturedData.front || !capturedData.back) {
+                return alert("Please fill all fields and capture ALL 3 photos.");
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Uploading Images (0/3)...";
+            btn.disabled = true;
+
+            try {
+                // Upload Images
+                const urls = {};
+                const types = ['profile', 'front', 'back'];
+                
+                for(let i=0; i<types.length; i++) {
+                    const t = types[i];
+                    btn.innerText = `Uploading ${t.toUpperCase()} (${i+1}/3)...`;
+                    urls[t] = await uploadToCloudinary(capturedData[t]);
+                }
+
+                // Save to DB
+                btn.innerText = "Saving Data...";
+                // UPDATED ID GENERATION LOGIC
+                const workerId = "WO-SPEC-" + Math.floor(1000 + Math.random() * 9000);
+                
+                await db.ref('workers').push({
+                    name, org, phone, area, address,
+                    photoUrl: urls.profile,
+                    idFrontUrl: urls.front,
+                    idBackUrl: urls.back,
+                    workerId: workerId,
+                    registeredBy: auth.currentUser.email,
+                    timestamp: Date.now()
+                });
+
+                alert("Worker Registered Successfully! ID: " + workerId);
+                resetForm();
+
+            } catch(e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            } finally {
+                btn.innerText = "Register Worker";
+                btn.disabled = false;
+            }
+        }
+
+        async function uploadToCloudinary(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', UPLOAD_PRESET);
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+            const data = await res.json();
+            return data.secure_url;
+        }
+
+        function resetForm() {
+            document.getElementById('worker-form').reset();
+            capturedData = { profile: null, front: null, back: null };
+            ['profile', 'front', 'back'].forEach(t => {
+                document.getElementById(`preview-${t}`).classList.add('hidden');
+                document.getElementById(`placeholder-${t}`).classList.remove('hidden');
+                document.getElementById(`box-${t}`).classList.remove('border-green-500');
+                document.getElementById(`box-${t}`).classList.add('border-gray-700');
+            });
+        }
+
+        // --- LIST & EXPORT ---
+        function loadWorkers() {
+            db.ref('workers').on('value', snap => {
+                const list = document.getElementById('worker-list');
+                list.innerHTML = '';
+                const data = snap.val();
+                if(data) {
+                    Object.entries(data).reverse().forEach(([key, w]) => {
+                        list.innerHTML += `
+                        <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg flex gap-4 items-start">
+                            <img src="${w.photoUrl}" class="w-12 h-12 rounded-full object-cover border border-gray-600">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between">
+                                    <h4 class="font-bold text-white truncate">${w.name}</h4>
+                                    <span class="text-xs font-mono text-blue-400">${w.workerId}</span>
+                                </div>
+                                <p class="text-xs text-gray-400 truncate">${w.org || 'Independent'}</p>
+                                <div class="flex gap-2 mt-2">
+                                    <a href="${w.idFrontUrl}" target="_blank" class="text-[10px] bg-gray-800 px-2 py-1 rounded hover:text-white">ID Front</a>
+                                    <a href="${w.idBackUrl}" target="_blank" class="text-[10px] bg-gray-800 px-2 py-1 rounded hover:text-white">ID Back</a>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
+            });
+        }
+
+        function exportCSV() {
+            db.ref('workers').once('value').then(snap => {
+                const data = snap.val();
+                if(!data) return alert("No data");
+                let csv = "ID,Name,Organization,Phone,Area,Address,Photo,ID Front,ID Back\n";
+                Object.values(data).forEach(w => {
+                    csv += `"${w.workerId}","${w.name}","${w.org}","${w.phone}","${w.area}","${w.address}","${w.photoUrl}","${w.idFrontUrl}","${w.idBackUrl}"\n`;
+                });
+                const blob = new Blob([csv], {type:'text/csv'});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `Workers_List_${new Date().toISOString().slice(0,10)}.csv`;
+                link.click();
+            });
+        }
+
+        function handleLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message));
+        }
+    </script>
+</head>
+<body class="bg-[#050505] text-white h-screen flex flex-col font-sans">
+
+    <!-- LOGIN -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div class="w-full max-w-sm p-8 border border-gray-800 rounded-xl text-center">
+            <h1 class="text-2xl font-bold mb-6 tracking-wide">WORKER REGISTRY</h1>
+            <input type="email" id="email" placeholder="Admin Email" class="w-full bg-gray-900 border border-gray-700 p-3 rounded mb-3 text-sm outline-none">
+            <input type="password" id="password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 p-3 rounded mb-6 text-sm outline-none">
+            <button onclick="handleLogin()" class="w-full bg-orange-600 font-bold py-3 rounded text-sm hover:bg-orange-500">ACCESS PANEL</button>
+        </div>
+    </div>
+
+    <!-- CAPTURE MODAL -->
+    <div id="capture-modal" class="fixed inset-0 z-40 hidden flex items-center justify-center bg-black/95">
+        <div class="w-full max-w-md p-4">
+            <div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                <div class="relative h-64 bg-black">
+                    <video id="camera-feed" autoplay playsinline class="w-full h-full object-cover"></video>
+                </div>
+                <div class="p-6 flex flex-col gap-3">
+                    <button onclick="captureFromCamera()" class="w-full bg-white text-black font-bold py-3 rounded flex items-center justify-center gap-2">
+                        <i data-lucide="camera" class="w-5 h-5"></i> Capture Photo
+                    </button>
+                    <div class="relative">
+                        <input type="file" accept="image/*" onchange="handleFileUpload(this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <button class="w-full border border-gray-600 text-gray-300 font-bold py-3 rounded flex items-center justify-center gap-2">
+                            <i data-lucide="upload" class="w-5 h-5"></i> Upload File
+                        </button>
+                    </div>
+                    <button onclick="stopCamera()" class="text-red-500 text-xs font-bold py-2">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="p-4 border-b border-gray-800 flex justify-between items-center bg-[#0a0a0a]">
+        <div class="flex items-center gap-3">
+            <div class="bg-orange-600/20 p-2 rounded text-orange-500"><i data-lucide="hard-hat" class="w-5 h-5"></i></div>
+            <div>
+                <h1 class="font-bold tracking-wide leading-none">WORKER REGISTRY</h1>
+                <p class="text-[10px] text-gray-500 font-mono">Logistics & Security</p>
+            </div>
+        </div>
+        <button onclick="exportCSV()" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded flex items-center gap-2 border border-gray-600">
+            <i data-lucide="download" class="w-3 h-3"></i> Export CSV
+        </button>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- LEFT: FORM -->
+        <div class="flex-1 p-6 overflow-y-auto border-r border-gray-800 bg-[#050505]">
+            <form id="worker-form" onsubmit="event.preventDefault();" class="max-w-2xl mx-auto space-y-6">
+                
+                <!-- Personal Info -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Full Name</label>
+                        <input type="text" id="w-name" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-sm text-white outline-none focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Organization / College</label>
+                        <input type="text" id="w-org" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-sm text-white outline-none focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Phone Number</label>
+                        <input type="tel" id="w-phone" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-sm text-white outline-none focus:border-orange-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Address</label>
+                        <input type="text" id="w-address" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-sm text-white outline-none focus:border-orange-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Assigned Area</label>
+                        <select id="w-area" class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-sm text-white outline-none focus:border-orange-500">
+                            <option value="">Select Area...</option>
+                            <option value="Main Stage">Main Stage</option>
+                            <option value="Food Court">Food Court</option>
+                            <option value="Entrance Gate">Entrance Gate</option>
+                            <option value="Backstage">Backstage</option>
+                            <option value="Logistics">Logistics / Transport</option>
+                            <option value="Cleanliness">Cleanliness</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Image Uploads -->
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-500 uppercase font-bold block">Documentation Photos</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        
+                        <!-- 1. Profile -->
+                        <div id="box-profile" onclick="openCaptureModal('profile')" class="aspect-square bg-gray-900 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 transition-colors overflow-hidden relative">
+                            <div id="placeholder-profile" class="text-center">
+                                <i data-lucide="user" class="w-6 h-6 text-gray-500 mx-auto mb-1"></i>
+                                <span class="text-[9px] text-gray-500 uppercase font-bold">Worker Photo</span>
+                            </div>
+                            <img id="preview-profile" class="absolute inset-0 w-full h-full object-cover hidden">
+                        </div>
+
+                        <!-- 2. ID Front -->
+                        <div id="box-front" onclick="openCaptureModal('front')" class="aspect-square bg-gray-900 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 transition-colors overflow-hidden relative">
+                            <div id="placeholder-front" class="text-center">
+                                <i data-lucide="credit-card" class="w-6 h-6 text-gray-500 mx-auto mb-1"></i>
+                                <span class="text-[9px] text-gray-500 uppercase font-bold">ID Front</span>
+                            </div>
+                            <img id="preview-front" class="absolute inset-0 w-full h-full object-cover hidden">
+                        </div>
+
+                        <!-- 3. ID Back -->
+                        <div id="box-back" onclick="openCaptureModal('back')" class="aspect-square bg-gray-900 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 transition-colors overflow-hidden relative">
+                            <div id="placeholder-back" class="text-center">
+                                <i data-lucide="credit-card" class="w-6 h-6 text-gray-500 mx-auto mb-1"></i>
+                                <span class="text-[9px] text-gray-500 uppercase font-bold">ID Back</span>
+                            </div>
+                            <img id="preview-back" class="absolute inset-0 w-full h-full object-cover hidden">
+                        </div>
+
+                    </div>
+                </div>
+
+                <button id="submit-btn" onclick="registerWorker()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-lg shadow-lg shadow-orange-900/20 transition-all text-sm uppercase tracking-widest">
+                    Register Worker
+                </button>
+            </form>
+        </div>
+
+        <!-- RIGHT: LIST -->
+        <div class="w-full lg:w-96 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
+            <div class="p-4 border-b border-gray-800 bg-[#0f0f0f]">
+                <h3 class="font-bold text-sm text-gray-400 uppercase tracking-wider">Registered Staff</h3>
+            </div>
+            <div id="worker-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <p class="text-center text-gray-600 text-xs mt-4">Loading database...</p>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>
