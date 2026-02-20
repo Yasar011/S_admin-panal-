@@ -317,7 +317,7 @@
 
             <!-- Squads -->
             <div class="mb-6">
-                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Event Squads Linked</h4>
+                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Event Squads Linked (Led by this user)</h4>
                 <div id="info-squads" class="grid grid-cols-2 gap-2 text-sm text-slate-300">
                     <!-- Populated by JS -->
                 </div>
@@ -385,6 +385,7 @@
                 <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
                 <div class="nav-item" onclick="showAdminTab('users_tab')"><i data-lucide="users" class="w-4 h-4 text-blue-400"></i> All Registrations</div>
+                <div class="nav-item" onclick="showAdminTab('squads')"><i data-lucide="network" class="w-4 h-4 text-purple-400"></i> Team Rosters</div>
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
                 <div class="nav-item" onclick="showAdminTab('results')"><i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i> Manage Results</div>
                 <div class="nav-item" onclick="showAdminTab('payment')"><i data-lucide="credit-card" class="w-4 h-4"></i> Payments & UPI</div>
@@ -442,7 +443,7 @@
 
                 <!-- PASS INTELLIGENCE (NEW) -->
                 <h3 class="text-xl font-bold text-white mb-4 mt-8">Pass Intelligence (Verified)</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
                     <div class="card bg-slate-900 border-slate-700/50">
                         <p class="text-xs text-slate-400 font-bold uppercase mb-2">General Pass</p>
                         <h4 class="text-3xl font-bold text-white" id="stat-gen-pass">0</h4>
@@ -458,6 +459,10 @@
                     <div class="card bg-slate-900 border-blue-500/30">
                         <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">Gold + EDM</p>
                         <h4 class="text-3xl font-bold text-blue-400" id="stat-gold-edm">0</h4>
+                    </div>
+                    <div class="card bg-slate-900 border-cyan-500/30">
+                        <p class="text-[10px] text-cyan-400 font-bold uppercase mb-2">Squad Members</p>
+                        <h4 class="text-3xl font-bold text-cyan-400" id="stat-squad-pass">0</h4>
                     </div>
                 </div>
 
@@ -575,6 +580,17 @@
                     </table>
                 </div>
             </div>
+            
+            <!-- SQUADS TAB -->
+            <div id="tab-squads" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="network" class="text-purple-500"></i> Team Rosters (Squads)</h2>
+                    <button onclick="exportSquadsCSV()" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> Export Teams</button>
+                </div>
+                <div id="squads-container" class="space-y-6">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
 
             <!-- Merch Tab -->
             <div id="tab-merch" class="hidden animate-in">
@@ -682,6 +698,7 @@
     <script>
         let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; 
         let pendingUsers = []; let activeVerifyKey = null; let currentResults = {};
+        let allSquads = {}; let eventDictionary = {};
 
         function initSystem() { lucide.createIcons(); }
 
@@ -714,12 +731,11 @@
             db.ref('users').on('value', snap => {
                 const data = snap.val(); 
                 
-                // FIX: Reset arrays BEFORE checking data existence
-                // This ensures the UI clears if the database is wiped or returns null
                 allUsers = []; allMerch = []; allTransactions = []; pendingUsers = []; 
+                allSquads = {}; eventDictionary = {};
                 let rev = 0; let merchRev = 0; let passRev = 0;
                 let inventoryMap = {}; 
-                let genPassCount = 0; let goldPassCount = 0; let genFashionCount = 0; let goldEdmCount = 0;
+                let genPassCount = 0; let goldPassCount = 0; let genFashionCount = 0; let goldEdmCount = 0; let squadPassCount = 0;
 
                 if (data) {
                     Object.keys(data).forEach(key => {
@@ -738,7 +754,29 @@
                             } else if (passName === 'Gold Pass') {
                                 goldPassCount++;
                                 if (hasEvent(101)) goldEdmCount++;
+                            } else if (passName === 'Squad Member Pass') {
+                                squadPassCount++;
                             }
+                        }
+
+                        // Collect Event Dictionary from orders for Squad mapping
+                        if (u.order && u.order.events) {
+                            u.order.events.forEach(e => {
+                                eventDictionary[e.id] = e.title;
+                            });
+                        }
+
+                        // Collect Squad Data
+                        if (u.squads) {
+                            Object.entries(u.squads).forEach(([eventId, members]) => {
+                                if (!allSquads[eventId]) allSquads[eventId] = [];
+                                allSquads[eventId].push({
+                                    leaderId: u.spectrumId,
+                                    leaderName: u.name,
+                                    leaderPhone: u.phone,
+                                    members: members || []
+                                });
+                            });
                         }
 
                         if (u.order && u.order.total > 0) { 
@@ -781,6 +819,7 @@
                 document.getElementById('stat-gold-pass').innerText = goldPassCount;
                 document.getElementById('stat-gen-fashion').innerText = genFashionCount;
                 document.getElementById('stat-gold-edm').innerText = goldEdmCount;
+                document.getElementById('stat-squad-pass').innerText = squadPassCount;
 
                 // Render Inventory
                 const invContainer = document.getElementById('merch-inventory-grid');
@@ -799,6 +838,7 @@
                 renderMerchTable(); 
                 renderFinanceTable();
                 renderPendingQueue();
+                renderSquads();
             }, (error) => {
                 console.error("Users Read Error:", error);
                 reportError(error);
@@ -970,6 +1010,68 @@
             }
         }
 
+        // --- NEW: RENDER SQUADS ---
+        function renderSquads() {
+            const container = document.getElementById('squads-container');
+            if(!container) return;
+            container.innerHTML = "";
+            
+            if(Object.keys(allSquads).length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-500 text-sm mt-10">No squads formed yet.</div>';
+                return;
+            }
+
+            Object.entries(allSquads).forEach(([eventId, teams]) => {
+                const eventName = eventDictionary[eventId] || `Event ID: ${eventId}`;
+                
+                let teamsHtml = '';
+                teams.forEach((team, idx) => {
+                    const memberList = team.members.map(m => `<span class="bg-slate-700 px-2 py-1 rounded text-[10px] font-mono border border-slate-600">${m}</span>`).join(' ');
+                    teamsHtml += `
+                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-white uppercase">Team ${idx + 1}</span>
+                                    <p class="text-[10px] text-slate-400">Capt: <span class="text-cyan-400 font-bold">${team.leaderName}</span> (${team.leaderId})</p>
+                                </div>
+                                <a href="tel:${team.leaderPhone}" class="text-green-400 hover:text-green-300 p-1"><i data-lucide="phone" class="w-4 h-4"></i></a>
+                            </div>
+                            <div class="mt-2">
+                                <p class="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Roster (${team.members.length} Members):</p>
+                                <div class="flex flex-wrap gap-1">${memberList || '<span class="text-xs text-slate-500 italic">No members linked</span>'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML += `
+                    <div class="card p-0 overflow-hidden mb-6">
+                        <div class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
+                            <h3 class="font-bold text-white text-lg">${eventName}</h3>
+                            <span class="bg-purple-500/20 text-purple-400 border border-purple-500/50 px-2 py-1 rounded text-xs font-bold">${teams.length} Teams</span>
+                        </div>
+                        <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${teamsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function exportSquadsCSV() {
+            let csv = "Event,Team Name/Index,Captain Name,Captain ID,Captain Phone,Members (Comma Separated)\n";
+            Object.entries(allSquads).forEach(([eventId, teams]) => {
+                const eventName = eventDictionary[eventId] || `Event ID: ${eventId}`;
+                teams.forEach((team, idx) => {
+                    const membersStr = team.members.join(' | ');
+                    csv += `"${eventName}","Team ${idx+1}","${team.leaderName}","${team.leaderId}","${team.leaderPhone}","${membersStr}"\n`;
+                });
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Spectrum_Teams.csv"; link.click();
+        }
+
         // --- TOGGLE CHECK-IN ---
         function toggleCheckIn(key, currentState) {
             const newState = !currentState;
@@ -1014,26 +1116,41 @@
             // Populate Events List
             const eventsList = document.getElementById('info-events-list');
             eventsList.innerHTML = "";
+            let hasEvents = false;
+            
+            // Captain/Solo direct purchase
             if (u.order && u.order.events && u.order.events.length > 0) {
+                hasEvents = true;
                 u.order.events.forEach(e => {
                     eventsList.innerHTML += `<li class="bg-slate-800 px-3 py-2 rounded text-xs flex justify-between items-center border border-slate-700"><span class="text-white font-bold">${e.title}</span> <span class="text-green-400 font-mono">₹${e.price}</span></li>`;
                 });
-            } else {
+            }
+            
+            // Linked Events (From being in someone else's squad)
+            if (u.linked_events) {
+                hasEvents = true;
+                Object.values(u.linked_events).forEach(e => {
+                    eventsList.innerHTML += `<li class="bg-cyan-900/20 px-3 py-2 rounded text-xs flex justify-between items-center border border-cyan-500/30"><span class="text-white font-bold">${e.title}</span> <div class="text-right"><span class="text-[9px] text-cyan-400 block uppercase">Linked</span><span class="text-[8px] text-slate-500 font-mono">via ${e.leaderId}</span></div></li>`;
+                });
+            }
+            
+            if (!hasEvents) {
                 eventsList.innerHTML = '<li class="text-slate-500 italic text-xs">No specific events booked.</li>';
             }
 
-            // Populate Squads
+            // Populate Squads (Where this user is the captain)
             const squadContainer = document.getElementById('info-squads');
             squadContainer.innerHTML = "";
             if(u.squads) {
-                Object.entries(u.squads).forEach(([evtCode, teamName]) => {
-                    squadContainer.innerHTML += `<div class="bg-slate-800 p-2 rounded border border-slate-700">
-                        <div class="font-bold text-white text-xs">${evtCode.toUpperCase()}</div>
-                        <div class="text-[10px] text-slate-400">Team: ${teamName}</div>
+                Object.entries(u.squads).forEach(([evtCode, members]) => {
+                    const eventName = eventDictionary[evtCode] || evtCode;
+                    squadContainer.innerHTML += `<div class="bg-slate-800 p-2 rounded border border-slate-700 col-span-2">
+                        <div class="font-bold text-white text-xs text-cyan-400">${eventName}</div>
+                        <div class="text-[10px] text-slate-300 mt-1 font-mono">${members.join(', ')}</div>
                     </div>`;
                 });
             } else {
-                squadContainer.innerHTML = '<span class="text-slate-500 italic col-span-2">No squad data found.</span>';
+                squadContainer.innerHTML = '<span class="text-slate-500 italic col-span-2">No squads formed as leader.</span>';
             }
 
             // Populate Merch
@@ -1263,7 +1380,7 @@
         function deleteResult(id) { if(confirm("Delete?")) db.ref(`results/${id}`).remove(); }
 
         // --- EXPORT & TAB ---
-        function showAdminTab(id) { ['dashboard','users_tab','promos','staff','updates','merch','payment','finance','verification','results'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function showAdminTab(id) { ['dashboard','users_tab','promos','staff','updates','merch','payment','finance','verification','results','squads'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
         function exportAdminData(type) {
             let csv = "", filename = "";
             if (type === 'users') {
