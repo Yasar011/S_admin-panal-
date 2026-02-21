@@ -7,7 +7,6 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 
     <!-- FIREBASE SDK -->
@@ -34,7 +33,6 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
-        .scanner-box video { border-radius: 12px; object-fit: cover; }
         
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .dot-upcoming { background: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
@@ -110,20 +108,23 @@
                     <div class="flex justify-between items-start pr-8">
                         <div>
                             <span id="em-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-500 mb-2 inline-block">Upcoming</span>
-                            <h2 class="text-2xl font-bold text-white mb-1" id="em-title">Event Title</h2>
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-2xl font-bold text-white mb-1" id="em-title">Event Title</h2>
+                                <button onclick="toggleEventStatus()" id="btn-status-toggle" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded font-bold hover:bg-green-500">GO LIVE</button>
+                            </div>
                             <p class="text-xs text-slate-400 font-mono" id="em-type">Solo • Cultural</p>
                         </div>
                         <div class="text-right">
                             <p class="text-3xl font-bold text-white" id="em-count">0</p>
-                            <p class="text-[10px] text-slate-500 uppercase">Attendees</p>
+                            <p class="text-[10px] text-slate-500 uppercase">Registered</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Tabs -->
                 <div class="flex border-b border-slate-800 text-sm font-bold text-slate-400 overflow-x-auto">
-                    <button onclick="switchTab('scan')" id="tab-scan" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors text-blue-500 border-blue-500 whitespace-nowrap px-4">
-                        <i data-lucide="scan-line" class="inline w-4 h-4 mr-2"></i>CHECK-IN
+                    <button onclick="switchTab('scan')" id="tab-scan" class="flex-1 py-4 text-blue-500 border-b-2 border-blue-500 transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="scan-line" class="inline w-4 h-4 mr-2"></i>SCAN
                     </button>
                     <button onclick="switchTab('list')" id="tab-list" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap px-4">
                         <i data-lucide="users" class="inline w-4 h-4 mr-2"></i>ROSTER
@@ -144,40 +145,40 @@
                     <!-- SCAN TAB -->
                     <div id="view-scan" class="space-y-6">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-white font-bold">Attendance Scanner</h3>
-                            <button onclick="toggleEventStatus()" id="btn-status-toggle" class="text-xs bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-500">GO LIVE</button>
+                            <h3 class="text-white font-bold">Event Entry Scanner</h3>
+                            <p class="text-[10px] text-slate-500 uppercase">Verify registrations here</p>
                         </div>
 
                         <div class="bg-black border border-slate-800 rounded-xl overflow-hidden h-64 relative scanner-box">
                             <div id="reader" class="w-full h-full"></div>
-                            <div id="scan-placeholder" class="absolute inset-0 flex items-center justify-center flex-col text-slate-600">
+                            <div id="scan-placeholder" class="absolute inset-0 flex items-center justify-center flex-col text-slate-600 bg-slate-950">
                                 <i data-lucide="camera" class="w-8 h-8 mb-2"></i>
                                 <span class="text-xs">Camera Off</span>
                             </div>
                         </div>
 
                         <div class="flex gap-2">
-                            <button onclick="startScanner()" id="btn-cam-start" class="flex-1 bg-slate-800 text-white py-3 rounded hover:bg-slate-700 font-bold text-xs"><i data-lucide="camera" class="inline w-3 h-3 mr-1"></i> CAMERA</button>
-                            <button onclick="stopScanner()" id="btn-cam-stop" class="hidden flex-1 bg-red-900/50 text-red-400 py-3 rounded hover:bg-red-900/80 font-bold text-xs">STOP</button>
+                            <button onclick="startScanner()" id="btn-cam-start" class="flex-1 bg-slate-800 text-white py-3 rounded hover:bg-slate-700 font-bold text-xs"><i data-lucide="camera" class="inline w-3 h-3 mr-1"></i> START CAMERA</button>
+                            <button onclick="stopScanner()" id="btn-cam-stop" class="hidden flex-1 bg-red-900/50 text-red-400 py-3 rounded hover:bg-red-900/80 font-bold text-xs">STOP CAMERA</button>
                         </div>
 
                         <div class="flex gap-2 border-t border-slate-800 pt-4">
-                            <input id="manual-id" type="text" placeholder="Enter ID Manually (SPEC...)" class="flex-1 bg-slate-950 border border-slate-700 p-3 rounded text-white outline-none uppercase font-mono text-sm">
-                            <button onclick="verifyUser(document.getElementById('manual-id').value)" class="bg-blue-600 text-white px-6 rounded font-bold hover:bg-blue-500">ADD</button>
+                            <input id="manual-scan-id" type="text" placeholder="Enter ID Manually (SPEC...)" class="flex-1 bg-slate-950 border border-slate-700 p-3 rounded text-white outline-none uppercase font-mono text-sm">
+                            <button onclick="verifyUserForEvent(document.getElementById('manual-scan-id').value)" class="bg-blue-600 text-white px-6 rounded font-bold hover:bg-blue-500">CHECK</button>
                         </div>
                         <div id="scan-result" class="hidden p-4 rounded border text-center text-sm font-bold"></div>
                     </div>
 
-                    <!-- LIST TAB -->
+                    <!-- LIST TAB (ROSTER) -->
                     <div id="view-list" class="hidden">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-white font-bold">Checked-In Users</h3>
+                            <h3 class="text-white font-bold">Event Roster</h3>
                             <div class="flex gap-2">
-                                <button onclick="exportCSV()" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded hover:bg-slate-700 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> CSV</button>
-                                <button onclick="refreshAttendees()" class="text-xs text-blue-400 p-1.5"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
+                                <button onclick="exportCSV()" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded hover:bg-slate-700 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> Export All</button>
+                                <button onclick="refreshAttendees()" class="text-xs text-blue-400 p-1.5 border border-slate-700 rounded hover:bg-slate-800"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
                             </div>
                         </div>
-                        <p class="text-[10px] text-slate-500 mb-2">Click Star (★) to promote to next round.</p>
+                        <p class="text-[10px] text-slate-500 mb-2">Click <i data-lucide="star" class="w-3 h-3 inline"></i> to promote to next round.</p>
                         <div class="overflow-y-auto max-h-[350px] space-y-2 pr-2" id="attendees-container">
                             <div class="text-slate-600 text-center text-xs py-10">No attendees yet.</div>
                         </div>
@@ -243,47 +244,94 @@
         </div>
     </div>
 
+    <!-- 4. PARTICIPANT DETAILS MODAL -->
+    <div id="participant-modal" class="fixed inset-0 z-[100] hidden flex flex-col justify-end bg-black/60 backdrop-blur-sm p-4 pb-24">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl relative max-w-sm mx-auto w-full transform transition-transform duration-300">
+            <button onclick="document.getElementById('participant-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold text-white mb-1" id="part-name">Name</h3>
+            <p class="text-xs text-slate-400 font-mono mb-4" id="part-id">SPEC---</p>
+            
+            <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Phone Number</p>
+                        <p class="text-sm text-white" id="part-phone">N/A</p>
+                    </div>
+                    <a href="#" id="part-phone-link" class="bg-green-600/20 text-green-400 p-2 rounded-full hover:bg-green-600/40 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i></a>
+                </div>
+                <div class="border-t border-slate-800 pt-3">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">Email</p>
+                    <p class="text-sm text-white truncate" id="part-email">N/A</p>
+                </div>
+                <div class="border-t border-slate-800 pt-3">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">College</p>
+                    <p class="text-sm text-white truncate" id="part-college">N/A</p>
+                </div>
+                <div class="border-t border-slate-800 pt-3 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Campus Entry Status</p>
+                        <p class="text-sm font-bold mt-1" id="part-checkin">N/A</p>
+                    </div>
+                </div>
+                <div id="part-squad" class="border-t border-slate-800 pt-3">
+                    <!-- Dynamic Squad Info -->
+                </div>
+            </div>
+            <button onclick="document.getElementById('participant-modal').classList.add('hidden')" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl mt-4 uppercase tracking-widest hover:bg-slate-700">Close</button>
+        </div>
+    </div>
+
     <script>
         // --- DATA & CONFIG ---
-        // Same event data as admin to keep consistent
         const eventsData = [
-            { id: 101, club: 'entertainment', title: 'EDM Night (Add-on)', members: '1' }, 
-            { id: 102, club: 'entertainment', title: 'Fashion Show (Main)', members: '8-12' },
-            { id: 1, club: 'culture', title: 'Street Battle', members: 'Solo/Duo' },
-            { id: 2, club: 'culture', title: 'Solo Singing', members: 'Solo' },
-            { id: 3, club: 'culture', title: 'Runway Rivals', members: '1' },
-            { id: 4, club: 'culture', title: 'Battle of Bands', members: '3-6' },
-            { id: 5, club: 'entertainment', title: 'EDM Night (Main)', members: '1' },
-            { id: 6, club: 'sports', title: 'Valorant', members: '5' },
-            { id: 7, club: 'sports', title: 'FIFA 26', members: 'Solo' },
-            { id: 8, club: 'sports', title: 'Box Cricket', members: '6-8' },
-            { id: 9, club: 'adventure', title: 'Photo Walk', members: 'Solo' },
-            { id: 10, club: 'adventure', title: 'Treasure Hunt', members: '2-4' },
-            { id: 11, club: 'lit', title: 'Debate War', members: 'Solo' },
-            { id: 12, club: 'lit', title: 'Open Mic', members: 'Solo' },
-            { id: 13, club: 'environment', title: 'Eco Drive', members: 'Solo' },
-            { id: 15, club: 'environment', title: 'Trash to Art', members: 'Solo' },
-            { id: 16, club: 'lit', title: 'Creative Writing', members: 'Solo' },
-            { id: 17, club: 'essc', title: 'Social Case Study', members: '2-3' },
-            { id: 18, club: 'essc', title: 'Nukkad Natak', members: 'Group' },
-            { id: 19, club: 'sports', title: 'BGMI', members: '4' }
+            { id: 101, club: 'entertainment', title: 'EDM Night (Neon Pulse)', members: '1' }, 
+            { id: 102, club: 'entertainment', title: 'Fashion Show (Designer Team)', members: '8-12' },
+            { id: 103, club: 'entertainment', title: 'Fashion Show (Audience)', members: '1' },
+            { id: 1, club: 'adventure', title: 'Photography', members: 'Solo' },
+            { id: 2, club: 'adventure', title: 'Short Film', members: '2-4' },
+            { id: 3, club: 'adventure', title: 'Match the Picture', members: 'Solo' },
+            { id: 9, club: 'adventure', title: 'Mini Adventure', members: 'Solo' },
+            { id: 5, club: 'culture', title: 'Solo Dance', members: 'Solo' },
+            { id: 306, club: 'culture', title: 'Group Dance', members: '5-8' },
+            { id: 6, club: 'culture', title: 'Solo Singing', members: 'Solo' },
+            { id: 8, club: 'culture', title: 'Battle of Bands', members: '3-6' },
+            { id: 307, club: 'culture', title: 'Mr & Miss Spectrum', members: 'Solo' },
+            { id: 301, club: 'environment', title: 'Graffiti Competition', members: '2-4' },
+            { id: 302, club: 'environment', title: 'Treasure Hunt (Env)', members: '4-5' },
+            { id: 303, club: 'environment', title: 'Eco Trivia', members: 'Solo' },
+            { id: 304, club: 'environment', title: 'Musical Chairs', members: 'Solo' },
+            { id: 305, club: 'environment', title: 'Trumbling', members: 'Solo' },
+            { id: 401, club: 'lit', title: "Devil's Advocate", members: 'Solo' },
+            { id: 402, club: 'lit', title: 'Minute to Win It', members: 'Duo' },
+            { id: 403, club: 'lit', title: 'Snakes & Ladders', members: 'Duo' },
+            { id: 404, club: 'lit', title: 'Bollymania', members: 'Duo' },
+            { id: 18, club: 'essc', title: 'Nukkad Natak', members: '10' },
+            { id: 19, club: 'essc', title: 'Housie', members: '1' },
+            { id: 20, club: 'essc', title: 'Pong the Palooza', members: '3' },
+            { id: 321, club: 'essc', title: 'Face Painting', members: '2' },
+            { id: 222, club: 'essc', title: 'Poster Making', members: '1' },
+            { id: 201, club: 'sports', title: 'Futsal Mix', members: '4B + 2G + 2 Extra' },
+            { id: 202, club: 'sports', title: 'Volleyball Mix', members: '4B + 2G + 2 Extra' },
+            { id: 203, club: 'sports', title: 'Basketball Mix', members: '4B + 2G + 2 Extra' },
+            { id: 204, club: 'sports', title: 'Throwball (Girls)', members: '6G + 2 Extra' },
+            { id: 205, club: 'sports', title: 'Table Tennis (Boys)', members: 'Solo' },
+            { id: 206, club: 'sports', title: 'Table Tennis (Girls)', members: 'Solo' },
+            { id: 207, club: 'sports', title: 'Chess', members: 'Solo' },
+            { id: 208, club: 'sports', title: 'Carrom', members: 'Solo' },
+            { id: 209, club: 'sports', title: 'Tug of War Mix', members: '4B + 4G' }
         ];
 
         let currentClubCode = null;
         let activeEventId = null;
-        let html5QrcodeScanner = null;
-        let isScanning = false;
         let currentAttendees = [];
-        let registeredUsersForEvent = []; // Cache for Comms
+        let registeredUsersForEvent = []; 
         
-        // Global Data Cache
         window.allUsers = [];
         window.allStatuses = {};
 
         function init() {
             lucide.createIcons();
             
-            // Check if already logged in
             auth.onAuthStateChanged(user => {
                 if(user) {
                     checkAccess(user.email);
@@ -348,12 +396,11 @@
             auth.signOut().then(() => location.reload());
         }
 
-        // --- DASHBOARD LOGIC (FIXED) ---
+        // --- DASHBOARD LOGIC ---
         function initDashboard() {
             const container = document.getElementById('events-list');
             container.innerHTML = '<div class="text-center col-span-full py-10 text-slate-500"><div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>Fetching Data...</div>';
 
-            // 1. Listen for User Changes (Preserving Keys)
             db.ref('users').on('value', snap => {
                 const val = snap.val();
                 if (val) {
@@ -364,7 +411,6 @@
                 renderIfReady();
             });
 
-            // 2. Listen for Event Status Changes
             db.ref('events_status').on('value', snap => {
                 window.allStatuses = snap.val() || {};
                 renderIfReady();
@@ -389,22 +435,20 @@
             let totalLive = 0;
 
             events.forEach(e => {
-                // Calculate Registrations
                 const regCount = users.filter(u => {
-                    if(u.order && u.order.events && u.order.events.some(ev => ev.id == e.id)) return true;
-                    return false; 
+                    const hasPurchased = u.order && u.order.events && u.order.events.some(ev => ev.id == e.id);
+                    const isLinked = u.linked_events && u.linked_events[e.id];
+                    return hasPurchased || isLinked; 
                 }).length;
+                
                 totalRegs += regCount;
 
-                // Status Logic
                 const status = statuses[e.id]?.status || 'upcoming'; 
                 if(status === 'live') totalLive++;
 
                 const statusClass = status === 'live' ? 'text-red-500' : (status === 'ended' ? 'text-gray-500' : 'text-yellow-500');
                 const dotClass = status === 'live' ? 'dot-live' : (status === 'ended' ? 'dot-ended' : 'dot-upcoming');
-                const btnText = status === 'live' ? 'MANAGE LIVE' : (status === 'ended' ? 'VIEW RESULTS' : 'START EVENT');
-                const btnColor = status === 'live' ? 'bg-red-600 hover:bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500';
-
+                
                 container.innerHTML += `
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all shadow-lg">
                     <div class="flex justify-between items-start mb-4">
@@ -422,8 +466,8 @@
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="openEventModal(${e.id}, '${e.title}', '${e.members}', '${status}')" class="flex-1 ${btnColor} text-white font-bold py-3 rounded text-xs transition-colors shadow-lg">
-                            ${btnText}
+                        <button onclick="openEventModal(${e.id}, '${e.title}', '${e.members}', '${status}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded text-xs transition-colors shadow-lg border border-slate-700">
+                            MANAGE EVENT
                         </button>
                     </div>
                 </div>`;
@@ -448,22 +492,22 @@
             
             if(status === 'live') {
                 btn.innerText = "END EVENT";
-                btn.className = "text-xs bg-red-600 text-white px-4 py-2 rounded font-bold hover:bg-red-500";
+                btn.className = "text-[10px] bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-500";
                 badge.innerText = "LIVE NOW";
                 badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/20 text-red-500 mb-2 inline-block animate-pulse";
             } else if (status === 'ended') {
                 btn.innerText = "RE-OPEN";
-                btn.className = "text-xs bg-slate-700 text-white px-4 py-2 rounded font-bold hover:bg-slate-600";
+                btn.className = "text-[10px] bg-slate-700 text-white px-3 py-1 rounded font-bold hover:bg-slate-600";
                 badge.innerText = "ENDED";
                 badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-700/50 text-slate-400 mb-2 inline-block";
             } else {
                 btn.innerText = "GO LIVE";
-                btn.className = "text-xs bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-500";
+                btn.className = "text-[10px] bg-green-600 text-white px-3 py-1 rounded font-bold hover:bg-green-500";
                 badge.innerText = "UPCOMING";
                 badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-500 mb-2 inline-block";
             }
 
-            switchTab('scan');
+            switchTab('scan'); // Default to Scan tab for event execution
             refreshAttendees();
             refreshVolunteers();
             refreshComms();
@@ -476,7 +520,7 @@
         }
 
         function switchTab(tab) {
-            if (tab !== 'scan') stopScanner();
+            if (tab !== 'scan') stopScanner(); // Turn off camera if they navigate away
 
             ['scan', 'list', 'winners', 'volunteers', 'comms'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
@@ -508,28 +552,8 @@
             }
         }
 
-        function broadcastMsg() {
-            const msg = document.getElementById('custom-msg').value;
-            if(!msg) return alert("Enter a message");
-            if(confirm("Send to Main Website?")) {
-                db.ref('updates').push({
-                    message: `${document.getElementById('em-title').innerText}: ${msg}`,
-                    timestamp: Date.now()
-                }).then(() => {
-                    alert("Sent!");
-                    document.getElementById('custom-msg').value = '';
-                });
-            }
-        }
-
         // --- SCANNER & VERIFICATION ---
         function startScanner() {
-            const currentStatus = window.allStatuses[activeEventId]?.status;
-            if(currentStatus === 'ended') {
-                alert("Event has ENDED. Cannot scan attendees.");
-                return;
-            }
-
             if(isScanning) return;
             isScanning = true;
             document.getElementById('btn-cam-start').classList.add('hidden');
@@ -540,8 +564,8 @@
             html5QrcodeScanner.start(
                 { facingMode: "environment" }, 
                 { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => { verifyUser(decodedText); },
-                (errorMessage) => { /* ignore */ }
+                (decodedText) => { verifyUserForEvent(decodedText); },
+                (errorMessage) => { /* ignore normal scanning errors */ }
             ).catch(err => {
                 alert("Camera Error: " + err);
                 stopScanner();
@@ -560,79 +584,58 @@
             }
         }
 
-        function verifyUser(id) {
-            if(!activeEventId) return;
-            const currentStatus = window.allStatuses[activeEventId]?.status;
-            if(currentStatus === 'ended') {
-                showScanResult(false, "EVENT ENDED");
-                return;
-            }
-
+        function verifyUserForEvent(id) {
             id = id.toUpperCase().trim();
-            if(!id) return;
+            if(!id || !activeEventId) return;
+            
             const res = document.getElementById('scan-result');
             res.classList.remove('hidden', 'bg-green-900/50', 'border-green-600', 'text-green-400', 'bg-red-900/50', 'border-red-600', 'text-red-400');
             res.innerHTML = "Verifying...";
 
-            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(snap => {
-                if(!snap.exists()) {
-                    showScanResult(false, "Invalid ID");
-                    return;
-                }
-
-                const key = Object.keys(snap.val())[0];
-                const u = Object.values(snap.val())[0];
-
-                let access = false;
-                let reason = "";
-
-                if(u.order?.pass === "Nexus Prime") { access = true; reason = "Nexus Prime Pass"; }
-                else if (u.order?.events && u.order.events.some(ev => ev.id == activeEventId)) { access = true; reason = "Registered User"; }
-                else if (activeEventId == 101 && u.order?.pass === "Neon Pulse") { access = true; reason = "Neon Pulse Pass"; }
-                else if (activeEventId == 102 && u.order?.pass === "Vogue Gala") { access = true; reason = "Vogue Gala Pass"; }
-
-                if(access) {
-                    if(u.attendedEvents && u.attendedEvents[activeEventId]) {
-                        showScanResult(false, "Already Checked In");
-                    } else {
-                        db.ref(`users/${key}/attendedEvents/${activeEventId}`).set(true).then(() => {
-                            showScanResult(true, `Verified: ${u.name}<br><span class="text-xs font-normal text-slate-400">${reason}</span>`);
-                            if(u.squads && u.squads[activeEventId]) {
-                                alert(`Squad Found: ${u.squads[activeEventId]}`); 
-                            }
-                            refreshAttendees();
-                        });
-                    }
-                } else {
-                    const btnHtml = `<br><button onclick="registerOTS('${key}', '${u.name}')" class="mt-2 bg-yellow-600 text-black px-4 py-1 rounded text-xs font-bold hover:bg-yellow-500 shadow-lg">REGISTER ON-SPOT</button>`;
-                    showScanResult(false, `Not Registered: ${u.name}` + btnHtml);
-                }
-            });
-        }
-
-        function registerOTS(key, name) {
-            if(!confirm(`Confirm On-Spot Registration for ${name}?\nEvent ID: ${activeEventId}`)) return;
+            // Find user in local cache
+            const u = window.allUsers.find(x => x.spectrumId === id);
             
-            const evt = eventsData.find(e => e.id == activeEventId);
-            const newEventObj = { id: evt.id, title: evt.title, isPremium: false, type: 'OTS' };
+            if(!u) {
+                showScanResult(false, `❌ INVALID ID: ${id} not found.`);
+                return;
+            }
+            if(u.paymentStatus !== 'Verified') {
+                showScanResult(false, `❌ PAYMENT PENDING: ${u.name} has an unverified pass. Send to Help Desk.`);
+                return;
+            }
 
-            db.ref(`users/${key}/order/events`).once('value').then(snap => {
-                let currentEvents = snap.val();
-                if (!Array.isArray(currentEvents)) {
-                    currentEvents = currentEvents ? Object.values(currentEvents) : [];
-                }
-                
-                if(!currentEvents.some(e => e.id == activeEventId)) currentEvents.push(newEventObj);
-                
-                const updates = {};
-                updates[`users/${key}/order/events`] = currentEvents;
-                updates[`users/${key}/attendedEvents/${activeEventId}`] = true; 
-                
-                db.ref().update(updates).then(() => {
-                    showScanResult(true, `OTS Success: ${name}<br><span class="text-xs font-normal text-slate-400">Registered & Checked In</span>`);
-                    refreshAttendees();
+            // Check if they are registered for THIS event
+            let isRegistered = false;
+            let role = "";
+            
+            // 1. Direct Purchaser (Solo or Captain)
+            if (u.order && u.order.events && u.order.events.some(ev => ev.id == activeEventId)) {
+                isRegistered = true;
+                role = "Direct Registration";
+                if(u.squads && u.squads[activeEventId]) role = "Squad Captain";
+            } 
+            // 2. Linked Squad Member
+            else if (u.linked_events && u.linked_events[activeEventId]) {
+                isRegistered = true;
+                role = `Squad Member (via ${u.linked_events[activeEventId].leaderId})`;
+            }
+            // 3. Special Access (Nexus Prime)
+            else if (u.order?.pass === "Nexus Prime") {
+                isRegistered = true;
+                role = "Nexus Prime Access";
+            }
+
+            if (isRegistered) {
+                // Mark them as "attended" for this specific event
+                db.ref(`users/${u.key}/attendedEvents/${activeEventId}`).set(true).then(() => {
+                    showScanResult(true, `✅ ACCESS GRANTED<br><span class="text-white text-lg">${u.name}</span><br><span class="text-xs text-slate-400">${role}</span>`);
+                    refreshAttendees(); // Update roster list silently
                 });
-            });
+            } else {
+                showScanResult(false, `❌ REJECTED<br><span class="text-white text-lg">${u.name}</span><br><span class="text-xs text-slate-400">Not registered for this event.</span>`);
+            }
+            
+            document.getElementById('manual-scan-id').value = '';
         }
 
         function showScanResult(success, msg) {
@@ -642,28 +645,36 @@
             
             if(success) {
                 res.classList.add('bg-green-900/50', 'border-green-600', 'text-green-400');
-                if(isScanning) setTimeout(() => { res.classList.add('hidden'); }, 3000);
             } else {
                 res.classList.add('bg-red-900/50', 'border-red-600', 'text-red-400');
             }
             res.innerHTML = msg;
+            
+            // Clear message after 4 seconds if scanning continuously
+            if(isScanning) {
+                setTimeout(() => { if(isScanning) res.classList.add('hidden'); }, 4000);
+            }
         }
 
-        // --- ATTENDEE & WINNER LOGIC ---
+        // --- ROSTER & DETAILS ---
         function refreshAttendees() {
             const container = document.getElementById('attendees-container');
             currentAttendees = [];
             
             if (!window.allUsers) return;
 
-            // Filter attendees for THIS event (who have CHECKED IN)
-            currentAttendees = window.allUsers.filter(u => u.attendedEvents && u.attendedEvents[activeEventId]);
+            // Gather EVERYONE registered for this event (Captain or Linked Member)
+            currentAttendees = window.allUsers.filter(u => {
+                const hasPurchased = u.order && u.order.events && u.order.events.some(ev => ev.id == activeEventId);
+                const isLinked = u.linked_events && u.linked_events[activeEventId];
+                return hasPurchased || isLinked;
+            });
             
             document.getElementById('em-count').innerText = currentAttendees.length;
             container.innerHTML = "";
 
             if(currentAttendees.length === 0) {
-                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No checked-in attendees yet.</div>';
+                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registrations found.</div>';
                 return;
             }
 
@@ -671,19 +682,54 @@
                 const isQualified = u.qualifications && u.qualifications[activeEventId];
                 const starClass = isQualified ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-yellow-400';
                 
+                let squadBadge = '';
+                if(u.squads && u.squads[activeEventId]) squadBadge = '<span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold ml-1 uppercase">Captain</span>';
+                else if (u.linked_events && u.linked_events[activeEventId]) squadBadge = '<span class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold ml-1 uppercase">Squad</span>';
+
                 container.innerHTML += `
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
                     <div>
-                        <p class="text-white text-sm font-bold">${u.name}</p>
-                        <p class="text-[10px] text-slate-500 font-mono">${u.spectrumId}</p>
+                        <p class="text-white text-sm font-bold flex items-center">${u.name} ${squadBadge}</p>
+                        <p class="text-[10px] text-slate-500 font-mono mb-1">${u.spectrumId}</p>
                     </div>
-                    <div class="flex gap-3">
-                        <button onclick="toggleQualification('${u.key}')" class="${starClass} transition-colors"><i data-lucide="star" class="w-4 h-4"></i></button>
-                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                    <div class="flex gap-4 items-center">
+                        <button onclick="viewParticipantDetails('${u.key}')" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold border-b border-blue-900/50 pb-0.5">Details</button>
+                        <button onclick="toggleQualification('${u.key}')" class="${starClass} transition-colors" title="Qualify to Next Round"><i data-lucide="star" class="w-4 h-4"></i></button>
                     </div>
                 </div>`;
             });
             lucide.createIcons();
+        }
+
+        function viewParticipantDetails(key) {
+            const u = window.allUsers.find(x => x.key === key);
+            if(!u) return;
+            
+            let squadInfo = '<span class="text-sm text-white">Solo / General Entry</span>';
+            if(u.squads && u.squads[activeEventId]) {
+                squadInfo = `<span class="text-xs text-purple-400 font-mono font-bold uppercase tracking-widest">Squad Leader</span><br><span class="text-xs text-slate-400 block mt-1 leading-relaxed">Roster: ${u.squads[activeEventId].join(' • ')}</span>`;
+            } else if (u.linked_events && u.linked_events[activeEventId]) {
+                squadInfo = `<span class="text-xs text-cyan-400 font-mono font-bold uppercase tracking-widest">Linked Member</span><br><span class="text-xs text-slate-400 block mt-1">Captain: ${u.linked_events[activeEventId].leaderId}</span>`;
+            }
+            
+            document.getElementById('part-name').innerText = u.name;
+            document.getElementById('part-id').innerText = u.spectrumId;
+            document.getElementById('part-phone').innerText = u.phone || "N/A";
+            document.getElementById('part-phone-link').href = u.phone ? `tel:${u.phone}` : "#";
+            document.getElementById('part-email').innerText = u.email;
+            document.getElementById('part-college').innerText = u.collegeName || "N/A";
+            document.getElementById('part-squad').innerHTML = squadInfo;
+            
+            const checkinStatusEl = document.getElementById('part-checkin');
+            if (u.checkedIn) {
+                checkinStatusEl.innerText = "CHECKED IN (Campus)";
+                checkinStatusEl.className = "text-sm font-bold mt-1 text-green-400";
+            } else {
+                checkinStatusEl.innerText = "NOT ARRIVED";
+                checkinStatusEl.className = "text-sm font-bold mt-1 text-slate-500";
+            }
+            
+            document.getElementById('participant-modal').classList.remove('hidden');
         }
 
         function toggleQualification(key) {
@@ -695,17 +741,28 @@
         function exportCSV() {
             if(currentAttendees.length === 0) return alert("No data to export");
             const csvContent = "data:text/csv;charset=utf-8," 
-                + "Name,Spectrum ID,Email,College,Qualified\n"
-                + currentAttendees.map(u => `${u.name},${u.spectrumId},${u.email},${u.collegeName || ''},${u.qualifications && u.qualifications[activeEventId] ? 'YES' : 'NO'}`).join("\n");
+                + "Name,Spectrum ID,Phone,College,Squad Role,Squad Members\n"
+                + currentAttendees.map(u => {
+                    let squadRole = "Solo";
+                    let squadMates = "";
+                    if(u.squads && u.squads[activeEventId]) {
+                        squadRole = "Captain";
+                        squadMates = u.squads[activeEventId].join(' | ');
+                    } else if(u.linked_events && u.linked_events[activeEventId]) {
+                        squadRole = `Member (via ${u.linked_events[activeEventId].leaderId})`;
+                    }
+                    return `"${u.name}","${u.spectrumId}","${u.phone || ''}","${u.collegeName || ''}","${squadRole}","${squadMates}"`;
+                }).join("\n");
             
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `attendees_${activeEventId}.csv`);
+            link.setAttribute("download", `Event_${activeEventId}_Roster.csv`);
             document.body.appendChild(link);
             link.click();
         }
 
+        // --- WINNER LOGIC ---
         function populateWinnerSelects() {
             const selects = ['win-1', 'win-2', 'win-3'];
             selects.forEach(id => {
@@ -796,20 +853,14 @@
             const container = document.getElementById('comms-list');
             if (!window.allUsers) return;
 
-            // Filter participants who have registered for this event (NOT just checked in)
-            registeredUsersForEvent = window.allUsers.filter(u => {
-                if(u.order?.pass === "Nexus Prime") return true; // Nexus Prime accesses all
-                return u.order?.events && u.order.events.some(ev => ev.id == activeEventId);
-            });
-
             container.innerHTML = "";
             
-            if(registeredUsersForEvent.length === 0) {
+            if(currentAttendees.length === 0) {
                 container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registered participants found.</div>';
                 return;
             }
 
-            registeredUsersForEvent.forEach(u => {
+            currentAttendees.forEach(u => {
                 let phone = u.phone ? u.phone.replace(/\D/g, '') : '';
                 if(phone.length === 10) phone = '91' + phone;
 
