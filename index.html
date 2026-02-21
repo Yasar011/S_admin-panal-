@@ -22,7 +22,6 @@
             storageBucket: "spectram-234f7.firebasestorage.app",
             messagingSenderId: "192476382126",
             appId: "1:192476382126:web:26422db3e948165933be3f",
-            measurementId: "G-SK3RN0FDZK",
             databaseURL: "https://spectram-234f7-default-rtdb.firebaseio.com"
         };
         
@@ -51,7 +50,6 @@
         }
         .portal-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.5);
         }
         
         /* Grid Background Pattern */
@@ -193,107 +191,10 @@
             </div>
         </div>
 
-        <!-- 3. SUB-PAGES (Specific Views) -->
-        <!-- Admin View -->
-        <div id="view-admin" class="w-full max-w-6xl relative z-10 hidden-view">
-            <div class="glass p-6 rounded-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="shield-alert" class="text-pink-500"></i> Master Admin</h2>
-                    <button onclick="navigate('portal')" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-white transition">Back to Hub</button>
-                </div>
-                <div class="flex-grow flex items-center justify-center text-slate-500">
-                    <p>Admin Dashboard Content Loaded Here.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Club View -->
-        <div id="view-club" class="w-full max-w-6xl relative z-10 hidden-view">
-            <div class="glass p-6 rounded-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="zap" class="text-blue-500"></i> Club Operations</h2>
-                    <button onclick="navigate('portal')" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-white transition">Back to Hub</button>
-                </div>
-                <div class="flex-grow flex items-center justify-center text-slate-500">
-                    <p>Club Event Management Loaded Here.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gate View -->
-        <div id="view-gate" class="w-full max-w-6xl relative z-10 hidden-view">
-            <div class="glass p-6 rounded-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="scan-line" class="text-green-500"></i> Gate Security</h2>
-                    <button onclick="navigate('portal')" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-white transition">Back to Hub</button>
-                </div>
-                <div class="flex-grow flex items-center justify-center text-slate-500">
-                    <p>QR Scanner & Entry Log Loaded Here.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Results View -->
-        <div id="view-results" class="w-full max-w-6xl relative z-10 hidden-view">
-            <div class="glass p-6 rounded-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="trophy" class="text-yellow-500"></i> Results & Data</h2>
-                    <button onclick="navigate('portal')" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-white transition">Back to Hub</button>
-                </div>
-                <div class="flex-grow flex items-center justify-center text-slate-500">
-                    <p>Winner Declaration & Export Tools Loaded Here.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Merch View -->
-        <div id="view-merch" class="w-full max-w-6xl relative z-10 hidden-view">
-            <div class="glass p-6 rounded-2xl h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="shirt" class="text-purple-500"></i> Merch Distributor</h2>
-                    <button onclick="navigate('portal')" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-white transition">Back to Hub</button>
-                </div>
-                <div class="flex-grow flex items-center justify-center text-slate-500">
-                    <p>Merchandise Distribution System Loaded Here.</p>
-                </div>
-            </div>
-        </div>
-
     </main>
 
     <script>
         lucide.createIcons();
-
-        // --- NAVIGATION LOGIC ---
-        function navigate(viewName) {
-            // Hide all main containers
-            document.getElementById('auth-container').classList.add('hidden');
-            document.getElementById('portal-view').classList.remove('active-view');
-            document.getElementById('portal-view').classList.add('hidden-view');
-            
-            ['view-admin', 'view-club', 'view-gate', 'view-results', 'view-merch'].forEach(id => {
-                document.getElementById(id).classList.remove('active-view');
-                document.getElementById(id).classList.add('hidden-view');
-            });
-
-            // Show target
-            if (viewName === 'auth') {
-                document.getElementById('auth-container').classList.remove('hidden');
-            } else if (viewName === 'portal') {
-                const p = document.getElementById('portal-view');
-                p.classList.remove('hidden-view');
-                p.classList.add('active-view');
-                p.classList.remove('hidden'); // Legacy compat
-                setTimeout(() => p.classList.add('opacity-100'), 50);
-            } else {
-                const v = document.getElementById(`view-${viewName}`);
-                if (v) {
-                    v.classList.remove('hidden-view');
-                    v.classList.add('active-view');
-                }
-            }
-            lucide.createIcons();
-        }
 
         // --- UI TOGGLES ---
         function toggleForms(view) {
@@ -338,7 +239,9 @@
             if (user) {
                 verifyAccess(user.email);
             } else {
-                navigate('auth');
+                document.getElementById('auth-container').classList.remove('hidden');
+                document.getElementById('portal-view').classList.add('hidden-view');
+                document.getElementById('portal-view').classList.remove('active-view');
                 toggleForms('login');
             }
         });
@@ -382,54 +285,47 @@
             document.getElementById('reg-status-text').innerText = "Logged in as Student. Apply for Staff Access below.";
         }
 
+        // --- PORTAL ROUTING LOGIC ---
         function showPortal(userData) {
-            navigate('portal');
+            // Hide login, show portal
+            document.getElementById('auth-container').classList.add('hidden');
+            const p = document.getElementById('portal-view');
+            p.classList.remove('hidden-view');
+            p.classList.add('active-view');
+            setTimeout(() => p.classList.add('opacity-100'), 50);
+
             document.getElementById('user-display').innerText = userData.email;
 
             const grid = document.getElementById('portal-grid');
             grid.innerHTML = ""; 
 
-            // Card HTML generation
-            const createCard = (title, desc, icon, color, viewTarget, extraClasses = "") => `
-                <div onclick="navigate('${viewTarget}')" class="portal-card bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(${color},0.3)] hover:border-${color}-500/50 ${extraClasses}">
+            // Function to generate REAL HTML links that redirect to your other files
+            const createLinkCard = (title, desc, icon, colorClass, hoverClass, url, extraClasses = "") => `
+                <a href="${url}" class="portal-card block bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group transition-all duration-300 shadow-lg ${hoverClass} ${extraClasses}">
                     <div class="flex justify-between items-start mb-4">
-                        <div class="bg-${color}-900/30 p-3 rounded-lg text-${color}-500 group-hover:bg-${color}-600 group-hover:text-white transition-colors">
+                        <div class="${colorClass} p-3 rounded-lg group-hover:bg-white/20 group-hover:text-white transition-colors">
                             <i data-lucide="${icon}" class="w-8 h-8"></i>
                         </div>
                         <i data-lucide="arrow-right" class="text-slate-600 group-hover:text-white transition-colors"></i>
                     </div>
                     <h2 class="text-2xl font-bold text-white mb-2">${title}</h2>
                     <p class="text-sm text-slate-400">${desc}</p>
-                </div>`;
-
-            // NEW: Link Card for external files like event_editor.html
-            const createLinkCard = (title, desc, icon, color, url, extraClasses = "") => `
-                <a href="${url}" class="portal-card block bg-slate-900/80 border border-slate-800 p-8 rounded-2xl group hover:shadow-[0_0_30px_rgba(${color},0.3)] hover:border-${color}-500/50 ${extraClasses}">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="bg-${color}-900/30 p-3 rounded-lg text-${color}-500 group-hover:bg-${color}-600 group-hover:text-white transition-colors">
-                            <i data-lucide="${icon}" class="w-8 h-8"></i>
-                        </div>
-                        <i data-lucide="external-link" class="text-slate-600 group-hover:text-white transition-colors"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-white mb-2">${title}</h2>
-                    <p class="text-sm text-slate-400">${desc}</p>
                 </a>`;
             
+            // Map cards directly to the correct HTML files
             const cards = {
-                admin: createCard("Master Admin", "Manage users, payments, and global configs.", "shield-alert", "pink", "admin"),
-                club: createCard("Club Ops", "Manage events, attendance, and winners.", "zap", "blue", "club"),
-                gate: createCard("Gate Control", "Security checkpoint for verifying passes.", "scan-line", "green", "gate"),
-                results: createCard("Results & Data", "View winners and export result data.", "trophy", "yellow", "results"),
-                merch: createCard("Merch Distributor", "Scanner for distribution desk.", "shirt", "purple", "merch", "md:col-span-2 lg:col-span-1 lg:col-start-2"),
-                // NEW CARDS
-                eventEditor: createLinkCard("Event Editor", "Manual tool to add/remove events for users.", "edit", "indigo", "event_editor.html"),
-                eventManager: createLinkCard("Event Manager", "Create & Edit Event Metadata (Fees, Prizes).", "calendar-plus", "orange", "event_manager.html")
+                admin: createLinkCard("Master Admin", "Manage users, payments, and global configs.", "shield-alert", "text-pink-500 bg-pink-900/30", "hover:border-pink-500/50 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)]", "admin.html"),
+                club: createLinkCard("Club Ops", "Manage events, attendance, and winners.", "zap", "text-blue-500 bg-blue-900/30", "hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]", "club.html"),
+                gate: createLinkCard("Gate Control", "Security checkpoint for verifying passes.", "scan-line", "text-green-500 bg-green-900/30", "hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.2)]", "scanner.html"),
+                results: createLinkCard("Results & Data", "View winners and export result data.", "trophy", "text-yellow-500 bg-yellow-900/30", "hover:border-yellow-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.2)]", "admin.html"),
+                merch: createLinkCard("Merch Distributor", "Scanner for distribution desk.", "shirt", "text-purple-500 bg-purple-900/30", "hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]", "admin.html", "md:col-span-2 lg:col-span-1 lg:col-start-2")
             };
 
+            // Display cards based on role
             if (userData.role === 'admin') {
-                grid.innerHTML = cards.admin + cards.club + cards.gate + cards.results + cards.merch + cards.eventEditor + cards.eventManager;
+                grid.innerHTML = cards.admin + cards.club + cards.gate + cards.results + cards.merch;
             } else if (userData.role === 'club') {
-                grid.innerHTML = cards.club + cards.eventEditor;
+                grid.innerHTML = cards.club;
             } else if (userData.role === 'gate') {
                 grid.innerHTML = cards.gate;
             } else if (userData.role === 'merch') {
@@ -437,6 +333,7 @@
             } else if (userData.role === 'results') {
                 grid.innerHTML = cards.results;
             }
+            
             lucide.createIcons();
         }
 
