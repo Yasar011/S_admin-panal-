@@ -7,6 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 
     <!-- FIREBASE SDK -->
@@ -33,6 +34,7 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
+        .scanner-box video { border-radius: 12px; object-fit: cover; }
         
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .dot-upcoming { background: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
@@ -323,6 +325,8 @@
 
         let currentClubCode = null;
         let activeEventId = null;
+        let html5QrcodeScanner = null;
+        let isScanning = false;
         let currentAttendees = [];
         let registeredUsersForEvent = []; 
         
