@@ -202,6 +202,39 @@
 </head>
 <body onload="initSystem()">
 
+    <!-- SQUAD EDIT MODAL -->
+    <div id="squad-edit-modal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md p-6 rounded-2xl shadow-2xl relative">
+            <button onclick="closeSquadEditModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-purple-500"></i> Edit Roster</h3>
+            <p id="se-event-name" class="text-xs text-purple-400 font-mono mb-4 uppercase tracking-widest">EVENT NAME</p>
+            
+            <div class="bg-slate-950 p-4 rounded border border-slate-800 mb-6">
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Squad Captain</p>
+                <p id="se-capt-name" class="font-bold text-white text-sm">Name</p>
+                <p id="se-capt-id" class="font-mono text-xs text-cyan-400">SPEC...</p>
+            </div>
+
+            <div class="mb-6 border-t border-slate-800 pt-4">
+                <label class="text-[10px] text-slate-400 uppercase font-bold block mb-2">Add Member (By SPEC ID)</label>
+                <div class="flex gap-2">
+                    <input id="se-add-id" type="text" placeholder="SPEC..." class="flex-1 bg-black border border-slate-700 p-3 rounded text-white text-sm uppercase font-mono outline-none focus:border-purple-500">
+                    <button onclick="addSquadMember()" class="bg-purple-600 text-white px-6 rounded font-bold hover:bg-purple-500 transition-colors shadow-lg shadow-purple-900/30">ADD</button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <p class="text-[10px] text-slate-400 uppercase font-bold border-b border-slate-800 pb-1 mb-2">Current Members</p>
+                <div id="se-members-list" class="max-h-48 overflow-y-auto space-y-2 pr-1">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+            
+            <input type="hidden" id="se-event-id">
+            <input type="hidden" id="se-capt-key">
+        </div>
+    </div>
+
     <!-- NUKE DATA SECURITY MODAL -->
     <div id="nuke-modal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4">
         <div class="bg-slate-950 border-2 border-red-600 w-full max-w-sm p-6 rounded-2xl shadow-2xl relative overflow-hidden">
@@ -384,7 +417,8 @@
                 <div class="nav-item" onclick="showAdminTab('staff')"><i data-lucide="key" class="w-4 h-4 text-orange-400"></i> Staff Approvals</div>
                 <div class="nav-item" onclick="showAdminTab('verification')"><i data-lucide="check-square" class="w-4 h-4 text-green-400"></i> Verify Payments</div>
                 <div class="nav-item" onclick="showAdminTab('finance')"><i data-lucide="dollar-sign" class="w-4 h-4"></i> Finance Log</div>
-                <div class="nav-item" onclick="showAdminTab('users_tab')"><i data-lucide="users" class="w-4 h-4 text-blue-400"></i> All Registrations</div>
+                <div class="nav-item" onclick="showAdminTab('users_tab')"><i data-lucide="users" class="w-4 h-4 text-blue-400"></i> Other Students</div>
+                <div class="nav-item" onclick="showAdminTab('nift')"><i data-lucide="graduation-cap" class="w-4 h-4 text-emerald-400"></i> NIFT Students</div>
                 <div class="nav-item" onclick="showAdminTab('squads')"><i data-lucide="network" class="w-4 h-4 text-purple-400"></i> Team Rosters</div>
                 <div class="nav-item" onclick="showAdminTab('merch')"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Merch Store</div>
                 <div class="nav-item" onclick="showAdminTab('results')"><i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i> Manage Results</div>
@@ -418,11 +452,19 @@
             <!-- Dashboard -->
             <div id="tab-dashboard" class="animate-in">
                 <h2 class="text-2xl font-bold text-white mb-6">Live Overview</h2>
-                <div class="grid grid-cols-4 gap-6 mb-8">
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Users</p><h3 id="stat-users" class="text-3xl font-bold text-white">0</h3></div>
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400">₹0</h3></div>
-                    <div class="card"><p class="text-slate-400 text-xs uppercase">Checked In</p><h3 id="stat-checkedin" class="text-3xl font-bold text-blue-400">0</h3></div>
-                    <div class="card"><p class="text-xs text-slate-400 uppercase">Pending</p><h3 id="stat-pending" class="text-3xl font-bold text-yellow-400">0</h3></div>
+                
+                <!-- NEW DEMOGRAPHICS ROW -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div class="card bg-slate-900 border-slate-700/50"><p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Total Users</p><h3 id="stat-users" class="text-3xl font-bold text-white mt-1">0</h3></div>
+                    <div class="card bg-slate-900 border-emerald-500/30"><p class="text-emerald-400 text-[10px] uppercase font-bold tracking-widest">NIFT Students</p><h3 id="stat-nift" class="text-3xl font-bold text-emerald-400 mt-1">0</h3></div>
+                    <div class="card bg-slate-900 border-blue-500/30"><p class="text-blue-400 text-[10px] uppercase font-bold tracking-widest">Other Students</p><h3 id="stat-other" class="text-3xl font-bold text-blue-400 mt-1">0</h3></div>
+                    <div class="card bg-slate-900 border-green-500/30"><p class="text-green-400 text-[10px] uppercase font-bold tracking-widest">Total Revenue</p><h3 id="stat-revenue" class="text-3xl font-bold text-green-400 mt-1">₹0</h3></div>
+                </div>
+                
+                <!-- NEW SECONDARY ROW -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                    <div class="card bg-slate-900 border-slate-700/50"><p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest">Campus Checked-In</p><h3 id="stat-checkedin" class="text-2xl font-bold text-white mt-1">0</h3></div>
+                    <div class="card bg-slate-900 border-yellow-500/30"><p class="text-yellow-400 text-[10px] uppercase font-bold tracking-widest">Pending Payments</p><h3 id="stat-pending" class="text-2xl font-bold text-yellow-400 mt-1">0</h3></div>
                 </div>
                 
                 <h3 class="text-xl font-bold text-white mb-4">Revenue Intelligence</h3>
@@ -564,10 +606,10 @@
                 </div>
             </div>
 
-            <!-- ALL USERS TAB -->
+            <!-- OTHER STUDENTS TAB -->
             <div id="tab-users_tab" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="users" class="text-blue-500"></i> All Registrations</h2>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="users" class="text-blue-500"></i> Other Students</h2>
                     <div class="flex gap-2 items-center">
                         <button onclick="exportAdminData('users')" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> CSV</button>
                         <input type="text" id="search-users" onkeyup="renderUsers()" placeholder="Search Name or ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
@@ -581,6 +623,23 @@
                 </div>
             </div>
             
+            <!-- NIFT STUDENTS TAB -->
+            <div id="tab-nift" class="hidden animate-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="graduation-cap" class="text-emerald-500"></i> NIFT Registrations</h2>
+                    <div class="flex gap-2 items-center">
+                        <button onclick="exportAdminData('nift')" class="bg-emerald-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-emerald-500 flex items-center gap-1"><i data-lucide="download" class="w-3"></i> NIFT CSV</button>
+                        <input type="text" id="search-nift" onkeyup="renderNiftUsers()" placeholder="Search Name or ID..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white w-64 outline-none">
+                    </div>
+                </div>
+                <div class="card p-0 overflow-x-auto">
+                    <table class="w-full">
+                        <thead><tr><th>User Info</th><th>Pass & Events</th><th>Entry Status</th><th>Action</th></tr></thead>
+                        <tbody id="nift-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- SQUADS TAB -->
             <div id="tab-squads" class="hidden animate-in">
                 <div class="flex justify-between items-center mb-6">
@@ -699,6 +758,13 @@
         let currentUserRole = null; let currentClubCode = null; let allUsers = []; let allMerch = []; let allTransactions = []; 
         let pendingUsers = []; let activeVerifyKey = null; let currentResults = {};
         let allSquads = {}; let eventDictionary = {};
+        let activeSquadEdit = { eventId: null, captKey: null, members: [] };
+
+        // Helper to identify team events accurately
+        const isTeamEvent = (title) => {
+            const t = String(title).toLowerCase();
+            return t.includes('valorant') || t.includes('battle') || t.includes('hunt') || t.includes('fashion') || t.includes('cricket') || t.includes('group') || t.includes('nukkad') || t.includes('tug') || t.includes('futsal') || t.includes('volleyball') || t.includes('basketball') || t.includes('throwball') || t.includes('film') || t.includes('graffiti') || t.includes('duo') || t.includes('pong') || t.includes('snakes') || t.includes('bollymania') || t.includes('face painting');
+        };
 
         function initSystem() { lucide.createIcons(); }
 
@@ -766,16 +832,20 @@
                             });
                         }
 
-                        // Collect Squad Data
-                        if (u.squads) {
-                            Object.entries(u.squads).forEach(([eventId, members]) => {
-                                if (!allSquads[eventId]) allSquads[eventId] = [];
-                                allSquads[eventId].push({
-                                    leaderId: u.spectrumId,
-                                    leaderName: u.name,
-                                    leaderPhone: u.phone,
-                                    members: members || []
-                                });
+                        // Collect Squad Data (Updated to show unlinked bookings)
+                        if (u.order && u.order.events) {
+                            u.order.events.forEach(e => {
+                                if (isTeamEvent(e.title)) {
+                                    if (!allSquads[e.id]) allSquads[e.id] = [];
+                                    allSquads[e.id].push({
+                                        captainKey: u.key,
+                                        leaderId: u.spectrumId,
+                                        leaderName: u.name,
+                                        leaderPhone: u.phone,
+                                        leaderEmail: u.email,
+                                        members: (u.squads && u.squads[e.id]) ? u.squads[e.id] : []
+                                    });
+                                }
                             });
                         }
 
@@ -806,7 +876,11 @@
                 }
                 
                 // Update Stats
+                const niftCount = allUsers.filter(u => u.email && u.email.toLowerCase().endsWith('@nift.ac.in')).length;
+                
                 document.getElementById('stat-users').innerText = allUsers.length; 
+                document.getElementById('stat-nift').innerText = niftCount;
+                document.getElementById('stat-other').innerText = allUsers.length - niftCount;
                 document.getElementById('stat-checkedin').innerText = allUsers.filter(u=>u.checkedIn).length; 
                 document.getElementById('stat-pending').innerText = pendingUsers.length; 
                 document.getElementById('stat-revenue').innerText = "₹" + (rev + merchRev).toLocaleString();
@@ -835,10 +909,17 @@
                 }
 
                 renderUsers(); 
+                renderNiftUsers();
                 renderMerchTable(); 
                 renderFinanceTable();
                 renderPendingQueue();
                 renderSquads();
+
+                // Refresh Squad Edit modal if it is open
+                if(!document.getElementById('squad-edit-modal').classList.contains('hidden')) {
+                    refreshSquadEditModal();
+                }
+
             }, (error) => {
                 console.error("Users Read Error:", error);
                 reportError(error);
@@ -950,7 +1031,10 @@
                 const searchEl = document.getElementById('search-users');
                 const search = searchEl ? searchEl.value.toLowerCase() : "";
 
-                allUsers.forEach(u => {
+                // Filter only OTHER students (Not NIFT)
+                const otherUsers = allUsers.filter(u => !(u.email && u.email.toLowerCase().endsWith('@nift.ac.in')));
+
+                otherUsers.forEach(u => {
                     // Safety Logic: Handle missing names/emails gracefully
                     const safeName = (u.name || "Unknown User").toLowerCase();
                     const safeId = (u.spectrumId || "").toLowerCase();
@@ -1010,6 +1094,76 @@
             }
         }
 
+        // --- NEW: RENDER NIFT USERS ---
+        function renderNiftUsers() {
+            try {
+                const tbody = document.getElementById('nift-table-body'); 
+                if (!tbody) return; 
+
+                tbody.innerHTML = "";
+                
+                const searchEl = document.getElementById('search-nift');
+                const search = searchEl ? searchEl.value.toLowerCase() : "";
+
+                // Filter only NIFT students
+                const niftUsers = allUsers.filter(u => u.email && u.email.toLowerCase().endsWith('@nift.ac.in'));
+
+                niftUsers.forEach(u => {
+                    const safeName = (u.name || "Unknown User").toLowerCase();
+                    const safeId = (u.spectrumId || "").toLowerCase();
+                    
+                    if(!safeName.includes(search) && !safeId.includes(search)) return;
+
+                    const status = u.paymentStatus;
+                    let btn = status === 'Pending' ? `<button onclick="selectForVerify('${u.key}'); showAdminTab('verification');" class="bg-yellow-600 px-2 py-1 rounded text-xs text-white">Review</button>` : `<span class="text-green-500 text-xs font-bold">OK</span>`;
+                    
+                    let passDisplay = u.order?.pass || u.verificationReason || "Nexus Prime (NIFT)";
+                    let eventsDisplay = "";
+                    if (u.order && u.order.events && u.order.events.length > 0) {
+                        eventsDisplay = `<div class="flex flex-wrap gap-1 mt-1">` + 
+                            u.order.events.map(e => `<span class="bg-emerald-900/30 text-emerald-400 border border-emerald-800 text-[9px] px-1 rounded truncate max-w-[100px]" title="${e.title}">${e.title}</span>`).join('') + 
+                            `</div>`;
+                    }
+
+                    let idCardLink = u.idCardImage ? `<a href="${u.idCardImage}" target="_blank" class="text-[9px] text-cyan-400 hover:underline flex items-center gap-1 mt-1"><i data-lucide="external-link" class="w-3 h-3"></i> View ID Card</a>` : `<span class="text-[9px] text-red-500 mt-1 block">No ID Card</span>`;
+
+                    const infoBtn = `<button onclick="showUserDetails('${u.key}')" class="text-cyan-400 hover:text-white"><i data-lucide="info" class="w-4"></i></button>`;
+                    const editBtn = `<button onclick="openEditUser('${u.key}')" class="text-blue-400 hover:text-white"><i data-lucide="edit-3" class="w-4"></i></button>`;
+                    const delBtn = `<button onclick="delUser('${u.key}')" class="text-red-500 hover:text-red-300"><i data-lucide="trash-2" class="w-4"></i></button>`;
+
+                    const isCheckedIn = !!u.checkedIn;
+                    const checkInBtn = `<button onclick="toggleCheckIn('${u.key}', ${isCheckedIn})" class="badge ${isCheckedIn?'badge-green':'badge-none'} cursor-pointer hover:opacity-80 transition-opacity border ${isCheckedIn?'border-green-500':'border-slate-500'} shadow-md">${isCheckedIn?'IN':'OUT'}</button>`;
+
+                    const row = `<tr>
+                        <td>
+                            <div class="font-bold text-white">${u.name || "Unknown"}</div>
+                            <div class="text-xs text-emerald-400 font-mono font-bold tracking-wide">${u.spectrumId||'NO ID'}</div>
+                            <div class="text-[10px] text-slate-500">${u.email || "No Email"}</div>
+                            ${idCardLink}
+                        </td>
+                        <td>
+                            <div class="flex flex-col">
+                                <span class="text-emerald-500 font-bold text-xs">${passDisplay}</span>
+                                ${eventsDisplay}
+                            </div>
+                        </td>
+                        <td>${checkInBtn}</td>
+                        <td class="flex gap-3 items-center">
+                            ${btn}
+                            ${infoBtn}
+                            ${editBtn}
+                            ${delBtn}
+                        </td>
+                    </tr>`;
+                    
+                    tbody.innerHTML += row;
+                });
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Render NIFT Users Error:", e);
+            }
+        }
+
         // --- NEW: RENDER SQUADS ---
         function renderSquads() {
             const container = document.getElementById('squads-container');
@@ -1017,46 +1171,167 @@
             container.innerHTML = "";
             
             if(Object.keys(allSquads).length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-500 text-sm mt-10">No squads formed yet.</div>';
+                container.innerHTML = '<div class="text-center text-slate-500 text-sm mt-10">No team bookings found.</div>';
                 return;
             }
 
             Object.entries(allSquads).forEach(([eventId, teams]) => {
                 const eventName = eventDictionary[eventId] || `Event ID: ${eventId}`;
                 
-                let teamsHtml = '';
-                teams.forEach((team, idx) => {
-                    const memberList = team.members.map(m => `<span class="bg-slate-700 px-2 py-1 rounded text-[10px] font-mono border border-slate-600">${m}</span>`).join(' ');
-                    teamsHtml += `
-                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <span class="text-xs font-bold text-white uppercase">Team ${idx + 1}</span>
-                                    <p class="text-[10px] text-slate-400">Capt: <span class="text-cyan-400 font-bold">${team.leaderName}</span> (${team.leaderId})</p>
+                // Separate NIFT and Outside Teams
+                const niftTeams = teams.filter(t => t.leaderEmail && t.leaderEmail.toLowerCase().endsWith('@nift.ac.in'));
+                const otherTeams = teams.filter(t => !(t.leaderEmail && t.leaderEmail.toLowerCase().endsWith('@nift.ac.in')));
+
+                const renderTeamBlock = (teamList, titleStr, colorClass) => {
+                    if(teamList.length === 0) return '';
+                    
+                    let html = `<div class="col-span-full mt-4 mb-2"><h4 class="font-bold text-xs uppercase tracking-widest ${colorClass} border-b border-current pb-1 inline-block">${titleStr} (${teamList.length})</h4></div>`;
+                    
+                    teamList.forEach((team, idx) => {
+                        const memberList = team.members.length > 0 
+                            ? team.members.map(m => `<span class="bg-slate-700 px-2 py-1 rounded text-[10px] font-mono border border-slate-600">${m}</span>`).join(' ') 
+                            : '<span class="text-[10px] text-yellow-500 italic border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 rounded">No members added yet</span>';
+                        
+                        // WhatsApp Logic
+                        let phone = team.leaderPhone ? team.leaderPhone.replace(/\D/g, '') : '';
+                        if(phone.length === 10) phone = '91' + phone;
+                        
+                        const waMsg = encodeURIComponent(`Hello ${team.leaderName}, this is a reminder from Spectrum '26 Admin.\n\nYou have registered for *${eventName}* but haven't linked your squad members yet!\n\n*How to link teammates:*\n1. Log in to the website.\n2. Open your Profile and click 'Squad Uplink'.\n3. Enter the SPEC IDs of your teammates and verify.\n\nPlease complete your roster ASAP! Let us know if you face any issues.`);
+                        const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : '#';
+                        const waBtnClass = phone ? 'text-green-400 hover:text-green-300 bg-green-900/20' : 'text-slate-600 bg-slate-800 opacity-50 cursor-not-allowed';
+
+                        html += `
+                            <div class="bg-slate-800/50 p-4 rounded-lg border ${team.members.length === 0 ? 'border-yellow-600/30' : 'border-slate-700'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <span class="text-xs font-bold text-white uppercase">Team ${idx + 1}</span>
+                                        <p class="text-[10px] text-slate-400">Capt: <span class="text-cyan-400 font-bold">${team.leaderName}</span> (${team.leaderId})</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a href="${phone ? `tel:${phone}` : '#'}" class="text-blue-400 hover:text-blue-300 p-1.5 bg-blue-900/20 rounded-md transition-colors" title="Call Captain"><i data-lucide="phone" class="w-4 h-4"></i></a>
+                                        <a href="${waLink}" target="_blank" class="${waBtnClass} p-1.5 rounded-md transition-colors" title="Send WhatsApp Reminder"><i data-lucide="message-circle" class="w-4 h-4"></i></a>
+                                        <button onclick="editSquad('${eventId}', '${team.captainKey}')" class="text-purple-400 hover:text-purple-300 p-1.5 bg-purple-900/20 rounded-md transition-colors" title="Edit Roster"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                    </div>
                                 </div>
-                                <a href="tel:${team.leaderPhone}" class="text-green-400 hover:text-green-300 p-1"><i data-lucide="phone" class="w-4 h-4"></i></a>
+                                <div class="mt-2">
+                                    <p class="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Roster (${team.members.length} Linked):</p>
+                                    <div class="flex flex-wrap gap-1">${memberList}</div>
+                                </div>
                             </div>
-                            <div class="mt-2">
-                                <p class="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Roster (${team.members.length} Members):</p>
-                                <div class="flex flex-wrap gap-1">${memberList || '<span class="text-xs text-slate-500 italic">No members linked</span>'}</div>
-                            </div>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
+                    return html;
+                };
 
                 container.innerHTML += `
                     <div class="card p-0 overflow-hidden mb-6">
                         <div class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
                             <h3 class="font-bold text-white text-lg">${eventName}</h3>
-                            <span class="bg-purple-500/20 text-purple-400 border border-purple-500/50 px-2 py-1 rounded text-xs font-bold">${teams.length} Teams</span>
+                            <span class="bg-purple-500/20 text-purple-400 border border-purple-500/50 px-2 py-1 rounded text-xs font-bold">${teams.length} Captains</span>
                         </div>
                         <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            ${teamsHtml}
+                            ${renderTeamBlock(niftTeams, 'NIFT Teams', 'text-emerald-400')}
+                            ${renderTeamBlock(otherTeams, 'Outside Teams', 'text-blue-400')}
                         </div>
                     </div>
                 `;
             });
             lucide.createIcons();
+        }
+
+        // --- MANUAL SQUAD EDITING ---
+        function editSquad(eventId, captainKey) {
+            activeSquadEdit = { eventId, captKey: captainKey, members: [] };
+            const captain = allUsers.find(u => u.key === captainKey);
+            const eventName = eventDictionary[eventId] || `Event ${eventId}`;
+            
+            document.getElementById('se-event-name').innerText = eventName;
+            document.getElementById('se-capt-name').innerText = captain.name;
+            document.getElementById('se-capt-id').innerText = captain.spectrumId;
+            
+            refreshSquadEditModal();
+            document.getElementById('squad-edit-modal').classList.remove('hidden');
+        }
+
+        function closeSquadEditModal() {
+            document.getElementById('squad-edit-modal').classList.add('hidden');
+            document.getElementById('se-add-id').value = '';
+        }
+
+        function refreshSquadEditModal() {
+            const captain = allUsers.find(u => u.key === activeSquadEdit.captKey);
+            if(!captain) return;
+            
+            const members = (captain.squads && captain.squads[activeSquadEdit.eventId]) ? captain.squads[activeSquadEdit.eventId] : [];
+            activeSquadEdit.members = members;
+            
+            const listEl = document.getElementById('se-members-list');
+            listEl.innerHTML = '';
+            
+            if(members.length === 0) {
+                listEl.innerHTML = '<p class="text-xs text-yellow-500 italic bg-yellow-500/10 p-2 rounded">No members have been linked to this team yet.</p>';
+            } else {
+                members.forEach(mId => {
+                    const memberUser = allUsers.find(u => u.spectrumId === mId);
+                    const mName = memberUser ? memberUser.name : "Unknown User";
+                    listEl.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-800 p-3 rounded border border-slate-700">
+                            <div>
+                                <p class="text-xs text-white font-bold">${mName}</p>
+                                <p class="text-[10px] text-slate-400 font-mono">${mId}</p>
+                            </div>
+                            <button onclick="removeSquadMember('${mId}')" class="text-red-500 hover:text-red-400 p-1 bg-red-900/20 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    `;
+                });
+            }
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function addSquadMember() {
+            const inputEl = document.getElementById('se-add-id');
+            const newId = inputEl.value.toUpperCase().trim();
+            if(!newId) return;
+            
+            const captain = allUsers.find(u => u.key === activeSquadEdit.captKey);
+            if(newId === captain.spectrumId) return alert("Captain is already inherently part of the squad.");
+            if(activeSquadEdit.members.includes(newId)) return alert("User is already in the squad.");
+            
+            const targetUser = allUsers.find(u => u.spectrumId === newId);
+            if(!targetUser) return alert("No user found with this SPEC ID.");
+            if(targetUser.paymentStatus !== 'Verified') alert("Note: This user's pass is not yet Verified by an admin. Proceeding anyway.");
+
+            const newMembers = [...activeSquadEdit.members, newId];
+            
+            // Add member to captain's squad array
+            db.ref(`users/${activeSquadEdit.captKey}/squads/${activeSquadEdit.eventId}`).set(newMembers)
+            .then(() => {
+                // Link event in member's profile
+                return db.ref(`users/${targetUser.key}/linked_events/${activeSquadEdit.eventId}`).set({
+                    title: eventDictionary[activeSquadEdit.eventId] || `Event ${activeSquadEdit.eventId}`,
+                    leaderId: captain.spectrumId
+                });
+            })
+            .then(() => {
+                inputEl.value = '';
+                // The global listener will automatically trigger refreshSquadEditModal()
+            })
+            .catch(err => alert("Database Error: " + err.message));
+        }
+
+        function removeSquadMember(mId) {
+            if(!confirm(`Remove ${mId} from this squad?`)) return;
+            
+            const newMembers = activeSquadEdit.members.filter(id => id !== mId);
+            
+            db.ref(`users/${activeSquadEdit.captKey}/squads/${activeSquadEdit.eventId}`).set(newMembers)
+            .then(() => {
+                const targetUser = allUsers.find(u => u.spectrumId === mId);
+                if(targetUser) {
+                    return db.ref(`users/${targetUser.key}/linked_events/${activeSquadEdit.eventId}`).remove();
+                }
+            })
+            .catch(err => alert("Database Error: " + err.message));
         }
 
         function exportSquadsCSV() {
@@ -1380,15 +1655,21 @@
         function deleteResult(id) { if(confirm("Delete?")) db.ref(`results/${id}`).remove(); }
 
         // --- EXPORT & TAB ---
-        function showAdminTab(id) { ['dashboard','users_tab','promos','staff','updates','merch','payment','finance','verification','results','squads'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
+        function showAdminTab(id) { ['dashboard','users_tab','nift','promos','staff','updates','merch','payment','finance','verification','results','squads'].forEach(s=>document.getElementById(`tab-${s}`).classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden'); }
         function exportAdminData(type) {
             let csv = "", filename = "";
             if (type === 'users') {
                 csv = "Name,Spectrum ID,Email,College,Pass,Status\n";
-                allUsers.forEach(u => {
+                allUsers.filter(u => !(u.email && u.email.toLowerCase().endsWith('@nift.ac.in'))).forEach(u => {
                     csv += `"${u.name || ''}","${u.spectrumId || ''}","${u.email || ''}","${u.collegeName || ''}","${u.order?.pass || ''}","${u.paymentStatus || ''}"\n`;
                 });
-                filename = "Users.csv";
+                filename = "Other_Students.csv";
+            } else if (type === 'nift') {
+                csv = "Name,Spectrum ID,Email,College,Pass,Status\n";
+                allUsers.filter(u => u.email && u.email.toLowerCase().endsWith('@nift.ac.in')).forEach(u => {
+                    csv += `"${u.name || ''}","${u.spectrumId || ''}","${u.email || ''}","${u.collegeName || ''}","${u.order?.pass || 'Nexus Prime (NIFT)'}","${u.paymentStatus || ''}"\n`;
+                });
+                filename = "NIFT_Students.csv";
             } else if (type === 'merch') {
                 csv = "Buyer,Item,Size,Price,Status\n";
                 allMerch.forEach(m => csv += `"${m.userName || ''}","${m.item || ''}","${m.size || ''}","${m.price || ''}","${m.status || ''}"\n`);
