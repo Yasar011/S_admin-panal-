@@ -204,11 +204,14 @@
         function toggleScanner() {
             if(isScanning) {
                 if(html5QrcodeScanner) {
+                    // Properly stop the scanner without throwing a clear() error
                     html5QrcodeScanner.stop().then(() => {
-                        html5QrcodeScanner.clear();
                         isScanning = false;
                         document.getElementById('cam-placeholder').innerText = "Camera Off";
                         document.getElementById('cam-placeholder').style.display = "block";
+                    }).catch(e => {
+                        console.warn("Camera stop error:", e);
+                        isScanning = false; // Reset state anyway
                     });
                 }
             } else {
@@ -220,7 +223,6 @@
                     (decodedText) => { 
                         // Stop scanning on success
                         html5QrcodeScanner.stop().then(() => {
-                            html5QrcodeScanner.clear();
                             isScanning = false;
                             document.getElementById('cam-placeholder').innerText = "Camera Off";
                             document.getElementById('cam-placeholder').style.display = "block";
@@ -270,13 +272,15 @@
             if(user.order && user.order.events) {
                 user.order.events.forEach(ev => {
                     currentEventIds.push(ev.id); // Track IDs to filter dropdown
+                    
+                    // FIXED: Only pass ID to onclick to prevent HTML injection errors with quotes
                     eventsHtml += `
                     <div class="flex justify-between items-center bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-2">
                         <div>
                             <span class="text-white font-bold text-sm block">${ev.title}</span>
                             <span class="text-xs text-zinc-500 font-mono">ID: ${ev.id}</span>
                         </div>
-                        <button onclick="removeEvent(${ev.id}, '${ev.title}')" class="text-red-500 hover:text-white bg-red-900/20 hover:bg-red-900 p-2 rounded transition-colors">
+                        <button onclick="removeEvent(${ev.id})" class="text-red-500 hover:text-white bg-red-900/20 hover:bg-red-900 p-2 rounded transition-colors">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>`;
@@ -328,8 +332,11 @@
         }
 
         // --- EDIT LOGIC ---
-        function removeEvent(id, title) {
-            if(!confirm(`Remove "${title}" from this user?`)) return;
+        function removeEvent(id) {
+            // Safely fetch title internally to avoid quote issues in HTML
+            const ev = currentUserData.order?.events?.find(e => e.id == id) || { title: `Event ID: ${id}` };
+            
+            if(!confirm(`Remove "${ev.title}" from this user?`)) return;
 
             // 1. Filter out from order.events
             let events = currentUserData.order?.events || [];
