@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVENT EDITOR | SPECTRUM '26</title>
+    <title>CLUB OPS | SPECTRUM '26</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -32,110 +32,381 @@
     </script>
 
     <style>
-        body { background-color: #000000; color: #e2e8f0; font-family: 'Manrope', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Manrope', sans-serif; }
         .font-mono { font-family: 'Space Mono', monospace; }
-        .scan-region { border: 2px dashed #4b5563; border-radius: 12px; overflow: hidden; position: relative; }
-        .scan-region video { object-fit: cover; border-radius: 10px; }
+        .scanner-box video { border-radius: 12px; object-fit: cover; }
+        
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .dot-upcoming { background: #fbbf24; box-shadow: 0 0 5px #fbbf24; }
+        .dot-live { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: blink 1s infinite; }
+        .dot-ended { background: #9ca3af; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* Modal Transitions */
+        .modal-enter { animation: fadeUp 0.3s ease-out forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Hide Scrollbar for Filters */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN OVERLAY -->
-    <div id="login-screen" class="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
-        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl">
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-view" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl">
             <div class="text-center mb-8">
-                <i data-lucide="edit" class="w-12 h-12 text-blue-500 mx-auto mb-4"></i>
-                <h1 class="text-2xl font-bold text-white">EVENT EDITOR</h1>
-                <p class="text-slate-500 text-xs uppercase tracking-widest mt-1">Authorized Staff Only</p>
+                <div class="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/50">
+                    <i data-lucide="zap" class="w-8 h-8 text-blue-400"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white tracking-wider">CLUB OPS</h1>
+                <p class="text-xs text-slate-500 font-mono">EVENT MANAGEMENT CONSOLE</p>
             </div>
             <div class="space-y-4">
-                <input id="login-user" type="email" placeholder="staff@nift.ac.in" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-all">
-                <input id="login-pass" type="password" placeholder="Password" class="w-full bg-black border border-zinc-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-all">
-                <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg transition-all">ACCESS TOOL</button>
+                <input id="club-user" type="email" placeholder="clubhead@nift.ac.in" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center font-mono">
+                <input id="club-pass" type="password" placeholder="Password" class="w-full bg-black border border-slate-700 p-4 rounded-lg text-white outline-none focus:border-blue-500 transition-colors text-center">
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">ACCESS DASHBOARD</button>
             </div>
-            <p id="login-msg" class="text-red-500 text-xs text-center mt-4 h-4"></p>
+            <p id="login-error" class="text-center text-xs text-red-500 mt-4 h-4 font-mono"></p>
         </div>
     </div>
 
-    <!-- MAIN APP INTERFACE -->
-    <div id="app-screen" class="hidden flex-col h-full max-w-lg mx-auto w-full bg-zinc-950 shadow-2xl border-x border-zinc-800">
-        
+    <!-- 2. DASHBOARD -->
+    <div id="dashboard-view" class="hidden min-h-screen pb-20">
         <!-- Header -->
-        <header class="p-4 bg-zinc-900 border-b border-zinc-800 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <span class="font-bold text-white tracking-wide">EVENT EDITOR</span>
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
+            <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div>
+                    <h2 class="text-white font-bold text-lg" id="dash-club-name">LOADING...</h2>
+                    <p class="text-[10px] text-slate-400 font-mono" id="dash-club-code">CODE: ---</p>
+                </div>
+                <button onclick="doLogout()" class="text-xs text-red-400 border border-red-900/50 px-3 py-1.5 rounded hover:bg-red-900/20">LOGOUT</button>
             </div>
-            <button onclick="doLogout()" class="text-xs text-red-500 font-bold border border-red-900 px-3 py-1 rounded hover:bg-red-900 hover:text-white transition-colors">LOGOUT</button>
         </header>
 
-        <!-- Scanner Section -->
-        <div class="p-4 flex-shrink-0 border-b border-zinc-800">
-            <div id="reader" class="scan-region w-full h-48 bg-black mb-4 flex items-center justify-center">
-                <div id="cam-placeholder" class="text-slate-600 text-sm animate-pulse">Camera Off</div>
-            </div>
-            
-            <div class="flex gap-2">
-                <input id="manual-input" type="text" placeholder="ID (e.g. SPEC101)" class="flex-1 bg-zinc-900 border border-zinc-700 p-3 rounded-lg text-white text-center font-mono uppercase text-lg outline-none focus:border-blue-500">
-                <button onclick="fetchUser(document.getElementById('manual-input').value)" class="bg-blue-600 text-white px-6 rounded-lg font-bold"><i data-lucide="search"></i></button>
-                <button onclick="toggleScanner()" class="bg-zinc-800 text-white px-4 rounded-lg"><i data-lucide="camera"></i></button>
+        <!-- Stats Bar -->
+        <div class="bg-slate-950 border-b border-slate-800">
+            <div class="max-w-5xl mx-auto px-4 py-3 grid grid-cols-3 gap-4 text-center">
+                <div><p class="text-[10px] text-slate-500 uppercase">My Events</p><p class="text-xl font-bold text-white" id="stat-events">0</p></div>
+                <div><p class="text-[10px] text-slate-500 uppercase">Registrations</p><p class="text-xl font-bold text-blue-400" id="stat-regs">0</p></div>
+                <div><p class="text-[10px] text-slate-500 uppercase">Active Now</p><p class="text-xl font-bold text-green-400" id="stat-live">0</p></div>
             </div>
         </div>
 
-        <!-- Results Section -->
-        <div id="result-area" class="flex-1 overflow-y-auto p-4 bg-black">
-            <div class="h-full flex flex-col items-center justify-center text-slate-600">
-                <i data-lucide="user-cog" class="w-16 h-16 mb-4 opacity-50"></i>
-                <p>Scan or Search User</p>
-                <p class="text-xs mt-2">Manage user event registrations here</p>
+        <!-- Event List -->
+        <div class="max-w-5xl mx-auto px-4 py-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Assigned Events</h3>
             </div>
+            
+            <!-- NEW: CATEGORY FILTER -->
+            <div class="flex gap-2 overflow-x-auto mb-6 pb-2 hide-scrollbar" id="dashboard-filters">
+                <button onclick="filterDashboardEvents('all')" class="dash-filter-btn bg-blue-600 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-colors">All</button>
+                <button onclick="filterDashboardEvents('entertainment')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Flagship</button>
+                <button onclick="filterDashboardEvents('sports')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Sports</button>
+                <button onclick="filterDashboardEvents('culture')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Culture</button>
+                <button onclick="filterDashboardEvents('essc')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">ESSC</button>
+                <button onclick="filterDashboardEvents('adventure')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Adventure</button>
+                <button onclick="filterDashboardEvents('environment')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Environment</button>
+                <button onclick="filterDashboardEvents('lit')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Literary</button>
+            </div>
+
+            <div id="events-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Event Cards Injected Here -->
+                <div class="text-center col-span-full py-10 text-slate-600">Loading events...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. EVENT MANAGER MODAL -->
+    <div id="event-modal" class="fixed inset-0 z-50 hidden bg-slate-950/95 backdrop-blur-sm overflow-y-auto">
+        <div class="min-h-screen p-4 flex items-center justify-center">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl modal-enter relative">
+                <button onclick="closeEventModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
+                
+                <div class="p-6 border-b border-slate-800">
+                    <div class="flex justify-between items-start pr-8">
+                        <div>
+                            <span id="em-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-500 mb-2 inline-block">Upcoming</span>
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-2xl font-bold text-white mb-1" id="em-title">Event Title</h2>
+                                <button onclick="toggleEventStatus()" id="btn-status-toggle" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded font-bold hover:bg-green-500">GO LIVE</button>
+                            </div>
+                            <p class="text-xs text-slate-400 font-mono" id="em-type">Solo • Cultural</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl font-bold text-white" id="em-count">0</p>
+                            <p class="text-[10px] text-slate-500 uppercase">Registered</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-800 text-sm font-bold text-slate-400 overflow-x-auto">
+                    <button onclick="switchTab('scan')" id="tab-scan" class="flex-1 py-4 text-blue-500 border-b-2 border-blue-500 transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="scan-line" class="inline w-4 h-4 mr-2"></i>SCAN
+                    </button>
+                    <button onclick="switchTab('list')" id="tab-list" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="users" class="inline w-4 h-4 mr-2"></i>ROSTER
+                    </button>
+                    <button onclick="switchTab('winners')" id="tab-winners" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="trophy" class="inline w-4 h-4 mr-2"></i>WINNERS
+                    </button>
+                    <button onclick="switchTab('volunteers')" id="tab-volunteers" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="user-check" class="inline w-4 h-4 mr-2"></i>VOLUNTEERS
+                    </button>
+                    <button onclick="switchTab('comms')" id="tab-comms" class="flex-1 py-4 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap px-4">
+                        <i data-lucide="message-circle" class="inline w-4 h-4 mr-2"></i>COMMS
+                    </button>
+                </div>
+
+                <div class="p-6 min-h-[400px]">
+                    
+                    <!-- SCAN TAB -->
+                    <div id="view-scan" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-white font-bold">Event Entry Scanner</h3>
+                            <p class="text-[10px] text-slate-500 uppercase">Verify registrations here</p>
+                        </div>
+
+                        <div class="bg-black border border-slate-800 rounded-xl overflow-hidden h-64 relative scanner-box">
+                            <div id="reader" class="w-full h-full"></div>
+                            <div id="scan-placeholder" class="absolute inset-0 flex items-center justify-center flex-col text-slate-600 bg-slate-950">
+                                <i data-lucide="camera" class="w-8 h-8 mb-2"></i>
+                                <span class="text-xs">Camera Off</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="startScanner()" id="btn-cam-start" class="flex-1 bg-slate-800 text-white py-3 rounded hover:bg-slate-700 font-bold text-xs"><i data-lucide="camera" class="inline w-3 h-3 mr-1"></i> START CAMERA</button>
+                            <button onclick="stopScanner()" id="btn-cam-stop" class="hidden flex-1 bg-red-900/50 text-red-400 py-3 rounded hover:bg-red-900/80 font-bold text-xs">STOP CAMERA</button>
+                        </div>
+
+                        <div class="flex gap-2 border-t border-slate-800 pt-4">
+                            <input id="manual-scan-id" type="text" placeholder="Enter ID Manually (SPEC...)" class="flex-1 bg-slate-950 border border-slate-700 p-3 rounded text-white outline-none uppercase font-mono text-sm">
+                            <button onclick="verifyUserForEvent(document.getElementById('manual-scan-id').value)" class="bg-blue-600 text-white px-6 rounded font-bold hover:bg-blue-500">CHECK</button>
+                        </div>
+                        <div id="scan-result" class="hidden p-4 rounded border text-center text-sm font-bold"></div>
+                    </div>
+
+                    <!-- LIST TAB (ROSTER) -->
+                    <div id="view-list" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-white font-bold">Event Roster</h3>
+                            <div class="flex gap-2">
+                                <button onclick="exportCSV()" class="text-xs bg-slate-800 text-white px-3 py-1.5 rounded hover:bg-slate-700 flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> Export All</button>
+                                <button onclick="refreshAttendees()" class="text-xs text-blue-400 p-1.5 border border-slate-700 rounded hover:bg-slate-800"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
+                            </div>
+                        </div>
+                        
+                        <!-- NEW ROSTER FILTER -->
+                        <div class="flex gap-2 mb-4 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                            <button onclick="setRosterFilter('all')" id="filter-all" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded bg-slate-800 text-white transition-colors">All</button>
+                            <button onclick="setRosterFilter('nift')" id="filter-nift" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded hover:bg-slate-800 text-slate-400 transition-colors">NIFT Only</button>
+                            <button onclick="setRosterFilter('other')" id="filter-other" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded hover:bg-slate-800 text-slate-400 transition-colors">Outsiders</button>
+                        </div>
+                        
+                        <p class="text-[10px] text-slate-500 mb-2">Click <i data-lucide="star" class="w-3 h-3 inline"></i> to promote to next round.</p>
+                        <div class="overflow-y-auto max-h-[350px] space-y-2 pr-2" id="attendees-container">
+                            <div class="text-slate-600 text-center text-xs py-10">No attendees yet.</div>
+                        </div>
+                    </div>
+
+                    <!-- WINNERS TAB -->
+                    <div id="view-winners" class="hidden">
+                        <div class="text-center mb-6">
+                            <i data-lucide="trophy" class="w-12 h-12 text-yellow-500 mx-auto mb-2"></i>
+                            <h3 class="text-white font-bold text-lg">Declare Results</h3>
+                            <p class="text-xs text-slate-400">Select from participants.</p>
+                        </div>
+
+                        <div class="space-y-4" id="winner-selectors">
+                            <!-- 1st Place -->
+                            <div class="bg-slate-950 border border-yellow-500/30 p-3 rounded">
+                                <label class="text-[10px] text-yellow-500 uppercase font-bold block mb-1">1st Place (Winner)</label>
+                                <select id="win-1" class="w-full bg-slate-900 border border-slate-700 text-white p-2 rounded text-sm outline-none">
+                                    <option value="">Select Winner...</option>
+                                </select>
+                            </div>
+                            <!-- 2nd Place -->
+                            <div class="bg-slate-950 border border-slate-700 p-3 rounded">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold block mb-1">2nd Place (Runner Up)</label>
+                                <select id="win-2" class="w-full bg-slate-900 border border-slate-700 text-white p-2 rounded text-sm outline-none">
+                                    <option value="">Select Runner Up...</option>
+                                </select>
+                            </div>
+                            <!-- 3rd Place -->
+                            <div class="bg-slate-950 border border-slate-700 p-3 rounded">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold block mb-1">3rd Place</label>
+                                <select id="win-3" class="w-full bg-slate-900 border border-slate-700 text-white p-2 rounded text-sm outline-none">
+                                    <option value="">Select 3rd Place...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="submitWinners()" class="w-full bg-yellow-600 text-black font-bold py-3 rounded mt-6 hover:bg-yellow-500 transition-colors">PUBLISH RESULTS</button>
+                    </div>
+
+                    <!-- VOLUNTEERS TAB -->
+                    <div id="view-volunteers" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-white font-bold">Event Volunteers</h3>
+                            <button onclick="addVolunteer()" class="text-xs bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-500 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add</button>
+                        </div>
+                        <div class="overflow-y-auto max-h-[350px] space-y-2 pr-2" id="volunteers-container">
+                            <div class="text-slate-600 text-center text-xs py-10">No volunteers assigned.</div>
+                        </div>
+                    </div>
+
+                    <!-- COMMS TAB -->
+                    <div id="view-comms" class="hidden">
+                        <h3 class="text-white font-bold mb-4">Participant Comms</h3>
+                        <div class="space-y-3 max-h-[350px] overflow-y-auto pr-2" id="comms-list">
+                            <!-- Populated by JS -->
+                            <div class="text-center text-slate-600 text-xs py-10">Loading participants...</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. PARTICIPANT DETAILS MODAL -->
+    <div id="participant-modal" class="fixed inset-0 z-[100] hidden flex flex-col justify-end bg-black/60 backdrop-blur-sm p-4 pb-24">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl relative max-w-sm mx-auto w-full transform transition-transform duration-300">
+            <button onclick="document.getElementById('participant-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold text-white mb-1" id="part-name">Name</h3>
+            <p class="text-xs text-slate-400 font-mono mb-4" id="part-id">SPEC---</p>
+            
+            <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Phone Number</p>
+                        <p class="text-sm text-white" id="part-phone">N/A</p>
+                    </div>
+                    <a href="#" id="part-phone-link" class="bg-green-600/20 text-green-400 p-2 rounded-full hover:bg-green-600/40 transition-colors"><i data-lucide="phone" class="w-4 h-4"></i></a>
+                </div>
+                <div class="border-t border-slate-800 pt-3">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">Email</p>
+                    <p class="text-sm text-white truncate" id="part-email">N/A</p>
+                </div>
+                <div class="border-t border-slate-800 pt-3">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">College</p>
+                    <p class="text-sm text-white truncate" id="part-college">N/A</p>
+                </div>
+                <div class="border-t border-slate-800 pt-3 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Campus Entry Status</p>
+                        <p class="text-sm font-bold mt-1" id="part-checkin">N/A</p>
+                    </div>
+                </div>
+                <div id="part-squad" class="border-t border-slate-800 pt-3">
+                    <!-- Dynamic Squad Info -->
+                </div>
+            </div>
+            <button onclick="document.getElementById('participant-modal').classList.add('hidden')" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl mt-4 uppercase tracking-widest hover:bg-slate-700">Close</button>
         </div>
     </div>
 
     <script>
-        // --- DATA ---
+        // --- DATA & CONFIG ---
         const eventsData = [
-            { id: 101, title: 'EDM Night (Add-on)' }, { id: 102, title: 'Fashion Show (Main)' },
-            { id: 1, title: 'Street Battle' }, { id: 2, title: 'Solo Singing' },
-            { id: 3, title: 'Runway Rivals' }, { id: 4, title: 'Battle of Bands' },
-            { id: 5, title: 'EDM Night (Main)' }, { id: 6, title: 'Valorant' },
-            { id: 7, title: 'FIFA 26' }, { id: 8, title: 'Box Cricket' },
-            { id: 9, title: 'Photo Walk' }, { id: 10, title: 'Treasure Hunt' },
-            { id: 11, title: 'Debate War' }, { id: 12, title: 'Open Mic' },
-            { id: 13, title: 'Eco Drive' }, { id: 15, title: 'Trash to Art' },
-            { id: 16, title: 'Creative Writing' }, { id: 17, title: 'Social Case Study' },
-            { id: 18, title: 'Nukkad Natak' }, { id: 19, title: 'BGMI' }
+            // --- CORE FLAGSHIP EVENTS (ENTRY/SHOWS) ----
+            { id: 101, club: 'entertainment', title: 'EDM Night (Neon Pulse)', price: 759, isPremium: true, img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'The biggest night of the fest. Featuring top DJs. Gold Pass Required.', day: 'Day 2', time: '7:00 PM', venue: 'Main Ground' }, 
+            { id: 102, club: 'entertainment', title: 'Fashion Show (Designer Team)', price: 2999, prize: '₹50,000', isPremium: true, img: 'https://images.unsplash.com/photo-1469334023215-c574bc2e47bf?w=600&auto=format&fit=crop&q=80', members: '8-12', desc: 'Walk the ramp and showcase your style. Prize Pool: ₹50,000.', day: 'Day 2', time: '6:00 PM', venue: 'Audi' },
+            { id: 103, club: 'entertainment', title: 'Fashion Show (Audience)', price: 199, isPremium: true, img: 'https://images.unsplash.com/photo-1550614000439-56d8de233b86?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Watch the Vogue Gala. Included in Gold Pass.', day: 'Day 2', time: '6:00 PM', venue: 'Audi' },
+            
+            // --- ADVENTURE ---
+            { id: 1, club: 'adventure', title: 'Photography', price: 299, prize: '₹9,000', isPremium: true, img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Capture the essence of the fest.', day: 'Day 1', time: '11:00 AM', venue: 'TS MFM Area' },
+            { id: 2, club: 'adventure', title: 'Short Film', price: 399, prize: '₹12,000', isPremium: true, img: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&auto=format&fit=crop&q=80', members: '2-4', desc: 'Storytelling through the lens.', day: 'Day 1', time: '11:00 AM', venue: 'TS MFM Area' },
+            { id: 3, club: 'adventure', title: 'Match the Picture', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Visual puzzle challenge.', day: 'Day 1', time: '3:00 PM', venue: 'Basketball Alley' },
+            { id: 9, club: 'adventure', title: 'Mini Adventure', price: 99, prize: '₹4,500', isPremium: false, img: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Quick adventure challenges.', day: 'Day 1', time: '11:00 AM', venue: 'A Gate Stretch' },
+
+            // --- CULTURAL ---
+            { id: 5, club: 'culture', title: 'Solo Dance', price: 99, prize: '₹6,000', isPremium: false, img: 'https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Rhythm and grace.', day: 'Day 1', time: '12:00 PM', venue: 'Main Stage' },
+            { id: 306, club: 'culture', title: 'Group Dance', price: 1199, prize: '₹22,000', isPremium: true, img: 'https://images.unsplash.com/photo-1508807526345-15e9b5f4eaff?w=600&auto=format&fit=crop&q=80', members: '5-8', desc: 'Sync your steps. Team of 5 to 8.', day: 'Day 1', time: '3:30 PM', venue: 'Main Stage' },
+            { id: 6, club: 'culture', title: 'Solo Singing', price: 99, prize: '₹6,000', isPremium: false, img: 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Voice of Spectrum.', day: 'Day 2', time: '10:00 AM', venue: 'Main Stage' },
+            { id: 8, club: 'culture', title: 'Battle of Bands', price: 1199, prize: '₹20,000', isPremium: true, img: 'https://images.unsplash.com/photo-1501612780327-45045538702b?w=600&auto=format&fit=crop&q=80', members: '3-6', desc: 'Musical showdown.', day: 'Day 2', time: '5:00 PM', venue: 'Main Stage' },
+            { id: 307, club: 'culture', title: 'Mr & Miss Spectrum', price: 0, prize: '₹15,000', isPremium: false, img: 'https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Personality hunt. Only for NIFT Students.', day: 'Day 1', time: '8:00 PM', venue: 'Main Stage' },
+
+            // --- ENVIRONMENTAL ---
+            { id: 301, club: 'environment', title: 'Graffiti Competition', price: 799, prize: '₹24,000', isPremium: true, img: 'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&auto=format&fit=crop&q=80', members: '2-4', desc: 'Art on walls.', day: 'Day 1', time: '10:00 AM', venue: 'OAT' },
+            { id: 302, club: 'environment', title: 'Treasure Hunt (Env)', price: 499, prize: '₹5,000', isPremium: false, img: 'https://images.unsplash.com/photo-1508680196726-0e1cebbdcaf4?w=600&auto=format&fit=crop&q=80', members: '4-5', desc: 'Hunt for nature.', day: 'Day 2', time: '10:00 AM', venue: 'Whole Campus' },
+            { id: 303, club: 'environment', title: 'Eco Trivia', price: 99, prize: '₹2,200', isPremium: false, img: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Green knowledge test.', day: 'Day 2', time: '9:00 AM', venue: 'Classroom' },
+            { id: 304, club: 'environment', title: 'Musical Chairs', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Fun survival game.', day: 'Day 1', time: '3:00 PM', venue: 'Flag Area' },
+            { id: 305, club: 'environment', title: 'Trumbling', price: 49, prize: '₹1,000', isPremium: false, img: 'https://images.unsplash.com/photo-1555505019-8c3f1c4abe5b?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Balance game.', day: 'Day 1', time: '1:00 PM', venue: 'RC Area' },
+
+            // --- LITERARY ---
+            { id: 401, club: 'lit', title: "Devil's Advocate", price: 99, prize: '₹5,000', isPremium: true, img: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Debate with a twist.', day: 'Day 1', time: '11:00 AM', venue: 'Conf Hall' },
+            { id: 402, club: 'lit', title: 'Minute to Win It', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1495364141860-b0d03dea4520?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Quick challenges.', day: 'Day 1', time: '11:00 AM', venue: 'Classroom' },
+            { id: 403, club: 'lit', title: 'Snakes & Ladders', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1558021212551-28da5679dcce?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Giant board game.', day: 'Day 1', time: '2:00 PM', venue: 'Lounge' },
+            { id: 404, club: 'lit', title: 'Bollymania', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Bollywood quiz.', day: 'Day 2', time: '10:00 AM', venue: 'Classroom' },
+
+            // --- ESSC ---
+            { id: 18, club: 'essc', title: 'Nukkad Natak', price: 1499, prize: '₹25,000', isPremium: true, img: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop&q=80', members: '10', desc: 'Street play.', day: 'Day 1', time: '10:00 AM', venue: 'Event Ground' },
+            { id: 19, club: 'essc', title: 'Housie', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1512805147242-b5b7d41fa75c?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Classic Tambola.', day: 'Day 2', time: '11:00 AM', venue: 'Canteen' },
+            { id: 20, club: 'essc', title: 'Pong the Palooza', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1511511410045-995a127027bc?w=600&auto=format&fit=crop&q=80', members: '3', desc: 'Pong challenge.', day: 'Day 1', time: '12:00 PM', venue: 'Classroom' },
+            { id: 321, club: 'essc', title: 'Face Painting', price: 199, prize: '₹8,000', isPremium: false, img: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&auto=format&fit=crop&q=80', members: '2', desc: 'Creative makeup art.', day: 'Day 1', time: '2:00 PM', venue: 'Foyer' },
+            { id: 222, club: 'essc', title: 'Poster Making', price: 199, prize: '₹8,000', isPremium: false, img: 'https://images.unsplash.com/photo-1503694978374-8a2fa68b5b70?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Artistic posters.', day: 'Day 1', time: '1:00 PM', venue: 'TD New Hall' },
+
+            // --- SPORTS ---
+            { id: 201, club: 'sports', title: 'Futsal Mix', price: 1259, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1518605368461-1e122b5128ff?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Futsal Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 202, club: 'sports', title: 'Volleyball Mix', price: 1259, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Volleyball Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 203, club: 'sports', title: 'Basketball Mix', price: 1049, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1519861531473-9200262188bf?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Basketball Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 204, club: 'sports', title: 'Throwball (Girls)', price: 1049, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=600&auto=format&fit=crop&q=80', members: '6G + 2 Extra', desc: 'Girls Throwball.', day: 'Day 2', time: '12:00 PM', venue: 'Sports Ground' },
+            { id: 205, club: 'sports', title: 'Table Tennis (Boys)', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Boys TT.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 206, club: 'sports', title: 'Table Tennis (Girls)', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Girls TT.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 207, club: 'sports', title: 'Chess', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Checkmate.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 208, club: 'sports', title: 'Carrom', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1603584173870-7d23f2a032f3?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Carrom Tournament.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 209, club: 'sports', title: 'Tug of War Mix', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80', members: '4B + 4G', desc: 'Test of strength.', day: 'Day 1', time: '5:00 PM', venue: 'Futsal Ground' }
         ];
 
+        let currentClubCode = null;
+        let currentDashboardFilter = 'all'; // New variable for category filter
+        let activeEventId = null;
         let html5QrcodeScanner = null;
         let isScanning = false;
-        let currentUserKey = null;
-        let currentUserData = null;
+        let currentAttendees = [];
+        let currentRosterFilter = 'all'; // New filter state variable
+        let registeredUsersForEvent = []; 
+        
+        window.allUsers = [];
+        window.allStatuses = {};
 
         function init() {
             lucide.createIcons();
+            
             auth.onAuthStateChanged(user => {
-                if(user) checkAccess(user.email);
+                if(user) {
+                    checkAccess(user.email);
+                } else {
+                    document.getElementById('login-view').classList.remove('hidden');
+                    document.getElementById('dashboard-view').classList.add('hidden');
+                }
             });
         }
 
-        // --- AUTH ---
+        // --- AUTHENTICATION ---
         function handleLogin() {
-            const u = document.getElementById('login-user').value.trim();
-            const p = document.getElementById('login-pass').value.trim();
-            const msg = document.getElementById('login-msg');
+            const u = document.getElementById('club-user').value.trim();
+            const p = document.getElementById('club-pass').value.trim();
+            const err = document.getElementById('login-error');
             const btn = document.getElementById('btn-login');
 
-            if(!u || !p) { msg.innerText = "Please enter credentials"; return; }
+            if(!u || !p) { err.innerText = "Enter credentials"; return; }
 
             btn.innerText = "Verifying...";
             btn.disabled = true;
-            
+
             auth.signInWithEmailAndPassword(u, p)
-                .then(cred => checkAccess(cred.user.email))
-                .catch(err => {
-                    msg.innerText = "Login Failed: " + err.message;
-                    btn.innerText = "ACCESS TOOL";
+                .then(cred => {
+                    checkAccess(cred.user.email);
+                })
+                .catch(e => {
+                    err.innerText = "Login Failed: " + e.message;
+                    btn.innerText = "ACCESS DASHBOARD";
                     btn.disabled = false;
                 });
         }
@@ -144,17 +415,26 @@
             const safeEmail = email.toLowerCase().replace(/\./g, ',');
             db.ref('staff_access/' + safeEmail).once('value').then(snap => {
                 const data = snap.val();
-                // Allow admin and club roles to edit events
-                if (data && (data.role === 'admin' || data.role === 'club')) {
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('app-screen').classList.remove('hidden');
-                    document.getElementById('app-screen').classList.add('flex');
+                if (data && (data.role === 'club' || data.role === 'admin')) {
+                    currentClubCode = data.club_code; 
+                    
+                    document.getElementById('dash-club-name').innerText = data.name ? data.name.toUpperCase() : "CLUB OPS";
+                    document.getElementById('dash-club-code').innerText = `CODE: ${currentClubCode.toUpperCase()}`;
+                    
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                    
+                    initDashboard();
                 } else {
-                    alert("Access Denied: Admin or Club Role Required.");
+                    alert("Access Denied: Not a Club Lead.");
                     auth.signOut();
-                    document.getElementById('btn-login').innerText = "ACCESS TOOL";
+                    document.getElementById('btn-login').innerText = "ACCESS DASHBOARD";
                     document.getElementById('btn-login').disabled = false;
                 }
+            }).catch(e => {
+                console.error(e);
+                alert("Database Connection Error");
+                auth.signOut();
             });
         }
 
@@ -162,187 +442,549 @@
             auth.signOut().then(() => location.reload());
         }
 
-        // --- SCANNER ---
-        function toggleScanner() {
-            if(isScanning) {
-                if(html5QrcodeScanner) {
-                    html5QrcodeScanner.stop().then(() => {
-                        html5QrcodeScanner.clear();
-                        isScanning = false;
-                        document.getElementById('cam-placeholder').innerText = "Camera Off";
-                        document.getElementById('cam-placeholder').style.display = "block";
+        // --- DASHBOARD LOGIC ---
+        function filterDashboardEvents(cat) {
+            currentDashboardFilter = cat;
+            
+            // Update button styles
+            document.querySelectorAll('.dash-filter-btn').forEach(btn => {
+                const btnText = btn.innerText.toLowerCase();
+                const isMatch = btnText.includes(cat) || 
+                                (cat === 'all' && btnText === 'all') || 
+                                (cat === 'entertainment' && btnText === 'flagship');
+                
+                if(isMatch) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-slate-800', 'text-slate-400');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-400');
+                }
+            });
+
+            renderIfReady();
+        }
+
+        function initDashboard() {
+            const container = document.getElementById('events-list');
+            container.innerHTML = '<div class="text-center col-span-full py-10 text-slate-500"><div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>Fetching Data...</div>';
+
+            // Hide filters if the user is bound to a single club
+            if (currentClubCode !== 'all' && currentClubCode !== 'admin') {
+                document.getElementById('dashboard-filters').classList.add('hidden');
+            }
+
+            db.ref('users').on('value', snap => {
+                const val = snap.val();
+                if (val) {
+                    window.allUsers = Object.entries(val).map(([k, v]) => ({...v, key: k}));
+                } else {
+                    window.allUsers = [];
+                }
+                renderIfReady();
+            });
+
+            db.ref('events_status').on('value', snap => {
+                window.allStatuses = snap.val() || {};
+                renderIfReady();
+            });
+        }
+
+        function renderIfReady() {
+            if (window.allUsers) {
+                let myEvents = (currentClubCode === 'all' || currentClubCode === 'admin') 
+                    ? eventsData 
+                    : eventsData.filter(e => e.club === currentClubCode);
+                
+                // Apply Category Filter
+                if (currentDashboardFilter !== 'all') {
+                    myEvents = myEvents.filter(e => e.club === currentDashboardFilter);
+                }
+                
+                renderEvents(myEvents, window.allUsers, window.allStatuses);
+            }
+        }
+
+        function renderEvents(events, users, statuses) {
+            const container = document.getElementById('events-list');
+            container.innerHTML = "";
+            
+            let totalRegs = 0;
+            let totalLive = 0;
+
+            events.forEach(e => {
+                const regCount = users.filter(u => {
+                    const hasPurchased = u.order && u.order.events && u.order.events.some(ev => ev.id == e.id);
+                    const isLinked = u.linked_events && u.linked_events[e.id];
+                    return hasPurchased || isLinked; 
+                }).length;
+                
+                totalRegs += regCount;
+
+                const status = statuses[e.id]?.status || 'upcoming'; 
+                if(status === 'live') totalLive++;
+
+                const statusClass = status === 'live' ? 'text-red-500' : (status === 'ended' ? 'text-gray-500' : 'text-yellow-500');
+                const dotClass = status === 'live' ? 'dot-live' : (status === 'ended' ? 'dot-ended' : 'dot-upcoming');
+                
+                container.innerHTML += `
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all shadow-lg">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="flex items-center mb-1">
+                                <span class="status-dot ${dotClass}"></span>
+                                <span class="text-[10px] font-bold uppercase tracking-widest ${statusClass}">${status}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white">${e.title}</h3>
+                            <p class="text-xs text-slate-500 font-mono mt-1">ID: ${e.id} • Type: ${e.members}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-2xl font-bold text-white">${regCount}</span>
+                            <span class="text-[10px] text-slate-500 uppercase">Registered</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="openEventModal(${e.id}, '${e.title}', '${e.members}', '${status}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded text-xs transition-colors shadow-lg border border-slate-700">
+                            MANAGE EVENT
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('stat-events').innerText = events.length;
+            document.getElementById('stat-regs').innerText = totalRegs;
+            document.getElementById('stat-live').innerText = totalLive;
+            lucide.createIcons();
+        }
+
+        // --- EVENT MODAL LOGIC ---
+        function openEventModal(id, title, type, status) {
+            activeEventId = id;
+            document.getElementById('em-title').innerText = title;
+            document.getElementById('em-type').innerText = `Type: ${type}`;
+            document.getElementById('event-modal').classList.remove('hidden');
+            
+            // Set Status Button
+            const btn = document.getElementById('btn-status-toggle');
+            const badge = document.getElementById('em-status-badge');
+            
+            if(status === 'live') {
+                btn.innerText = "END EVENT";
+                btn.className = "text-[10px] bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-500";
+                badge.innerText = "LIVE NOW";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/20 text-red-500 mb-2 inline-block animate-pulse";
+            } else if (status === 'ended') {
+                btn.innerText = "RE-OPEN";
+                btn.className = "text-[10px] bg-slate-700 text-white px-3 py-1 rounded font-bold hover:bg-slate-600";
+                badge.innerText = "ENDED";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-700/50 text-slate-400 mb-2 inline-block";
+            } else {
+                btn.innerText = "GO LIVE";
+                btn.className = "text-[10px] bg-green-600 text-white px-3 py-1 rounded font-bold hover:bg-green-500";
+                badge.innerText = "UPCOMING";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-500/20 text-yellow-500 mb-2 inline-block";
+            }
+
+            switchTab('scan'); // Default to Scan tab for event execution
+            refreshAttendees();
+            refreshVolunteers();
+            refreshComms();
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.add('hidden');
+            stopScanner();
+            activeEventId = null;
+        }
+
+        function switchTab(tab) {
+            if (tab !== 'scan') stopScanner(); // Turn off camera if they navigate away
+
+            ['scan', 'list', 'winners', 'volunteers', 'comms'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('text-blue-500', 'border-blue-500');
+                document.getElementById(`tab-${t}`).classList.add('border-transparent');
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('text-blue-500', 'border-blue-500');
+            document.getElementById(`tab-${tab}`).classList.remove('border-transparent');
+            
+            if(tab === 'winners') populateWinnerSelects();
+        }
+
+        function toggleEventStatus() {
+            const btn = document.getElementById('btn-status-toggle');
+            const newStatus = btn.innerText === "GO LIVE" ? 'live' : (btn.innerText === "END EVENT" ? 'ended' : 'live');
+            
+            if(confirm(`Change event status to ${newStatus.toUpperCase()}?`)) {
+                db.ref(`events_status/${activeEventId}`).update({ status: newStatus });
+                
+                if(newStatus === 'live') {
+                    const title = document.getElementById('em-title').innerText;
+                    db.ref('updates').push({
+                        message: `EVENT STARTED: ${title}. Head to the venue now!`,
+                        timestamp: Date.now()
                     });
                 }
-            } else {
-                isScanning = true;
-                html5QrcodeScanner = new Html5Qrcode("reader");
-                html5QrcodeScanner.start(
-                    { facingMode: "environment" }, 
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => { 
-                        // Stop scanning on success
-                        html5QrcodeScanner.stop().then(() => {
-                            html5QrcodeScanner.clear();
-                            isScanning = false;
-                            document.getElementById('cam-placeholder').innerText = "Camera Off";
-                            document.getElementById('cam-placeholder').style.display = "block";
-                            fetchUser(decodedText); 
-                        });
-                    },
-                    (errorMessage) => { /* ignore */ }
-                ).catch(err => {
-                    alert("Camera Error: " + err);
+                closeEventModal(); 
+            }
+        }
+
+        // --- SCANNER & VERIFICATION ---
+        function startScanner() {
+            if(isScanning) return;
+            isScanning = true;
+            document.getElementById('btn-cam-start').classList.add('hidden');
+            document.getElementById('btn-cam-stop').classList.remove('hidden');
+            document.getElementById('scan-placeholder').classList.add('hidden');
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => { verifyUserForEvent(decodedText); },
+                (errorMessage) => { /* ignore normal scanning errors */ }
+            ).catch(err => {
+                alert("Camera Error: " + err);
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if(html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
                     isScanning = false;
+                    document.getElementById('btn-cam-start').classList.remove('hidden');
+                    document.getElementById('btn-cam-stop').classList.add('hidden');
+                    document.getElementById('scan-placeholder').classList.remove('hidden');
+                }).catch(err => console.error("Failed to stop scanner", err));
+            }
+        }
+
+        function verifyUserForEvent(id) {
+            id = id.toUpperCase().trim();
+            if(!id || !activeEventId) return;
+            
+            const res = document.getElementById('scan-result');
+            res.classList.remove('hidden', 'bg-green-900/50', 'border-green-600', 'text-green-400', 'bg-red-900/50', 'border-red-600', 'text-red-400');
+            res.innerHTML = "Verifying...";
+
+            // Find user in local cache
+            const u = window.allUsers.find(x => x.spectrumId === id);
+            
+            if(!u) {
+                showScanResult(false, `❌ INVALID ID: ${id} not found.`);
+                return;
+            }
+            if(u.paymentStatus !== 'Verified') {
+                showScanResult(false, `❌ PAYMENT PENDING: ${u.name} has an unverified pass. Send to Help Desk.`);
+                return;
+            }
+
+            // Check if they are registered for THIS event
+            let isRegistered = false;
+            let role = "";
+            
+            // 1. Direct Purchaser (Solo or Captain)
+            if (u.order && u.order.events && u.order.events.some(ev => ev.id == activeEventId)) {
+                isRegistered = true;
+                role = "Direct Registration";
+                if(u.squads && u.squads[activeEventId]) role = "Squad Captain";
+            } 
+            // 2. Linked Squad Member
+            else if (u.linked_events && u.linked_events[activeEventId]) {
+                isRegistered = true;
+                role = `Squad Member (via ${u.linked_events[activeEventId].leaderId})`;
+            }
+            // 3. Special Access (Nexus Prime)
+            else if (u.order?.pass === "Nexus Prime") {
+                isRegistered = true;
+                role = "Nexus Prime Access";
+            }
+
+            if (isRegistered) {
+                // Mark them as "attended" for this specific event
+                db.ref(`users/${u.key}/attendedEvents/${activeEventId}`).set(true).then(() => {
+                    showScanResult(true, `✅ ACCESS GRANTED<br><span class="text-white text-lg">${u.name}</span><br><span class="text-xs text-slate-400">${role}</span>`);
+                    refreshAttendees(); // Update roster list silently
+                });
+            } else {
+                showScanResult(false, `❌ REJECTED<br><span class="text-white text-lg">${u.name}</span><br><span class="text-xs text-slate-400">Not registered for this event.</span>`);
+            }
+            
+            document.getElementById('manual-scan-id').value = '';
+        }
+
+        function showScanResult(success, msg) {
+            const res = document.getElementById('scan-result');
+            res.classList.remove('hidden');
+            res.classList.remove('bg-green-900/50', 'border-green-600', 'text-green-400', 'bg-red-900/50', 'border-red-600', 'text-red-400');
+            
+            if(success) {
+                res.classList.add('bg-green-900/50', 'border-green-600', 'text-green-400');
+            } else {
+                res.classList.add('bg-red-900/50', 'border-red-600', 'text-red-400');
+            }
+            res.innerHTML = msg;
+            
+            // Clear message after 4 seconds if scanning continuously
+            if(isScanning) {
+                setTimeout(() => { if(isScanning) res.classList.add('hidden'); }, 4000);
+            }
+        }
+
+        // --- ROSTER & DETAILS ---
+        function refreshAttendees() {
+            if (!window.allUsers) return;
+
+            // Gather EVERYONE registered for this event (Captain or Linked Member)
+            currentAttendees = window.allUsers.filter(u => {
+                const hasPurchased = u.order && u.order.events && u.order.events.some(ev => ev.id == activeEventId);
+                const isLinked = u.linked_events && u.linked_events[activeEventId];
+                return hasPurchased || isLinked;
+            });
+            
+            document.getElementById('em-count').innerText = currentAttendees.length;
+            renderRosterList();
+        }
+        
+        function setRosterFilter(filterType) {
+            currentRosterFilter = filterType;
+            ['all', 'nift', 'other'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if(f === filterType) {
+                    btn.classList.add('bg-slate-800', 'text-white');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'text-white');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            renderRosterList();
+        }
+
+        function renderRosterList() {
+            const container = document.getElementById('attendees-container');
+            container.innerHTML = "";
+
+            let filteredAttendees = currentAttendees;
+            if (currentRosterFilter === 'nift') {
+                filteredAttendees = currentAttendees.filter(u => u.email && u.email.toLowerCase().endsWith('@nift.ac.in'));
+            } else if (currentRosterFilter === 'other') {
+                filteredAttendees = currentAttendees.filter(u => !(u.email && u.email.toLowerCase().endsWith('@nift.ac.in')));
+            }
+
+            if(filteredAttendees.length === 0) {
+                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registrations found for this filter.</div>';
+                return;
+            }
+
+            filteredAttendees.forEach(u => {
+                const isQualified = u.qualifications && u.qualifications[activeEventId];
+                const starClass = isQualified ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-yellow-400';
+                
+                let squadBadge = '';
+                if(u.squads && u.squads[activeEventId]) squadBadge = '<span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold ml-1 uppercase">Captain</span>';
+                else if (u.linked_events && u.linked_events[activeEventId]) squadBadge = '<span class="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] px-1.5 py-0.5 rounded font-bold ml-1 uppercase">Squad</span>';
+
+                container.innerHTML += `
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
+                    <div>
+                        <p class="text-white text-sm font-bold flex items-center">${u.name} ${squadBadge}</p>
+                        <p class="text-[10px] text-slate-500 font-mono mb-1">${u.spectrumId}</p>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                        <button onclick="viewParticipantDetails('${u.key}')" class="text-blue-400 hover:text-blue-300 text-[10px] uppercase font-bold border-b border-blue-900/50 pb-0.5">Details</button>
+                        <button onclick="toggleQualification('${u.key}')" class="${starClass} transition-colors" title="Qualify to Next Round"><i data-lucide="star" class="w-4 h-4"></i></button>
+                    </div>
+                </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        function viewParticipantDetails(key) {
+            const u = window.allUsers.find(x => x.key === key);
+            if(!u) return;
+            
+            let squadInfo = '<span class="text-sm text-white">Solo / General Entry</span>';
+            if(u.squads && u.squads[activeEventId]) {
+                squadInfo = `<span class="text-xs text-purple-400 font-mono font-bold uppercase tracking-widest">Squad Leader</span><br><span class="text-xs text-slate-400 block mt-1 leading-relaxed">Roster: ${u.squads[activeEventId].join(' • ')}</span>`;
+            } else if (u.linked_events && u.linked_events[activeEventId]) {
+                squadInfo = `<span class="text-xs text-cyan-400 font-mono font-bold uppercase tracking-widest">Linked Member</span><br><span class="text-xs text-slate-400 block mt-1">Captain: ${u.linked_events[activeEventId].leaderId}</span>`;
+            }
+            
+            document.getElementById('part-name').innerText = u.name;
+            document.getElementById('part-id').innerText = u.spectrumId;
+            document.getElementById('part-phone').innerText = u.phone || "N/A";
+            document.getElementById('part-phone-link').href = u.phone ? `tel:${u.phone}` : "#";
+            document.getElementById('part-email').innerText = u.email;
+            document.getElementById('part-college').innerText = u.collegeName || "N/A";
+            document.getElementById('part-squad').innerHTML = squadInfo;
+            
+            const checkinStatusEl = document.getElementById('part-checkin');
+            if (u.checkedIn) {
+                checkinStatusEl.innerText = "CHECKED IN (Campus)";
+                checkinStatusEl.className = "text-sm font-bold mt-1 text-green-400";
+            } else {
+                checkinStatusEl.innerText = "NOT ARRIVED";
+                checkinStatusEl.className = "text-sm font-bold mt-1 text-slate-500";
+            }
+            
+            document.getElementById('participant-modal').classList.remove('hidden');
+        }
+
+        function toggleQualification(key) {
+            db.ref(`users/${key}/qualifications/${activeEventId}`).transaction(curr => {
+                return curr ? null : true; // Toggle
+            }).then(() => refreshAttendees());
+        }
+
+        function exportCSV() {
+            if(currentAttendees.length === 0) return alert("No data to export");
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "Name,Spectrum ID,Phone,College,Squad Role,Squad Members\n"
+                + currentAttendees.map(u => {
+                    let squadRole = "Solo";
+                    let squadMates = "";
+                    if(u.squads && u.squads[activeEventId]) {
+                        squadRole = "Captain";
+                        squadMates = u.squads[activeEventId].join(' | ');
+                    } else if(u.linked_events && u.linked_events[activeEventId]) {
+                        squadRole = `Member (via ${u.linked_events[activeEventId].leaderId})`;
+                    }
+                    return `"${u.name}","${u.spectrumId}","${u.phone || ''}","${u.collegeName || ''}","${squadRole}","${squadMates}"`;
+                }).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Event_${activeEventId}_Roster.csv`);
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        // --- WINNER LOGIC ---
+        function populateWinnerSelects() {
+            const selects = ['win-1', 'win-2', 'win-3'];
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                el.innerHTML = '<option value="">Select User/Team...</option>';
+                currentAttendees.forEach(u => {
+                    const qualText = (u.qualifications && u.qualifications[activeEventId]) ? ' [★]' : '';
+                    el.innerHTML += `<option value="${u.name} (${u.spectrumId})">${u.name} (${u.spectrumId})${qualText}</option>`;
+                });
+            });
+        }
+
+        function submitWinners() {
+            const w1 = document.getElementById('win-1').value;
+            const w2 = document.getElementById('win-2').value;
+            const w3 = document.getElementById('win-3').value;
+
+            if(!w1) return alert("Please select at least a 1st Place winner.");
+
+            if(confirm("Publish these results to the main website?")) {
+                db.ref(`results/${activeEventId}`).set({
+                    first: w1,
+                    second: w2 || 'N/A',
+                    third: w3 || 'N/A',
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Results Published!");
+                    const title = document.getElementById('em-title').innerText;
+                    db.ref('updates').push({ message: `RESULTS DECLARED: ${title}. Congratulations to ${w1}!`, timestamp: Date.now() });
+                    closeEventModal();
                 });
             }
         }
 
-        // --- CORE LOGIC ---
-        function fetchUser(id) {
-            id = id.toUpperCase().trim();
-            const container = document.getElementById('result-area');
-            if(!id) return;
+        // --- VOLUNTEER MANAGEMENT ---
+        function refreshVolunteers() {
+            const container = document.getElementById('volunteers-container');
+            container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">Loading...</div>';
             
-            container.innerHTML = `<div class="flex h-full items-center justify-center text-blue-500"><i data-lucide="loader-2" class="animate-spin w-10 h-10"></i></div>`;
-            lucide.createIcons();
+            if (!activeEventId) return;
 
-            db.ref('users').orderByChild('spectrumId').equalTo(id).once('value').then(snap => {
-                if(!snap.exists()) {
-                    container.innerHTML = `<div class="text-center text-red-500 p-10"><i data-lucide="x-circle" class="w-12 h-12 mx-auto mb-2"></i><h2 class="font-bold">User Not Found</h2><p class="text-xs">ID: ${id}</p></div>`;
-                    lucide.createIcons();
+            db.ref('event_volunteers/' + activeEventId).once('value').then(snap => {
+                const vols = snap.val();
+                container.innerHTML = "";
+                
+                if (!vols) {
+                    container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No volunteers assigned.</div>';
                     return;
                 }
 
-                const key = Object.keys(snap.val())[0];
-                const u = Object.values(snap.val())[0];
-                currentUserKey = key;
-                currentUserData = u;
-
-                renderEditor(u);
-            });
-        }
-
-        function renderEditor(user) {
-            const container = document.getElementById('result-area');
-            
-            // Get Current Events
-            let currentEventIds = [];
-            let eventsHtml = '';
-            
-            if(user.order && user.order.events) {
-                user.order.events.forEach(ev => {
-                    currentEventIds.push(ev.id); // Track IDs to filter dropdown
-                    eventsHtml += `
-                    <div class="flex justify-between items-center bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-2">
+                Object.entries(vols).forEach(([key, v]) => {
+                    container.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800">
                         <div>
-                            <span class="text-white font-bold text-sm block">${ev.title}</span>
-                            <span class="text-xs text-zinc-500 font-mono">ID: ${ev.id}</span>
+                            <p class="text-white text-sm font-bold">${v.name}</p>
+                            <p class="text-[10px] text-slate-500 font-mono">${v.specId || 'N/A'}</p>
                         </div>
-                        <button onclick="removeEvent(${ev.id}, '${ev.title}')" class="text-red-500 hover:text-white bg-red-900/20 hover:bg-red-900 p-2 rounded transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="removeVolunteer('${key}')" class="text-red-500 hover:text-white"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>`;
                 });
-            } else {
-                eventsHtml = `<p class="text-zinc-500 text-sm italic text-center py-4">No events registered.</p>`;
+                lucide.createIcons();
+            });
+        }
+
+        function addVolunteer() {
+            const name = prompt("Enter Volunteer Name:");
+            const specId = prompt("Enter Spectrum ID (Optional):");
+            
+            if (name) {
+                db.ref('event_volunteers/' + activeEventId).push({
+                    name: name,
+                    specId: specId || '',
+                    timestamp: Date.now()
+                }).then(() => {
+                    refreshVolunteers();
+                });
+            }
+        }
+
+        function removeVolunteer(key) {
+            if(confirm("Remove this volunteer?")) {
+                db.ref(`event_volunteers/${activeEventId}/${key}`).remove().then(() => refreshVolunteers());
+            }
+        }
+
+        // --- COMMS FEATURE ---
+        function refreshComms() {
+            const container = document.getElementById('comms-list');
+            if (!window.allUsers) return;
+
+            container.innerHTML = "";
+            
+            if(currentAttendees.length === 0) {
+                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registered participants found.</div>';
+                return;
             }
 
-            // Generate Dropdown Options (Exclude already registered)
-            let optionsHtml = '<option value="">Select Event to Add...</option>';
-            eventsData.forEach(e => {
-                if(!currentEventIds.includes(e.id) && !currentEventIds.includes(String(e.id))) {
-                    optionsHtml += `<option value="${e.id}">${e.title}</option>`;
-                }
+            currentAttendees.forEach(u => {
+                let phone = u.phone ? u.phone.replace(/\D/g, '') : '';
+                if(phone.length === 10) phone = '91' + phone;
+
+                const eventName = document.getElementById('em-title').innerText;
+                const msg = encodeURIComponent(`Hello ${u.name},\n\nUpdate regarding ${eventName}:\n\n[TYPE YOUR MESSAGE HERE]\n\n- Club Head, Spectrum '26`);
+                
+                const waLink = phone ? `https://wa.me/${phone}?text=${msg}` : '#';
+                const mailLink = `mailto:${u.email}?subject=${encodeURIComponent(eventName + ' Update')}&body=${msg}`;
+
+                container.innerHTML += `
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded border border-slate-800 mb-2">
+                    <div>
+                        <p class="text-white text-sm font-bold">${u.name}</p>
+                        <p class="text-[10px] text-slate-500">${u.spectrumId}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="${waLink}" target="_blank" class="${!phone ? 'opacity-50 pointer-events-none' : ''} text-green-400 hover:text-green-300 bg-green-900/20 p-1.5 rounded"><i data-lucide="message-circle" class="w-4 h-4"></i></a>
+                        <a href="${mailLink}" class="text-blue-400 hover:text-blue-300 bg-blue-900/20 p-1.5 rounded"><i data-lucide="mail" class="w-4 h-4"></i></a>
+                    </div>
+                </div>`;
             });
-
-            container.innerHTML = `
-                <div class="animate-in pb-10">
-                    <div class="flex items-center gap-4 mb-6 pb-6 border-b border-zinc-800">
-                        <div class="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold text-white">
-                            ${user.name.substring(0,2).toUpperCase()}
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-white leading-none">${user.name}</h2>
-                            <p class="text-blue-400 font-mono text-sm mt-1">${user.spectrumId}</p>
-                            <p class="text-zinc-500 text-xs">${user.email}</p>
-                        </div>
-                    </div>
-                    
-                    <h3 class="text-slate-400 text-xs font-bold uppercase mb-3 tracking-widest">Registered Events</h3>
-                    <div class="mb-6">
-                        ${eventsHtml}
-                    </div>
-
-                    <div class="border-t border-zinc-800 pt-6">
-                        <h3 class="text-slate-400 text-xs font-bold uppercase mb-3 tracking-widest">Add New Event</h3>
-                        <div class="flex gap-2">
-                            <select id="new-event-select" class="flex-1 bg-zinc-900 border border-zinc-700 text-white text-sm rounded p-3 outline-none">
-                                ${optionsHtml}
-                            </select>
-                            <button onclick="addEvent()" class="bg-green-600 text-white px-4 rounded font-bold hover:bg-green-500">
-                                <i data-lucide="plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
             lucide.createIcons();
-        }
-
-        // --- EDIT LOGIC ---
-        function removeEvent(id, title) {
-            if(!confirm(`Remove "${title}" from this user?`)) return;
-
-            // 1. Filter out from order.events
-            let events = currentUserData.order?.events || [];
-            const newEvents = events.filter(e => e.id != id);
-
-            const updates = {};
-            updates[`users/${currentUserKey}/order/events`] = newEvents;
-            
-            // 2. Remove other traces to be clean
-            updates[`users/${currentUserKey}/attendedEvents/${id}`] = null;
-            updates[`users/${currentUserKey}/qualifications/${id}`] = null;
-            updates[`users/${currentUserKey}/squads/${id}`] = null;
-
-            db.ref().update(updates).then(() => {
-                alert("Event Removed");
-                // Refresh data
-                refreshUser();
-            }).catch(e => alert("Error: " + e.message));
-        }
-
-        function addEvent() {
-            const select = document.getElementById('new-event-select');
-            const id = select.value;
-            if(!id) return;
-
-            const evtObj = eventsData.find(e => e.id == id);
-            if(!confirm(`Add "${evtObj.title}" to this user?`)) return;
-
-            let events = currentUserData.order?.events || [];
-            // Just in case check
-            if(events.some(e => e.id == id)) return alert("Already registered");
-
-            // Add standard event object
-            events.push({
-                id: evtObj.id,
-                title: evtObj.title,
-                isPremium: false,
-                type: 'Manual Add'
-            });
-
-            db.ref(`users/${currentUserKey}/order/events`).set(events).then(() => {
-                alert("Event Added");
-                refreshUser();
-            }).catch(e => alert("Error: " + e.message));
-        }
-
-        function refreshUser() {
-            db.ref(`users/${currentUserKey}`).once('value').then(snap => {
-                currentUserData = snap.val();
-                renderEditor(currentUserData);
-            });
         }
 
         window.onload = init;
