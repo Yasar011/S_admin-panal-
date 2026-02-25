@@ -180,6 +180,14 @@
                                 <button onclick="refreshAttendees()" class="text-xs text-blue-400 p-1.5 border border-slate-700 rounded hover:bg-slate-800"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
                             </div>
                         </div>
+                        
+                        <!-- NEW ROSTER FILTER -->
+                        <div class="flex gap-2 mb-4 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                            <button onclick="setRosterFilter('all')" id="filter-all" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded bg-slate-800 text-white transition-colors">All</button>
+                            <button onclick="setRosterFilter('nift')" id="filter-nift" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded hover:bg-slate-800 text-slate-400 transition-colors">NIFT Only</button>
+                            <button onclick="setRosterFilter('other')" id="filter-other" class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded hover:bg-slate-800 text-slate-400 transition-colors">Outsiders</button>
+                        </div>
+                        
                         <p class="text-[10px] text-slate-500 mb-2">Click <i data-lucide="star" class="w-3 h-3 inline"></i> to promote to next round.</p>
                         <div class="overflow-y-auto max-h-[350px] space-y-2 pr-2" id="attendees-container">
                             <div class="text-slate-600 text-center text-xs py-10">No attendees yet.</div>
@@ -286,41 +294,54 @@
     <script>
         // --- DATA & CONFIG ---
         const eventsData = [
-            { id: 101, club: 'entertainment', title: 'EDM Night (Neon Pulse)', members: '1' }, 
-            { id: 102, club: 'entertainment', title: 'Fashion Show (Designer Team)', members: '8-12' },
-            { id: 103, club: 'entertainment', title: 'Fashion Show (Audience)', members: '1' },
-            { id: 1, club: 'adventure', title: 'Photography', members: 'Solo' },
-            { id: 2, club: 'adventure', title: 'Short Film', members: '2-4' },
-            { id: 3, club: 'adventure', title: 'Match the Picture', members: 'Solo' },
-            { id: 9, club: 'adventure', title: 'Mini Adventure', members: 'Solo' },
-            { id: 5, club: 'culture', title: 'Solo Dance', members: 'Solo' },
-            { id: 306, club: 'culture', title: 'Group Dance', members: '5-8' },
-            { id: 6, club: 'culture', title: 'Solo Singing', members: 'Solo' },
-            { id: 8, club: 'culture', title: 'Battle of Bands', members: '3-6' },
-            { id: 307, club: 'culture', title: 'Mr & Miss Spectrum', members: 'Solo' },
-            { id: 301, club: 'environment', title: 'Graffiti Competition', members: '2-4' },
-            { id: 302, club: 'environment', title: 'Treasure Hunt (Env)', members: '4-5' },
-            { id: 303, club: 'environment', title: 'Eco Trivia', members: 'Solo' },
-            { id: 304, club: 'environment', title: 'Musical Chairs', members: 'Solo' },
-            { id: 305, club: 'environment', title: 'Trumbling', members: 'Solo' },
-            { id: 401, club: 'lit', title: "Devil's Advocate", members: 'Solo' },
-            { id: 402, club: 'lit', title: 'Minute to Win It', members: 'Duo' },
-            { id: 403, club: 'lit', title: 'Snakes & Ladders', members: 'Duo' },
-            { id: 404, club: 'lit', title: 'Bollymania', members: 'Duo' },
-            { id: 18, club: 'essc', title: 'Nukkad Natak', members: '10' },
-            { id: 19, club: 'essc', title: 'Housie', members: '1' },
-            { id: 20, club: 'essc', title: 'Pong the Palooza', members: '3' },
-            { id: 321, club: 'essc', title: 'Face Painting', members: '2' },
-            { id: 222, club: 'essc', title: 'Poster Making', members: '1' },
-            { id: 201, club: 'sports', title: 'Futsal Mix', members: '4B + 2G + 2 Extra' },
-            { id: 202, club: 'sports', title: 'Volleyball Mix', members: '4B + 2G + 2 Extra' },
-            { id: 203, club: 'sports', title: 'Basketball Mix', members: '4B + 2G + 2 Extra' },
-            { id: 204, club: 'sports', title: 'Throwball (Girls)', members: '6G + 2 Extra' },
-            { id: 205, club: 'sports', title: 'Table Tennis (Boys)', members: 'Solo' },
-            { id: 206, club: 'sports', title: 'Table Tennis (Girls)', members: 'Solo' },
-            { id: 207, club: 'sports', title: 'Chess', members: 'Solo' },
-            { id: 208, club: 'sports', title: 'Carrom', members: 'Solo' },
-            { id: 209, club: 'sports', title: 'Tug of War Mix', members: '4B + 4G' }
+            // --- CORE FLAGSHIP EVENTS (ENTRY/SHOWS) ----
+            { id: 101, club: 'entertainment', title: 'EDM Night (Neon Pulse)', price: 759, isPremium: true, img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'The biggest night of the fest. Featuring top DJs. Gold Pass Required.', day: 'Day 2', time: '7:00 PM', venue: 'Main Ground' }, 
+            { id: 102, club: 'entertainment', title: 'Fashion Show (Designer Team)', price: 2999, prize: '₹50,000', isPremium: true, img: 'https://images.unsplash.com/photo-1469334023215-c574bc2e47bf?w=600&auto=format&fit=crop&q=80', members: '8-12', desc: 'Walk the ramp and showcase your style. Prize Pool: ₹50,000.', day: 'Day 2', time: '6:00 PM', venue: 'Audi' },
+            { id: 103, club: 'entertainment', title: 'Fashion Show (Audience)', price: 199, isPremium: true, img: 'https://images.unsplash.com/photo-1550614000439-56d8de233b86?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Watch the Vogue Gala. Included in Gold Pass.', day: 'Day 2', time: '6:00 PM', venue: 'Audi' },
+            
+            // --- ADVENTURE ---
+            { id: 1, club: 'adventure', title: 'Photography', price: 299, prize: '₹9,000', isPremium: true, img: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Capture the essence of the fest.', day: 'Day 1', time: '11:00 AM', venue: 'TS MFM Area' },
+            { id: 2, club: 'adventure', title: 'Short Film', price: 399, prize: '₹12,000', isPremium: true, img: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&auto=format&fit=crop&q=80', members: '2-4', desc: 'Storytelling through the lens.', day: 'Day 1', time: '11:00 AM', venue: 'TS MFM Area' },
+            { id: 3, club: 'adventure', title: 'Match the Picture', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Visual puzzle challenge.', day: 'Day 1', time: '3:00 PM', venue: 'Basketball Alley' },
+            { id: 9, club: 'adventure', title: 'Mini Adventure', price: 99, prize: '₹4,500', isPremium: false, img: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Quick adventure challenges.', day: 'Day 1', time: '11:00 AM', venue: 'A Gate Stretch' },
+
+            // --- CULTURAL ---
+            { id: 5, club: 'culture', title: 'Solo Dance', price: 99, prize: '₹6,000', isPremium: false, img: 'https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Rhythm and grace.', day: 'Day 1', time: '12:00 PM', venue: 'Main Stage' },
+            { id: 306, club: 'culture', title: 'Group Dance', price: 1199, prize: '₹22,000', isPremium: true, img: 'https://images.unsplash.com/photo-1508807526345-15e9b5f4eaff?w=600&auto=format&fit=crop&q=80', members: '5-8', desc: 'Sync your steps. Team of 5 to 8.', day: 'Day 1', time: '3:30 PM', venue: 'Main Stage' },
+            { id: 6, club: 'culture', title: 'Solo Singing', price: 99, prize: '₹6,000', isPremium: false, img: 'https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Voice of Spectrum.', day: 'Day 2', time: '10:00 AM', venue: 'Main Stage' },
+            { id: 8, club: 'culture', title: 'Battle of Bands', price: 1199, prize: '₹20,000', isPremium: true, img: 'https://images.unsplash.com/photo-1501612780327-45045538702b?w=600&auto=format&fit=crop&q=80', members: '3-6', desc: 'Musical showdown.', day: 'Day 2', time: '5:00 PM', venue: 'Main Stage' },
+            { id: 307, club: 'culture', title: 'Mr & Miss Spectrum', price: 0, prize: '₹15,000', isPremium: false, img: 'https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Personality hunt. Only for NIFT Students.', day: 'Day 1', time: '8:00 PM', venue: 'Main Stage' },
+
+            // --- ENVIRONMENTAL ---
+            { id: 301, club: 'environment', title: 'Graffiti Competition', price: 799, prize: '₹24,000', isPremium: true, img: 'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&auto=format&fit=crop&q=80', members: '2-4', desc: 'Art on walls.', day: 'Day 1', time: '10:00 AM', venue: 'OAT' },
+            { id: 302, club: 'environment', title: 'Treasure Hunt (Env)', price: 499, prize: '₹5,000', isPremium: false, img: 'https://images.unsplash.com/photo-1508680196726-0e1cebbdcaf4?w=600&auto=format&fit=crop&q=80', members: '4-5', desc: 'Hunt for nature.', day: 'Day 2', time: '10:00 AM', venue: 'Whole Campus' },
+            { id: 303, club: 'environment', title: 'Eco Trivia', price: 99, prize: '₹2,200', isPremium: false, img: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Green knowledge test.', day: 'Day 2', time: '9:00 AM', venue: 'Classroom' },
+            { id: 304, club: 'environment', title: 'Musical Chairs', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Fun survival game.', day: 'Day 1', time: '3:00 PM', venue: 'Flag Area' },
+            { id: 305, club: 'environment', title: 'Trumbling', price: 49, prize: '₹1,000', isPremium: false, img: 'https://images.unsplash.com/photo-1555505019-8c3f1c4abe5b?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Balance game.', day: 'Day 1', time: '1:00 PM', venue: 'RC Area' },
+
+            // --- LITERARY ---
+            { id: 401, club: 'lit', title: "Devil's Advocate", price: 99, prize: '₹5,000', isPremium: true, img: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Debate with a twist.', day: 'Day 1', time: '11:00 AM', venue: 'Conf Hall' },
+            { id: 402, club: 'lit', title: 'Minute to Win It', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1495364141860-b0d03dea4520?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Quick challenges.', day: 'Day 1', time: '11:00 AM', venue: 'Classroom' },
+            { id: 403, club: 'lit', title: 'Snakes & Ladders', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1558021212551-28da5679dcce?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Giant board game.', day: 'Day 1', time: '2:00 PM', venue: 'Lounge' },
+            { id: 404, club: 'lit', title: 'Bollymania', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?w=600&auto=format&fit=crop&q=80', members: 'Duo', desc: 'Bollywood quiz.', day: 'Day 2', time: '10:00 AM', venue: 'Classroom' },
+
+            // --- ESSC ---
+            { id: 18, club: 'essc', title: 'Nukkad Natak', price: 1499, prize: '₹25,000', isPremium: true, img: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop&q=80', members: '10', desc: 'Street play.', day: 'Day 1', time: '10:00 AM', venue: 'Event Ground' },
+            { id: 19, club: 'essc', title: 'Housie', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1512805147242-b5b7d41fa75c?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Classic Tambola.', day: 'Day 2', time: '11:00 AM', venue: 'Canteen' },
+            { id: 20, club: 'essc', title: 'Pong the Palooza', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1511511410045-995a127027bc?w=600&auto=format&fit=crop&q=80', members: '3', desc: 'Pong challenge.', day: 'Day 1', time: '12:00 PM', venue: 'Classroom' },
+            { id: 321, club: 'essc', title: 'Face Painting', price: 199, prize: '₹8,000', isPremium: false, img: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&auto=format&fit=crop&q=80', members: '2', desc: 'Creative makeup art.', day: 'Day 1', time: '2:00 PM', venue: 'Foyer' },
+            { id: 222, club: 'essc', title: 'Poster Making', price: 199, prize: '₹8,000', isPremium: false, img: 'https://images.unsplash.com/photo-1503694978374-8a2fa68b5b70?w=600&auto=format&fit=crop&q=80', members: '1', desc: 'Artistic posters.', day: 'Day 1', time: '1:00 PM', venue: 'TD New Hall' },
+
+            // --- SPORTS ---
+            { id: 201, club: 'sports', title: 'Futsal Mix', price: 1259, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1518605368461-1e122b5128ff?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Futsal Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 202, club: 'sports', title: 'Volleyball Mix', price: 1259, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Volleyball Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 203, club: 'sports', title: 'Basketball Mix', price: 1049, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1519861531473-9200262188bf?w=600&auto=format&fit=crop&q=80', members: '4B + 2G + 2 Extra', desc: 'Mixed Basketball Tournament.', day: 'Day 1', time: '8:00 AM', venue: 'Sports Ground' },
+            { id: 204, club: 'sports', title: 'Throwball (Girls)', price: 1049, prize: '₹7,000', isPremium: true, img: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=600&auto=format&fit=crop&q=80', members: '6G + 2 Extra', desc: 'Girls Throwball.', day: 'Day 2', time: '12:00 PM', venue: 'Sports Ground' },
+            { id: 205, club: 'sports', title: 'Table Tennis (Boys)', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Boys TT.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 206, club: 'sports', title: 'Table Tennis (Girls)', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Girls TT.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 207, club: 'sports', title: 'Chess', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Checkmate.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 208, club: 'sports', title: 'Carrom', price: 199, prize: '₹2,000', isPremium: false, img: 'https://images.unsplash.com/photo-1603584173870-7d23f2a032f3?w=600&auto=format&fit=crop&q=80', members: 'Solo', desc: 'Carrom Tournament.', day: 'Day 2', time: '10:00 AM', venue: 'Academic Block' },
+            { id: 209, club: 'sports', title: 'Tug of War Mix', price: 0, prize: 'Gift Hampers', isPremium: false, img: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=80', members: '4B + 4G', desc: 'Test of strength.', day: 'Day 1', time: '5:00 PM', venue: 'Futsal Ground' }
         ];
 
         let currentClubCode = null;
@@ -328,6 +349,7 @@
         let html5QrcodeScanner = null;
         let isScanning = false;
         let currentAttendees = [];
+        let currentRosterFilter = 'all'; // New filter state variable
         let registeredUsersForEvent = []; 
         
         window.allUsers = [];
@@ -662,9 +684,6 @@
 
         // --- ROSTER & DETAILS ---
         function refreshAttendees() {
-            const container = document.getElementById('attendees-container');
-            currentAttendees = [];
-            
             if (!window.allUsers) return;
 
             // Gather EVERYONE registered for this event (Captain or Linked Member)
@@ -675,14 +694,41 @@
             });
             
             document.getElementById('em-count').innerText = currentAttendees.length;
+            renderRosterList();
+        }
+        
+        function setRosterFilter(filterType) {
+            currentRosterFilter = filterType;
+            ['all', 'nift', 'other'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if(f === filterType) {
+                    btn.classList.add('bg-slate-800', 'text-white');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'text-white');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            renderRosterList();
+        }
+
+        function renderRosterList() {
+            const container = document.getElementById('attendees-container');
             container.innerHTML = "";
 
-            if(currentAttendees.length === 0) {
-                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registrations found.</div>';
+            let filteredAttendees = currentAttendees;
+            if (currentRosterFilter === 'nift') {
+                filteredAttendees = currentAttendees.filter(u => u.email && u.email.toLowerCase().endsWith('@nift.ac.in'));
+            } else if (currentRosterFilter === 'other') {
+                filteredAttendees = currentAttendees.filter(u => !(u.email && u.email.toLowerCase().endsWith('@nift.ac.in')));
+            }
+
+            if(filteredAttendees.length === 0) {
+                container.innerHTML = '<div class="text-slate-600 text-center text-xs py-10">No registrations found for this filter.</div>';
                 return;
             }
 
-            currentAttendees.forEach(u => {
+            filteredAttendees.forEach(u => {
                 const isQualified = u.qualifications && u.qualifications[activeEventId];
                 const starClass = isQualified ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-yellow-400';
                 
