@@ -45,6 +45,10 @@
         /* Modal Transitions */
         .modal-enter { animation: fadeUp 0.3s ease-out forwards; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Hide Scrollbar for Filters */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -92,7 +96,22 @@
 
         <!-- Event List -->
         <div class="max-w-5xl mx-auto px-4 py-8">
-            <h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">Assigned Events</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Assigned Events</h3>
+            </div>
+            
+            <!-- NEW: CATEGORY FILTER -->
+            <div class="flex gap-2 overflow-x-auto mb-6 pb-2 hide-scrollbar" id="dashboard-filters">
+                <button onclick="filterDashboardEvents('all')" class="dash-filter-btn bg-blue-600 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap transition-colors">All</button>
+                <button onclick="filterDashboardEvents('entertainment')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Flagship</button>
+                <button onclick="filterDashboardEvents('sports')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Sports</button>
+                <button onclick="filterDashboardEvents('culture')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Culture</button>
+                <button onclick="filterDashboardEvents('essc')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">ESSC</button>
+                <button onclick="filterDashboardEvents('adventure')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Adventure</button>
+                <button onclick="filterDashboardEvents('environment')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Environment</button>
+                <button onclick="filterDashboardEvents('lit')" class="dash-filter-btn bg-slate-800 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap hover:bg-slate-700 transition-colors">Literary</button>
+            </div>
+
             <div id="events-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Event Cards Injected Here -->
                 <div class="text-center col-span-full py-10 text-slate-600">Loading events...</div>
@@ -345,6 +364,7 @@
         ];
 
         let currentClubCode = null;
+        let currentDashboardFilter = 'all'; // New variable for category filter
         let activeEventId = null;
         let html5QrcodeScanner = null;
         let isScanning = false;
@@ -423,9 +443,36 @@
         }
 
         // --- DASHBOARD LOGIC ---
+        function filterDashboardEvents(cat) {
+            currentDashboardFilter = cat;
+            
+            // Update button styles
+            document.querySelectorAll('.dash-filter-btn').forEach(btn => {
+                const btnText = btn.innerText.toLowerCase();
+                const isMatch = btnText.includes(cat) || 
+                                (cat === 'all' && btnText === 'all') || 
+                                (cat === 'entertainment' && btnText === 'flagship');
+                
+                if(isMatch) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-slate-800', 'text-slate-400');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-400');
+                }
+            });
+
+            renderIfReady();
+        }
+
         function initDashboard() {
             const container = document.getElementById('events-list');
             container.innerHTML = '<div class="text-center col-span-full py-10 text-slate-500"><div class="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>Fetching Data...</div>';
+
+            // Hide filters if the user is bound to a single club
+            if (currentClubCode !== 'all' && currentClubCode !== 'admin') {
+                document.getElementById('dashboard-filters').classList.add('hidden');
+            }
 
             db.ref('users').on('value', snap => {
                 const val = snap.val();
@@ -445,9 +492,14 @@
 
         function renderIfReady() {
             if (window.allUsers) {
-                const myEvents = (currentClubCode === 'all' || currentClubCode === 'admin') 
+                let myEvents = (currentClubCode === 'all' || currentClubCode === 'admin') 
                     ? eventsData 
                     : eventsData.filter(e => e.club === currentClubCode);
+                
+                // Apply Category Filter
+                if (currentDashboardFilter !== 'all') {
+                    myEvents = myEvents.filter(e => e.club === currentDashboardFilter);
+                }
                 
                 renderEvents(myEvents, window.allUsers, window.allStatuses);
             }
