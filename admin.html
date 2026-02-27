@@ -196,14 +196,14 @@
         .bg-error { background-color: #ef4444; }
         .bg-loading { background-color: #eab308; }
         
-        /* Edit Modal */
-        #edit-modal, #info-modal, #nuke-modal { backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.7); }
+        /* Modals */
+        .modal-bg { backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.7); }
     </style>
 </head>
 <body onload="initSystem()">
 
     <!-- SQUAD EDIT MODAL -->
-    <div id="squad-edit-modal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div id="squad-edit-modal" class="fixed inset-0 z-[150] hidden items-center justify-center p-4 modal-bg">
         <div class="bg-slate-900 border border-slate-700 w-full max-w-md p-6 rounded-2xl shadow-2xl relative">
             <button onclick="closeSquadEditModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-purple-500"></i> Edit Roster</h3>
@@ -236,7 +236,7 @@
     </div>
 
     <!-- NUKE DATA SECURITY MODAL -->
-    <div id="nuke-modal" class="fixed inset-0 z-[150] hidden flex items-center justify-center p-4">
+    <div id="nuke-modal" class="fixed inset-0 z-[150] hidden items-center justify-center p-4 modal-bg">
         <div class="bg-slate-950 border-2 border-red-600 w-full max-w-sm p-6 rounded-2xl shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse"></div>
             <h3 class="text-2xl font-bold text-red-500 mb-2 flex items-center gap-2"><i data-lucide="alert-octagon"></i> SECURITY CHECK</h3>
@@ -258,18 +258,25 @@
     </div>
 
     <!-- EDIT USER MODAL -->
-    <div id="edit-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-md p-6 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="edit-3" class="text-blue-500"></i> Edit User & Order
-            </h3>
-            <div class="space-y-3">
+    <div id="edit-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-bg">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl shadow-2xl relative">
+            
+            <!-- Sticky Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/50 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="edit-3" class="text-blue-500 w-5 h-5"></i> Edit User & Order
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <!-- Scrollable Form Content -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-4 min-h-0">
                 <input type="hidden" id="edit-key">
                 <div>
                     <label class="text-xs text-slate-400 uppercase font-bold">Full Name</label>
                     <input id="edit-name" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm">
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs text-slate-400 uppercase font-bold">Spectrum ID</label>
                         <input id="edit-id" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm font-mono uppercase">
@@ -279,7 +286,7 @@
                         <input id="edit-phone" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs text-slate-400 uppercase font-bold">Email</label>
                         <input id="edit-email" type="text" class="w-full bg-black/50 border border-slate-700 p-2 rounded text-white text-sm" disabled>
@@ -290,8 +297,8 @@
                     </div>
                 </div>
                 
-                <!-- NEW: PASS AND ORDER FIELDS -->
-                <div class="border-t border-slate-800 pt-3 mt-3">
+                <!-- PASS AND ORDER FIELDS -->
+                <div class="border-t border-slate-800 pt-4 mt-2">
                     <label class="text-xs text-pink-400 uppercase font-bold block mb-1">Pass Type</label>
                     <select id="edit-pass" class="w-full bg-black/50 border border-pink-900/30 p-2 rounded text-white text-sm outline-none focus:border-pink-500">
                         <option value="No Pass">No Pass</option>
@@ -304,7 +311,7 @@
                         <option value="Visitor Access">Visitor Access</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs text-green-400 uppercase font-bold block mb-1">Total Amount (₹)</label>
                         <input id="edit-amount" type="number" class="w-full bg-black/50 border border-green-900/30 p-2 rounded text-white text-sm outline-none focus:border-green-500">
@@ -324,7 +331,9 @@
                     <p class="text-[9px] text-slate-500 mt-1">Comma-separated IDs (e.g. 101, 102, 305). Leave blank for none.</p>
                 </div>
             </div>
-            <div class="flex gap-3 mt-6 border-t border-slate-800 pt-4">
+
+            <!-- Sticky Footer Actions -->
+            <div class="flex gap-3 p-5 border-t border-slate-800 shrink-0 bg-slate-900/50 rounded-b-2xl">
                 <button onclick="closeEditModal()" class="flex-1 border border-slate-700 text-slate-300 py-3 rounded text-xs font-bold hover:bg-slate-800 transition-colors">CANCEL</button>
                 <button onclick="saveUserEdit()" class="flex-1 bg-blue-600 text-white py-3 rounded text-xs font-bold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30">SAVE ALL CHANGES</button>
             </div>
@@ -332,9 +341,11 @@
     </div>
 
     <!-- FULL INFO MODAL -->
-    <div id="info-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 rounded-2xl shadow-2xl relative">
-            <div class="flex justify-between items-start mb-6">
+    <div id="info-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 modal-bg">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl relative">
+            
+            <!-- Sticky Header -->
+            <div class="flex justify-between items-start p-6 border-b border-slate-800 shrink-0 bg-slate-900 rounded-t-2xl z-10">
                 <div>
                     <h3 class="text-2xl font-bold text-white flex items-center gap-2">
                         <span id="info-name">User Name</span>
@@ -342,7 +353,7 @@
                     </h3>
                     <p class="text-slate-400 font-mono text-sm" id="info-id">SPEC-ID</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
                     <button id="btn-wa-verified" class="text-green-500 bg-green-500/10 border border-green-500/30 hover:bg-green-500 hover:text-white px-3 py-1 rounded text-xs font-bold transition-colors hidden items-center gap-1">
                         <i data-lucide="message-circle" class="w-4 h-4"></i> Notify Approval
                     </button>
@@ -350,70 +361,74 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Profile -->
-                <div class="space-y-2">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Profile Details</h4>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Email:</span> <span id="info-email" class="text-white">...</span></p>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Phone:</span> <span id="info-phone" class="text-white">...</span></p>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">College:</span> <span id="info-college" class="text-white">...</span></p>
-                </div>
-                <!-- Status -->
-                <div class="space-y-2">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Current Status</h4>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Pass:</span> <span id="info-pass" class="text-pink-400 font-bold">...</span></p>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Check-In:</span> <span id="info-checkin" class="badge">...</span></p>
-                    <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Payment:</span> <span id="info-payment" class="badge">...</span></p>
-                </div>
-            </div>
-
-            <!-- ID Card and Tickets Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- ID Card -->
-                <div class="space-y-2">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Student ID Document</h4>
-                    <div id="info-id-card-container" class="mt-2 bg-black/50 border border-slate-700 rounded p-2 flex justify-center items-center h-48">
-                        <img id="info-id-card" src="" class="max-h-full max-w-full object-contain hidden" alt="ID Card">
-                        <span id="info-no-id" class="text-slate-500 text-xs">No ID Uploaded</span>
+            <!-- Scrollable Content -->
+            <div class="p-6 overflow-y-auto flex-1 min-h-0 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Profile -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Profile Details</h4>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Email:</span> <span id="info-email" class="text-white">...</span></p>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Phone:</span> <span id="info-phone" class="text-white">...</span></p>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">College:</span> <span id="info-college" class="text-white">...</span></p>
+                    </div>
+                    <!-- Status -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Current Status</h4>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Pass:</span> <span id="info-pass" class="text-pink-400 font-bold">...</span></p>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Check-In:</span> <span id="info-checkin" class="badge">...</span></p>
+                        <p class="text-sm text-slate-300"><span class="text-slate-500 w-20 inline-block">Payment:</span> <span id="info-payment" class="badge">...</span></p>
                     </div>
                 </div>
-                <!-- Tickets & Events -->
-                <div class="space-y-2">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Purchased Events</h4>
-                    <ul id="info-events-list" class="mt-2 space-y-2 text-sm text-slate-300 h-48 overflow-y-auto pr-2">
+
+                <!-- ID Card and Tickets Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ID Card -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Student ID Document</h4>
+                        <div id="info-id-card-container" class="mt-2 bg-black/50 border border-slate-700 rounded p-2 flex justify-center items-center h-48 overflow-hidden">
+                            <img id="info-id-card" src="" class="w-full h-full object-contain hidden" alt="ID Card">
+                            <span id="info-no-id" class="text-slate-500 text-xs">No ID Uploaded</span>
+                        </div>
+                    </div>
+                    <!-- Tickets & Events -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">Purchased Events</h4>
+                        <ul id="info-events-list" class="mt-2 space-y-2 text-sm text-slate-300 h-48 overflow-y-auto pr-2 min-h-0">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Squads -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Event Squads Linked (Led by this user)</h4>
+                    <div id="info-squads" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-slate-300">
                         <!-- Populated by JS -->
-                    </ul>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Squads -->
-            <div class="mb-6">
-                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Event Squads Linked (Led by this user)</h4>
-                <div id="info-squads" class="grid grid-cols-2 gap-2 text-sm text-slate-300">
-                    <!-- Populated by JS -->
+                <!-- Transactions History -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Transaction History</h4>
+                    <div class="overflow-y-auto max-h-48 pr-2 space-y-2 min-h-0" id="info-tx-body">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
-            </div>
 
-            <!-- Transactions History -->
-            <div class="mb-6">
-                <h4 class="text-xs font-bold text-slate-500 uppercase border-b border-slate-800 pb-1 mb-2">Transaction History</h4>
-                <div class="overflow-y-auto max-h-32 pr-2" id="info-tx-body">
-                    <!-- Populated by JS -->
+                <!-- Financials -->
+                <div class="bg-slate-950 p-4 rounded border border-slate-800 shrink-0">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Total Verified Payments</span>
+                        <span id="info-total" class="text-xl font-bold text-green-400">₹0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-800 pt-2">
+                        <span class="text-xs text-slate-500">Pending Amount</span>
+                        <span id="info-pending" class="text-sm font-bold text-red-400">₹0</span>
+                    </div>
+                    <div class="text-[10px] text-slate-600 mt-2 font-mono">Last UTR Ref: <span id="info-utr" class="select-all text-slate-400">---</span></div>
+                    <div id="info-fallback-screenshot"></div>
                 </div>
-            </div>
-
-            <!-- Financials -->
-            <div class="bg-slate-950 p-4 rounded border border-slate-800">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase">Total Verified Payments</span>
-                    <span id="info-total" class="text-xl font-bold text-green-400">₹0</span>
-                </div>
-                <div class="flex justify-between items-center border-t border-slate-800 pt-2">
-                    <span class="text-xs text-slate-500">Pending Amount</span>
-                    <span id="info-pending" class="text-sm font-bold text-red-400">₹0</span>
-                </div>
-                <div class="text-[10px] text-slate-600 mt-2 font-mono">Last UTR Ref: <span id="info-utr" class="select-all text-slate-400">---</span></div>
-                <div id="info-fallback-screenshot"></div>
             </div>
         </div>
     </div>
@@ -514,7 +529,7 @@
                     </div>
                 </div>
 
-                <!-- PASS INTELLIGENCE (NEW) -->
+                <!-- PASS INTELLIGENCE -->
                 <h3 class="text-xl font-bold text-white mb-4 mt-8">Pass Intelligence (Verified)</h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
                     <div class="card bg-slate-900 border-slate-700/50">
@@ -572,9 +587,9 @@
             <!-- VERIFICATION DESK -->
             <div id="tab-verification" class="hidden animate-in h-full">
                 <h2 class="text-2xl font-bold text-white mb-6">Payment Verification Desk</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
-                    <div class="card lg:col-span-1 p-0 flex flex-col overflow-hidden">
-                        <div class="p-4 border-b border-slate-700 bg-slate-800/50 space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh] min-h-[500px]">
+                    <div class="card lg:col-span-1 p-0 flex flex-col overflow-hidden h-full">
+                        <div class="p-4 border-b border-slate-700 bg-slate-800/50 space-y-4 shrink-0">
                             <div>
                                 <h3 class="font-bold text-white mb-2">Pending Requests</h3>
                                 <input type="text" id="search-pending" onkeyup="renderPendingQueue()" placeholder="Search Name, ID, or UTR..." class="w-full bg-black border border-slate-600 rounded p-2 text-white text-xs outline-none focus:border-green-500 transition-colors">
@@ -590,44 +605,49 @@
                                 <button onclick="processBankCSV()" class="bg-blue-600 text-white text-xs font-bold py-2 rounded hover:bg-blue-500 transition-colors w-full shadow-lg shadow-blue-900/30">RUN CSV MATCHER</button>
                             </div>
                         </div>
-                        <div id="pending-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        <div id="pending-list" class="flex-1 overflow-y-auto p-2 space-y-2 min-h-0"></div>
                     </div>
-                    <div class="card lg:col-span-2 p-0 flex flex-col bg-slate-900 overflow-hidden relative">
-                        <div id="verify-placeholder" class="flex flex-col items-center justify-center h-full text-slate-600">
+                    
+                    <div class="card lg:col-span-2 p-0 flex flex-col bg-slate-900 overflow-hidden relative h-full">
+                        <div id="verify-placeholder" class="flex flex-col items-center justify-center h-full text-slate-600 flex-1">
                             <i data-lucide="search" class="w-12 h-12 mb-4"></i>
                             <p>Select a transaction to verify</p>
                         </div>
-                        <div id="verify-detail" class="hidden flex-1 flex-col h-full animate-in">
-                            <div class="p-6 border-b border-slate-700 flex justify-between items-start bg-slate-800/30">
+                        
+                        <div id="verify-detail" class="hidden flex-1 flex flex-col h-full animate-in min-h-0">
+                            <!-- Header -->
+                            <div class="p-4 md:p-6 border-b border-slate-700 flex justify-between items-start bg-slate-800/30 shrink-0">
                                 <div>
-                                    <h2 class="text-2xl font-bold text-white" id="v-name">User Name</h2>
+                                    <h2 class="text-xl md:text-2xl font-bold text-white" id="v-name">User Name</h2>
                                     <p class="text-sm text-slate-400 font-mono" id="v-id">SPEC-------</p>
                                     <p class="text-xs text-blue-400 mt-1 uppercase font-bold" id="v-reason">Reason: Pass Purchase</p>
                                 </div>
                                 <div class="text-right flex flex-col items-end">
                                     <div class="flex items-center gap-2">
-                                        <p class="text-3xl font-bold text-green-400" id="v-amount">₹0</p>
+                                        <p class="text-2xl md:text-3xl font-bold text-green-400" id="v-amount">₹0</p>
                                         <button onclick="editVerificationAmount()" class="text-slate-500 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-1.5 rounded-full" title="Edit Amount"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
                                     </div>
                                     <p class="text-xs text-slate-500 font-mono mt-1">UTR: <span id="v-utr" class="text-white select-all">---</span></p>
                                 </div>
                             </div>
-                            <div class="flex-1 overflow-y-auto p-6 flex flex-col md:flex-row gap-4 bg-black/50">
-                                <div class="flex-1 border border-slate-700 rounded flex flex-col items-center justify-center p-2 relative bg-slate-950/50">
-                                    <span class="absolute top-2 left-2 bg-slate-900 text-[10px] px-2 py-1 rounded font-bold text-slate-400 uppercase tracking-widest z-10">Payment UTR Screenshot</span>
-                                    <img id="v-img" src="" class="max-h-full max-w-full object-contain" alt="Payment Screenshot">
-                                    <p id="v-no-img" class="hidden text-slate-500">No Screenshot Uploaded</p>
+                            
+                            <!-- Images Area -->
+                            <div class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col md:flex-row gap-4 bg-black/50 min-h-0">
+                                <div class="flex-1 border border-slate-700 rounded flex flex-col items-center justify-center p-2 relative bg-slate-950/50 min-h-[250px] md:min-h-0 h-64 md:h-auto overflow-hidden">
+                                    <span class="absolute top-2 left-2 bg-slate-900 text-[10px] px-2 py-1 rounded font-bold text-slate-400 uppercase tracking-widest z-10 shadow">Payment UTR Screenshot</span>
+                                    <img id="v-img" src="" class="w-full h-full object-contain" alt="Payment Screenshot">
+                                    <p id="v-no-img" class="hidden text-slate-500 text-xs">No Screenshot Uploaded</p>
                                 </div>
-                                <div class="flex-1 border border-slate-700 rounded flex flex-col items-center justify-center p-2 relative bg-slate-950/50">
-                                    <span class="absolute top-2 left-2 bg-slate-900 text-[10px] px-2 py-1 rounded font-bold text-slate-400 uppercase tracking-widest z-10">College ID Card</span>
-                                    <img id="v-id-img" src="" class="max-h-full max-w-full object-contain" alt="ID Card">
-                                    <p id="v-no-id-img" class="hidden text-slate-500">No ID Card Uploaded</p>
+                                <div class="flex-1 border border-slate-700 rounded flex flex-col items-center justify-center p-2 relative bg-slate-950/50 min-h-[250px] md:min-h-0 h-64 md:h-auto overflow-hidden">
+                                    <span class="absolute top-2 left-2 bg-slate-900 text-[10px] px-2 py-1 rounded font-bold text-slate-400 uppercase tracking-widest z-10 shadow">College ID Card</span>
+                                    <img id="v-id-img" src="" class="w-full h-full object-contain" alt="ID Card">
+                                    <p id="v-no-id-img" class="hidden text-slate-500 text-xs">No ID Card Uploaded</p>
                                 </div>
                             </div>
                             
                             <!-- ACTION PANEL -->
-                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex flex-col gap-3">
-                                <button onclick="requestWhatsApp()" class="w-full border border-green-600 text-green-500 hover:bg-green-900/30 py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                            <div class="p-4 border-t border-slate-700 bg-slate-900 flex flex-col gap-3 shrink-0">
+                                <button onclick="requestWhatsApp()" class="w-full border border-green-600 text-green-500 hover:bg-green-900/30 py-2 rounded font-bold text-xs flex items-center justify-center gap-2 transition-colors">
                                     <i data-lucide="message-circle" class="w-4 h-4"></i> Request Screenshot/ID (WhatsApp)
                                 </button>
                                 <div class="flex gap-4">
@@ -1101,7 +1121,10 @@
                     let eventsDisplay = "";
                     if (u.order && u.order.events && u.order.events.length > 0) {
                         eventsDisplay = `<div class="flex flex-wrap gap-1 mt-1">` + 
-                            u.order.events.map(e => `<span class="bg-blue-900/30 text-blue-400 border border-blue-800 text-[9px] px-1 rounded truncate max-w-[100px]" title="${e.title}">${e.title}</span>`).join('') + 
+                            u.order.events.map(e => {
+                                const cleanTitle = (e.title || "").replace(/"/g, '&quot;');
+                                return `<span class="bg-blue-900/30 text-blue-400 border border-blue-800 text-[9px] px-1 rounded truncate max-w-[100px]" title="${cleanTitle}">${cleanTitle}</span>`;
+                            }).join('') + 
                             `</div>`;
                     }
 
@@ -1171,7 +1194,10 @@
                     let eventsDisplay = "";
                     if (u.order && u.order.events && u.order.events.length > 0) {
                         eventsDisplay = `<div class="flex flex-wrap gap-1 mt-1">` + 
-                            u.order.events.map(e => `<span class="bg-emerald-900/30 text-emerald-400 border border-emerald-800 text-[9px] px-1 rounded truncate max-w-[100px]" title="${e.title}">${e.title}</span>`).join('') + 
+                            u.order.events.map(e => {
+                                const cleanTitle = (e.title || "").replace(/"/g, '&quot;');
+                                return `<span class="bg-emerald-900/30 text-emerald-400 border border-emerald-800 text-[9px] px-1 rounded truncate max-w-[100px]" title="${cleanTitle}">${cleanTitle}</span>`;
+                            }).join('') + 
                             `</div>`;
                     }
 
@@ -1440,7 +1466,7 @@
             if(u.idCardImage) { idImgEl.src = u.idCardImage; idImgEl.classList.remove('hidden'); noIdImgEl.classList.add('hidden'); } else { idImgEl.classList.add('hidden'); noIdImgEl.classList.remove('hidden'); }
         }
         
-        // --- NEW: EDIT VERIFICATION AMOUNT ---
+        // --- EDIT VERIFICATION AMOUNT ---
         function editVerificationAmount() {
             if(!activeVerifyKey) return;
             const u = allUsers.find(x => x.key === activeVerifyKey);
@@ -1617,9 +1643,204 @@
         
         function logout() { auth.signOut().then(() => window.location.reload()); }
 
-        // --- NUKE LOGIC ---
-        function openNukeModal() { document.getElementById('nuke-modal').classList.remove('hidden'); }
-        function closeNukeModal() { document.getElementById('nuke-modal').classList.add('hidden'); document.getElementById('nuke-pass').value = ''; }
+        // --- SAFE MODAL TOGGLES ---
+        function openEditUser(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+            document.getElementById('edit-key').value = key;
+            document.getElementById('edit-name').value = u.name || '';
+            document.getElementById('edit-id').value = u.spectrumId || '';
+            document.getElementById('edit-college').value = u.collegeName || '';
+            document.getElementById('edit-email').value = u.email || '';
+            document.getElementById('edit-phone').value = u.phone || '';
+            
+            document.getElementById('edit-pass').value = u.order?.pass || 'Visitor Access';
+            document.getElementById('edit-amount').value = u.order?.total || 0;
+            document.getElementById('edit-pay-status').value = u.paymentStatus || 'None';
+            
+            let eventIds = [];
+            if (u.order && u.order.events) eventIds = u.order.events.map(e => e.id);
+            document.getElementById('edit-events').value = eventIds.join(', ');
+
+            const m = document.getElementById('edit-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            const m = document.getElementById('edit-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function showUserDetails(key) {
+            const u = allUsers.find(x => x.key === key);
+            if(!u) return;
+
+            document.getElementById('info-name').innerText = u.name;
+            document.getElementById('info-id').innerText = u.spectrumId || 'NOT GENERATED';
+            document.getElementById('info-email').innerText = u.email;
+            document.getElementById('info-phone').innerText = u.phone || 'N/A';
+            document.getElementById('info-college').innerText = u.collegeName || 'N/A';
+            
+            if(u.emailVerified) document.getElementById('info-verified').classList.remove('hidden');
+            else document.getElementById('info-verified').classList.add('hidden');
+
+            document.getElementById('info-pass').innerText = u.order?.pass || 'None';
+            document.getElementById('info-checkin').innerText = u.checkedIn ? 'CHECKED IN' : 'NOT ARRIVED';
+            document.getElementById('info-checkin').className = `badge ${u.checkedIn ? 'badge-green' : 'badge-none'}`;
+            document.getElementById('info-payment').innerText = u.paymentStatus || 'None';
+            document.getElementById('info-payment').className = `badge ${u.paymentStatus==='Verified' ? 'badge-green' : 'badge-loading'}`;
+
+            const idCardImg = document.getElementById('info-id-card');
+            const noIdText = document.getElementById('info-no-id');
+            if (u.idCardImage) {
+                idCardImg.src = u.idCardImage;
+                idCardImg.classList.remove('hidden');
+                noIdText.classList.add('hidden');
+            } else {
+                idCardImg.classList.add('hidden');
+                noIdText.classList.remove('hidden');
+            }
+
+            const eventsList = document.getElementById('info-events-list');
+            eventsList.innerHTML = "";
+            let hasEvents = false;
+            
+            if (u.order && u.order.events && u.order.events.length > 0) {
+                hasEvents = true;
+                u.order.events.forEach(e => {
+                    eventsList.innerHTML += `<li class="bg-slate-800 px-3 py-2 rounded text-xs flex justify-between items-center border border-slate-700"><span class="text-white font-bold">${e.title}</span> <span class="text-green-400 font-mono">₹${e.price}</span></li>`;
+                });
+            }
+            
+            if (u.linked_events) {
+                hasEvents = true;
+                Object.values(u.linked_events).forEach(e => {
+                    eventsList.innerHTML += `<li class="bg-cyan-900/20 px-3 py-2 rounded text-xs flex justify-between items-center border border-cyan-500/30"><span class="text-white font-bold">${e.title}</span> <div class="text-right"><span class="text-[9px] text-cyan-400 block uppercase">Linked</span><span class="text-[8px] text-slate-500 font-mono">via ${e.leaderId}</span></div></li>`;
+                });
+            }
+            
+            if (!hasEvents) eventsList.innerHTML = '<li class="text-slate-500 italic text-xs">No specific events booked.</li>';
+
+            const squadContainer = document.getElementById('info-squads');
+            squadContainer.innerHTML = "";
+            if(u.squads) {
+                Object.entries(u.squads).forEach(([evtCode, members]) => {
+                    const eventName = eventDictionary[evtCode] || evtCode;
+                    squadContainer.innerHTML += `<div class="bg-slate-800 p-2 rounded border border-slate-700 col-span-2">
+                        <div class="font-bold text-white text-xs text-cyan-400">${eventName}</div>
+                        <div class="text-[10px] text-slate-300 mt-1 font-mono">${members.join(', ')}</div>
+                    </div>`;
+                });
+            } else {
+                squadContainer.innerHTML = '<span class="text-slate-500 italic col-span-2">No squads formed as leader.</span>';
+            }
+
+            const txBody = document.getElementById('info-tx-body');
+            txBody.innerHTML = "";
+
+            if(u.transactions) {
+                Object.values(u.transactions).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(tx => {
+                    // Safe string fallback for tx.status to prevent crash
+                    const safeStatus = tx.status || '';
+                    const statusColor = safeStatus === 'Verified' ? 'text-green-400' : (safeStatus.includes('Duplicate') ? 'text-slate-500' : (safeStatus === 'Pending' ? 'text-yellow-400' : 'text-red-400'));
+                    
+                    let screenshotHtml = '';
+                    if (tx.screenshot) {
+                        screenshotHtml = `<a href="${tx.screenshot}" target="_blank" class="text-cyan-400 hover:text-cyan-300 text-[10px] flex items-center gap-1 mt-1 transition-colors"><i data-lucide="external-link" class="w-3 h-3"></i> View Screenshot</a>`;
+                    }
+
+                    txBody.innerHTML += `<div class="bg-black/30 border border-slate-700/50 p-2 rounded mb-2 flex justify-between items-start">
+                        <div>
+                            <p class="text-white text-xs font-bold">${tx.reason || 'Payment'} <span class="text-slate-500 font-mono text-[10px] ml-1">UTR: ${tx.utr}</span></p>
+                            <p class="text-[9px] text-slate-400">${new Date(tx.timestamp).toLocaleString()}</p>
+                            ${screenshotHtml}
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p class="text-sm font-bold text-blue-400">₹${tx.amount}</p>
+                            <p class="${statusColor} text-[9px] uppercase font-bold tracking-widest">${safeStatus}</p>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                txBody.innerHTML = '<p class="p-2 text-center text-slate-500 italic text-xs">No transactions recorded.</p>';
+            }
+
+            let trueVerifiedTotal = 0;
+            if (u.paymentStatus === 'Verified') {
+                trueVerifiedTotal = parseInt(u.order?.total || 0);
+            } else if (u.paymentStatus === 'Pending') {
+                trueVerifiedTotal = parseInt(u.order?.total || 0) - parseInt(u.pendingAmount || 0);
+            }
+
+            document.getElementById('info-total').innerText = "₹" + trueVerifiedTotal;
+            document.getElementById('info-pending').innerText = "₹" + (u.pendingAmount || 0);
+            document.getElementById('info-utr').innerText = u.utr || 'N/A';
+
+            const fallbackEl = document.getElementById('info-fallback-screenshot');
+            if (u.paymentScreenshot) {
+                fallbackEl.innerHTML = `<div class="mt-3 pt-3 border-t border-slate-800"><a href="${u.paymentScreenshot}" target="_blank" class="text-cyan-400 hover:text-cyan-300 text-[10px] flex items-center gap-1 transition-colors font-bold uppercase tracking-widest"><i data-lucide="image" class="w-3 h-3"></i> View Legacy Screenshot</a></div>`;
+            } else {
+                fallbackEl.innerHTML = "";
+            }
+
+            const btnWa = document.getElementById('btn-wa-verified');
+            if (u.paymentStatus === 'Verified') {
+                btnWa.classList.remove('hidden');
+                btnWa.classList.add('flex');
+                btnWa.onclick = () => sendWelcomeWhatsApp(u);
+            } else {
+                btnWa.classList.add('hidden');
+                btnWa.classList.remove('flex');
+            }
+
+            const m = document.getElementById('info-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            lucide.createIcons(); // Force re-render icons for dynamic content
+        }
+
+        function closeInfoModal() {
+            const m = document.getElementById('info-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function editSquad(eventId, captainKey) {
+            activeSquadEdit = { eventId, captKey: captainKey, members: [] };
+            const captain = allUsers.find(u => u.key === captainKey);
+            const eventName = eventDictionary[eventId] || `Event ${eventId}`;
+            
+            document.getElementById('se-event-name').innerText = eventName;
+            document.getElementById('se-capt-name').innerText = captain.name;
+            document.getElementById('se-capt-id').innerText = captain.spectrumId;
+            
+            refreshSquadEditModal();
+            const m = document.getElementById('squad-edit-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeSquadEditModal() {
+            const m = document.getElementById('squad-edit-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+            document.getElementById('se-add-id').value = '';
+        }
+
+        function openNukeModal() { 
+            const m = document.getElementById('nuke-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeNukeModal() { 
+            const m = document.getElementById('nuke-modal');
+            m.classList.add('hidden'); 
+            m.classList.remove('flex');
+            document.getElementById('nuke-pass').value = ''; 
+        }
         
         async function confirmNuke() {
             const pass = document.getElementById('nuke-pass').value;
