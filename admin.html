@@ -763,14 +763,45 @@
                 <h2 class="text-2xl font-bold text-white mb-6">Promo Codes</h2>
                 <div class="card mb-8">
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div><label class="text-xs text-slate-400 block mb-1">Code</label><input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Discount</label><input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Type</label><select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"><option value="flat">Flat ₹</option><option value="percent">%</option></select></div>
-                        <div><label class="text-xs text-slate-400 block mb-1">Limit</label><input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm"></div>
-                        <button onclick="createPromo()" class="bg-pink-600 text-white px-4 py-2 rounded text-sm font-bold">Create</button>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Code</label>
+                            <input id="p-code" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Discount</label>
+                            <input id="p-val" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Type</label>
+                            <select id="p-type" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm">
+                                <option value="flat">Flat ₹</option>
+                                <option value="percent">%</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">Limit</label>
+                            <input id="p-limit" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white text-sm" placeholder="100">
+                        </div>
+                        <button onclick="createPromo(this)" class="bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded text-sm font-bold transition-colors shadow-lg">
+                            Create
+                        </button>
                     </div>
                 </div>
-                <div class="card p-0"><table class="w-full"><thead><tr><th>Code</th><th>Discount</th><th>Usage</th><th>Action</th></tr></thead><tbody id="promo-body"></tbody></table></div>
+                <div class="card p-0">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-950 text-gray-500 uppercase font-mono">
+                            <tr>
+                                <th class="p-4">Code</th>
+                                <th class="p-4">Discount</th>
+                                <th class="p-4">Usage</th>
+                                <th class="p-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promo-body" class="divide-y divide-zinc-800">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Updates & TV Control -->
@@ -1033,10 +1064,23 @@
                 document.getElementById('upi-3').value = upis[2] ? upis[2].trim() : '';
                 document.getElementById('admin-backup').value = c.backup_url || ""; 
             }, reportError);
+            
+            // --- NEW: PROMO CODE LISTENER WITH SAFETY AND FALLBACK ---
             db.ref('promos').on('value', snap => { 
                 const b = document.getElementById('promo-body'); 
                 let html = ""; 
-                if(snap.val()) Object.entries(snap.val()).forEach(([k,v]) => { html += `<tr><td class="text-white font-bold">${k}</td><td class="text-pink-400">${v.discount}</td><td>${v.used}/${v.limit}</td><td><button onclick="db.ref('promos/${k}').remove()" class="text-red-500"><i data-lucide="trash" class="w-4"></i></button></td></tr>`; }); 
+                if(snap.val()) {
+                    Object.entries(snap.val()).forEach(([k,v]) => { 
+                        html += `<tr>
+                            <td class="p-4 font-bold text-white tracking-widest">${k}</td>
+                            <td class="p-4 text-pink-400 font-bold">${v.type === 'percent' ? v.discount + '%' : '₹' + v.discount}</td>
+                            <td class="p-4 text-slate-400 font-mono">${v.used} / ${v.limit}</td>
+                            <td class="p-4"><button onclick="deletePromo('${k}')" class="text-red-500 hover:text-white p-1 rounded bg-red-900/20 hover:bg-red-900 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                        </tr>`; 
+                    }); 
+                } else {
+                    html = `<tr><td colspan="4" class="text-center text-slate-500 py-4">No Active Promo Codes.</td></tr>`;
+                }
                 b.innerHTML = html;
                 lucide.createIcons(); 
             }, reportError);
@@ -1076,6 +1120,48 @@
             db.ref('users').limitToFirst(1).once('value')
                 .then(() => alert(log + "2. Users Read: SUCCESS ✅\n\nSystem seems healthy."))
                 .catch(e => alert(log + "2. Users Read: FAILED ❌\nError: " + e.message + "\n\nFIX: Add '.read': 'auth != null' to 'users' node in Rules."));
+        }
+
+        // --- NEW: SAFE PROMO CODE FUNCTIONS ---
+        function createPromo(btn) {
+            let codeRaw = document.getElementById('p-code').value.toUpperCase().trim();
+            // Crucial: Remove special characters that crash Firebase Realtime Database
+            const code = codeRaw.replace(/[^A-Z0-9_]/g, ''); 
+            
+            const val = document.getElementById('p-val').value;
+            const type = document.getElementById('p-type').value;
+            const limit = document.getElementById('p-limit').value;
+            
+            if(!code || !val) return alert("Code and Discount Value are required");
+            if (code !== codeRaw) alert("Note: Special characters (like ., #, $) were removed from the promo code to ensure database stability.");
+
+            const origText = btn.innerText;
+            btn.innerText = "Wait...";
+            btn.disabled = true;
+            
+            db.ref('promos/' + code).set({ 
+                discount: parseInt(val), 
+                type: type, 
+                limit: parseInt(limit) || 100, 
+                used: 0 
+            }).then(() => { 
+                alert(`Promo Code [${code}] Created Successfully!`); 
+                document.getElementById('p-code').value = ""; 
+                document.getElementById('p-val').value = "";
+                document.getElementById('p-limit').value = "";
+            }).catch(e => {
+                alert("Database Error: " + e.message);
+            }).finally(() => {
+                btn.innerText = origText;
+                btn.disabled = false;
+            });
+        }
+
+        function deletePromo(code) {
+            if(confirm(`Are you sure you want to delete promo code: ${code}?`)) {
+                db.ref('promos/' + code).remove()
+                    .catch(e => alert("Error deleting promo: " + e.message));
+            }
         }
 
         // --- HELPER RENDERS ---
@@ -1384,7 +1470,7 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // --- NEW: AUTO BANK CSV MATCHER ---
+        // --- AUTO BANK CSV MATCHER ---
         function processBankCSV() {
             const fileInput = document.getElementById('bank-csv-file');
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -1618,14 +1704,12 @@
                  allTransactions.forEach(t => csv += `"${t.dateStr}","${t.user || ''}","${t.type}","${t.amount}","${t.status}"\n`);
                  filename = "Finance.csv";
             } else if (type === 'college_report') {
-                 // --- THE PERFECT COLLEGE REPORT GENERATOR ---
                  csv = "Name,Spectrum ID,College,Phone,Pass Type,Exact Amount Paid,Status\n";
                  allUsers.forEach(u => {
                      let verifiedTotal = 0;
                      if (u.paymentStatus === 'Verified') verifiedTotal = parseInt(u.order?.total || 0);
                      else if (u.paymentStatus === 'Pending') verifiedTotal = parseInt(u.order?.total || 0) - parseInt(u.pendingAmount || 0);
                      
-                     // Only include people who actually paid money
                      if (verifiedTotal > 0) {
                          csv += `"${u.name || ''}","${u.spectrumId || ''}","${u.collegeName || ''}","${u.phone || ''}","${u.order?.pass || 'Events Only'}","₹${verifiedTotal}","Verified"\n`;
                      }
